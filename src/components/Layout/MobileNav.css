@@ -63,4 +63,11 @@
   .mobile-nav-label {
     transition: color var(--duration-fast) var(--ease-out);
   }
+
+  .mobile-logout-item {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
 }
+

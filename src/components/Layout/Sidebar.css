@@ -192,9 +192,22 @@
   width: 34px;
   height: 34px;
   border-radius: var(--radius-full);
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
+  background: var(--gradient-primary);
+  color: #ffffff;
   flex-shrink: 0;
+  overflow: hidden;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-initial {
+  text-transform: uppercase;
 }
 
 .sidebar-user-info {
@@ -202,6 +215,7 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  flex: 1;
 }
 
 .sidebar-user-name {
@@ -218,6 +232,32 @@
   color: var(--color-success);
   font-weight: var(--weight-medium);
 }
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-logout-btn:hover {
+  background: rgba(235, 87, 87, 0.12);
+  color: #eb5757;
+}
+
+.sidebar.collapsed .sidebar-logout-btn {
+  display: none;
+}
+
 
 /* --- Collapsed Mode Adjustments --- */
 .sidebar.collapsed .sidebar-nav {

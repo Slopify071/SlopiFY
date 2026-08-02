@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import './Sidebar.css'
 
 const NAV_ITEMS = [
@@ -41,6 +42,11 @@ const NAV_ITEMS = [
 ]
 
 export default function Sidebar({ collapsed, onToggleCollapse }) {
+  const { user, logout } = useAuth()
+
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Friend'
+  const initial = displayName.charAt(0).toUpperCase()
+
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       {/* Logo / Header */}
@@ -120,19 +126,32 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
 
       {/* Footer / User */}
       <div className="sidebar-footer">
-        <div className="sidebar-user" title={collapsed ? 'Demo User (Online)' : undefined}>
+        <div className="sidebar-user" title={collapsed ? `${displayName} (Click to Sign Out)` : undefined}>
           <div className="sidebar-user-avatar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt={displayName} className="user-avatar-img" />
+            ) : (
+              <span className="user-initial">{initial}</span>
+            )}
           </div>
           {!collapsed && (
             <div className="sidebar-user-info">
-              <span className="sidebar-user-name">Demo User</span>
+              <span className="sidebar-user-name">{displayName}</span>
               <span className="sidebar-user-status">Online</span>
             </div>
           )}
+          <button
+            className="sidebar-logout-btn"
+            onClick={logout}
+            title="Sign Out"
+            aria-label="Sign Out"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16,17 21,12 16,7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
