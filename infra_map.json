@@ -3,13 +3,13 @@
   "project": {
     "name": "SlopiFY",
     "description": "Private, lightweight music streaming web application for friends (100% free tier architecture).",
-    "version": "0.1.0",
-    "last_updated": "2026-08-02T15:08:42+05:30",
+    "version": "0.2.0",
+    "last_updated": "2026-08-02T15:44:00+05:30",
     "repository": "https://github.com/shreyanshh071-arch/SlopiFY.git"
   },
   "current_phase": {
-    "id": 1,
-    "name": "UI & Mobile Layout Foundation",
+    "id": 2,
+    "name": "Firebase Authentication & User Profiles",
     "status": "completed"
   },
   "phases": [
@@ -32,13 +32,16 @@
     {
       "id": 2,
       "name": "Firebase Authentication & User Profiles",
-      "status": "pending",
-      "planned_deliverables": [
-        "Firebase SDK initialization (`src/config/firebase.js`)",
-        "Google Sign-In integration via Firebase Auth (`signInWithPopup`)",
-        "Global AuthContext & hook (`useAuth`)",
-        "User document auto-creation in Firestore `users/{userId}` collection",
-        "Route protection & auth state persistence"
+      "status": "completed",
+      "completed_date": "2026-08-02",
+      "deliverables": [
+        "Firebase SDK initialization (`src/config/firebase.js`) with demo fallback support",
+        "Google Sign-In & Email/Password Authentication via Firebase Auth",
+        "Global AuthContext & hook (`useAuth`) (`src/context/AuthContext.jsx`)",
+        "User profile & storage meta auto-creation in Firestore `users/{userId}` collection",
+        "Firestore helper service module (`src/services/firestore.js`)",
+        "Interactive Login UI with tab switching, error alerts, and demo mode indicator",
+        "Sidebar & MobileNav integration with user profile avatar, display name, and Logout button"
       ]
     },
     {
@@ -96,8 +99,11 @@
     "authentication": {
       "provider": "Firebase Auth",
       "tier": "Spark (Free)",
-      "methods": ["Google Sign-In"],
-      "status": "pending_integration"
+      "methods": [
+        "Google Sign-In",
+        "Email/Password"
+      ],
+      "status": "configured"
     },
     "database": {
       "provider": "Firebase Firestore",
@@ -108,22 +114,44 @@
         "playlists",
         "storage_meta"
       ],
-      "status": "pending_integration"
+      "status": "configured"
     },
     "object_storage": {
       "provider": "Cloudflare R2",
       "tier": "Free (10GB / 0$ egress)",
-      "allowed_formats": [".mp3", ".m4a", ".wav", ".ogg", ".flac"],
+      "allowed_formats": [
+        ".mp3",
+        ".m4a",
+        ".wav",
+        ".ogg",
+        ".flac"
+      ],
       "status": "pending_integration"
     },
     "api_worker": {
       "provider": "Cloudflare Workers",
       "tier": "Free (100K requests/day)",
       "endpoints": [
-        { "method": "POST", "path": "/api/upload", "description": "Pre-signed audio upload handler" },
-        { "method": "GET", "path": "/api/audio/:r2Key", "description": "Audio streaming with HTTP Range headers" },
-        { "method": "DELETE", "path": "/api/audio/:r2Key", "description": "Remove audio from R2" },
-        { "method": "GET", "path": "/api/storage-info", "description": "Global storage usage lookup" }
+        {
+          "method": "POST",
+          "path": "/api/upload",
+          "description": "Pre-signed audio upload handler"
+        },
+        {
+          "method": "GET",
+          "path": "/api/audio/:r2Key",
+          "description": "Audio streaming with HTTP Range headers"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/audio/:r2Key",
+          "description": "Remove audio from R2"
+        },
+        {
+          "method": "GET",
+          "path": "/api/storage-info",
+          "description": "Global storage usage lookup"
+        }
       ],
       "status": "pending_integration"
     }
@@ -147,7 +175,19 @@
     "entry": "index.html",
     "main": "src/main.jsx",
     "app_router": "src/App.jsx",
-    "global_css": ["src/index.css", "src/App.css"],
+    "global_css": [
+      "src/index.css",
+      "src/App.css"
+    ],
+    "config": [
+      "src/config/firebase.js"
+    ],
+    "context": [
+      "src/context/AuthContext.jsx"
+    ],
+    "services": [
+      "src/services/firestore.js"
+    ],
     "layout_components": [
       "src/components/Layout/AppShell.jsx",
       "src/components/Layout/Sidebar.jsx",
