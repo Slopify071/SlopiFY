@@ -1,0 +1,12 @@
+name = "slopify-worker"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Cloudflare R2 Bucket Binding
+[[r2_buckets]]
+binding = "SLOPIFY_AUDIO_BUCKET"
+bucket_name = "slopify-audio"
+
+# Environment Variables
+[vars]
+CORS_ORIGIN = "*"

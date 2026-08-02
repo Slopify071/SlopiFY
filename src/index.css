@@ -9,54 +9,54 @@
 
 /* --- CSS Custom Properties (Design Tokens) --- */
 :root {
-  /* Colors — Primary Accent (Purple-Blue Gradient) */
-  --color-primary: #6C5CE7;
-  --color-primary-light: #A29BFE;
-  --color-primary-dark: #5A4BD1;
-  --color-primary-subtle: rgba(108, 92, 231, 0.08);
-  --color-primary-hover: rgba(108, 92, 231, 0.12);
+  /* Colors — Primary Accent (Minimalist Dark Charcoal) */
+  --color-primary: #0F172A;
+  --color-primary-light: #334155;
+  --color-primary-dark: #020617;
+  --color-primary-subtle: #F1F5F9;
+  --color-primary-hover: rgba(15, 23, 42, 0.06);
 
-  /* Gradient Accents */
-  --gradient-primary: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%);
-  --gradient-warm: linear-gradient(135deg, #FD79A8 0%, #FDCB6E 100%);
-  --gradient-cool: linear-gradient(135deg, #0984E3 0%, #6C5CE7 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 100%);
+  /* Minimalist Accents */
+  --gradient-primary: #0F172A;
+  --gradient-warm: #334155;
+  --gradient-cool: #0F172A;
+  --gradient-glass: #FFFFFF;
 
   /* Neutral Palette */
-  --color-bg: #FAFAFA;
+  --color-bg: #FAFAFC;
   --color-bg-elevated: #FFFFFF;
-  --color-bg-hover: #F5F5F7;
-  --color-bg-active: #EDEDF0;
+  --color-bg-hover: #F1F5F9;
+  --color-bg-active: #E2E8F0;
   --color-surface: #FFFFFF;
-  --color-surface-secondary: #F8F8FA;
+  --color-surface-secondary: #F8FAFC;
 
-  /* Text */
-  --color-text-primary: #1A1A2E;
-  --color-text-secondary: #6B7280;
-  --color-text-tertiary: #9CA3AF;
+  /* Text System (High Contrast) */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #334155;
+  --color-text-tertiary: #64748B;
   --color-text-inverse: #FFFFFF;
-  --color-text-accent: #6C5CE7;
+  --color-text-accent: #0F172A;
 
   /* Borders & Dividers */
-  --color-border: #E5E7EB;
-  --color-border-light: #F0F0F3;
-  --color-border-focus: #6C5CE7;
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+  --color-border-focus: #0F172A;
 
   /* Semantic Colors */
-  --color-success: #00B894;
-  --color-warning: #FDCB6E;
-  --color-error: #E17055;
-  --color-info: #0984E3;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.10);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 24px rgba(108, 92, 231, 0.20);
-  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.10);
+  /* Flat Minimalist Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.08);
+  --shadow-glow: none;
+  --shadow-card: none;
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   /* Typography */
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

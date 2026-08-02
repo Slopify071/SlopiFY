@@ -1,0 +1,15 @@
+{
+  "name": "slopify-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker microservice for SlopiFY - R2 Audio upload, HTTP range streaming, and deletion",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

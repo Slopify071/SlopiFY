@@ -1,14 +1,56 @@
 import './Library.css'
 
 export default function Library() {
-  // Placeholder demo data — Phase 4 will wire up Firestore real-time listener
+  // Demo library songs with artwork
   const songs = [
-    { id: '1', title: 'Midnight City', artist: 'M83', album: 'Hurry Up, We\'re Dreaming', duration: 243 },
-    { id: '2', title: 'Redbone', artist: 'Childish Gambino', album: 'Awaken, My Love!', duration: 327 },
-    { id: '3', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', duration: 200 },
-    { id: '4', title: 'Tadow', artist: 'Masego & FKJ', album: 'Tadow', duration: 295 },
-    { id: '5', title: 'Electric Feel', artist: 'MGMT', album: 'Oracular Spectacular', duration: 228 },
-    { id: '6', title: 'Ivy', artist: 'Frank Ocean', album: 'Blonde', duration: 249 },
+    {
+      id: '1',
+      title: 'Midnight City',
+      artist: 'M83',
+      album: 'Hurry Up, We\'re Dreaming',
+      duration: 243,
+      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&auto=format&fit=crop&q=80',
+    },
+    {
+      id: '2',
+      title: 'Redbone',
+      artist: 'Childish Gambino',
+      album: 'Awaken, My Love!',
+      duration: 327,
+      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop&q=80',
+    },
+    {
+      id: '3',
+      title: 'Blinding Lights',
+      artist: 'The Weeknd',
+      album: 'After Hours',
+      duration: 200,
+      coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&auto=format&fit=crop&q=80',
+    },
+    {
+      id: '4',
+      title: 'Tadow',
+      artist: 'Masego & FKJ',
+      album: 'Tadow',
+      duration: 295,
+      coverUrl: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=200&auto=format&fit=crop&q=80',
+    },
+    {
+      id: '5',
+      title: 'Electric Feel',
+      artist: 'MGMT',
+      album: 'Oracular Spectacular',
+      duration: 228,
+      coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=200&auto=format&fit=crop&q=80',
+    },
+    {
+      id: '6',
+      title: 'Ivy',
+      artist: 'Frank Ocean',
+      album: 'Blonde',
+      duration: 249,
+      coverUrl: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=200&auto=format&fit=crop&q=80',
+    },
   ]
 
   const totalStorageUsed = 2.3 // GB placeholder
@@ -70,13 +112,17 @@ export default function Library() {
           >
             <div className="library-song-index">{index + 1}</div>
             <div className="library-song-cover">
-              <div className="library-song-cover-placeholder">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 18V5l12-2v13" />
-                  <circle cx="6" cy="18" r="3" />
-                  <circle cx="18" cy="16" r="3" />
-                </svg>
-              </div>
+              {song.coverUrl ? (
+                <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" />
+              ) : (
+                <div className="library-song-cover-placeholder">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                </div>
+              )}
               <div className="library-song-play-overlay">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z" />

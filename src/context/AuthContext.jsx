@@ -20,9 +20,43 @@ export const useAuth = () => {
   return context
 }
 
+// Try to restore cached user so refreshes are instant (no loading spinner)
+function getCachedUser() {
+  try {
+    const cached = sessionStorage.getItem('slopify_cached_user')
+    if (cached) return JSON.parse(cached)
+  } catch { /* ignore */ }
+  // Also check demo user in localStorage
+  try {
+    const demo = localStorage.getItem('slopify_demo_user')
+    if (demo) return JSON.parse(demo)
+  } catch { /* ignore */ }
+  return null
+}
+
+function cacheUser(u) {
+  try {
+    if (u) {
+      // Only cache serialisable fields (Firebase User objects have methods)
+      const slim = {
+        uid: u.uid,
+        displayName: u.displayName,
+        email: u.email,
+        photoURL: u.photoURL,
+        isDemo: u.isDemo || false,
+      }
+      sessionStorage.setItem('slopify_cached_user', JSON.stringify(slim))
+    } else {
+      sessionStorage.removeItem('slopify_cached_user')
+    }
+  } catch { /* ignore */ }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const cachedUser = getCachedUser()
+  // If we have a cached user, skip the loading screen entirely
+  const [user, setUser] = useState(cachedUser)
+  const [loading, setLoading] = useState(!cachedUser)
   const [authError, setAuthError] = useState(null)
 
   // Listen to Firebase Auth state changes
@@ -32,26 +66,53 @@ export function AuthProvider({ children }) {
       const demoUser = localStorage.getItem('slopify_demo_user')
       if (demoUser) {
         try {
-          setUser(JSON.parse(demoUser))
+          const parsed = JSON.parse(demoUser)
+          setUser(parsed)
+          cacheUser(parsed)
         } catch {
           setUser(null)
+          cacheUser(null)
         }
       }
       setLoading(false)
       return
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser)
-        await syncUser(currentUser)
-      } else {
-        setUser(null)
-      }
+    // Safety fallback timer so loading screen never hangs infinitely
+    const fallbackTimer = setTimeout(() => {
       setLoading(false)
-    })
+    }, 2500)
 
-    return () => unsubscribe()
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (currentUser) => {
+        clearTimeout(fallbackTimer)
+        try {
+          if (currentUser) {
+            setUser(currentUser)
+            cacheUser(currentUser)
+            await syncUser(currentUser)
+          } else {
+            setUser(null)
+            cacheUser(null)
+          }
+        } catch (err) {
+          console.error('Auth state change error:', err)
+        } finally {
+          setLoading(false)
+        }
+      },
+      (error) => {
+        console.error('Firebase Auth state error:', error)
+        clearTimeout(fallbackTimer)
+        setLoading(false)
+      }
+    )
+
+    return () => {
+      clearTimeout(fallbackTimer)
+      unsubscribe()
+    }
   }, [])
 
   // 1. Google Sign-In
@@ -179,6 +240,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     setAuthError(null)
     localStorage.removeItem('slopify_demo_user')
+    cacheUser(null)
     if (isFirebaseConfigured && auth) {
       try {
         await firebaseSignOut(auth)

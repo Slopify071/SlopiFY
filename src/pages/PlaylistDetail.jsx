@@ -4,19 +4,20 @@ import './PlaylistDetail.css'
 export default function PlaylistDetail() {
   const { id } = useParams()
 
-  // Placeholder — Phase 6 will wire up Firestore
+  // Placeholder with cover artwork
   const playlist = {
     name: 'Late Night Vibes',
     description: 'Chill tracks for those 2am coding sessions',
     ownerName: 'Demo User',
     songCount: 4,
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
     isShared: false,
     isCollaborative: false,
     songs: [
-      { id: '1', title: 'Midnight City', artist: 'M83', duration: 243 },
-      { id: '2', title: 'Tadow', artist: 'Masego & FKJ', duration: 295 },
-      { id: '3', title: 'Redbone', artist: 'Childish Gambino', duration: 327 },
-      { id: '6', title: 'Ivy', artist: 'Frank Ocean', duration: 249 },
+      { id: '1', title: 'Midnight City', artist: 'M83', duration: 243, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&auto=format&fit=crop&q=80' },
+      { id: '2', title: 'Tadow', artist: 'Masego & FKJ', duration: 295, coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80' },
+      { id: '3', title: 'Redbone', artist: 'Childish Gambino', duration: 327, coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&auto=format&fit=crop&q=80' },
+      { id: '6', title: 'Ivy', artist: 'Frank Ocean', duration: 249, coverUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300&auto=format&fit=crop&q=80' },
     ],
   }
 
@@ -31,13 +32,17 @@ export default function PlaylistDetail() {
       {/* Playlist Header */}
       <div className="playlist-detail-header animate-fade-in-up">
         <div className="playlist-detail-cover">
-          <div className="playlist-detail-cover-placeholder">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-            </svg>
-          </div>
+          {playlist.coverUrl ? (
+            <img src={playlist.coverUrl} alt={playlist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div className="playlist-detail-cover-placeholder">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </div>
+          )}
         </div>
         <div className="playlist-detail-info">
           <span className="playlist-detail-type">Playlist</span>
@@ -82,13 +87,17 @@ export default function PlaylistDetail() {
           >
             <div className="playlist-detail-song-index">{index + 1}</div>
             <div className="playlist-detail-song-cover">
-              <div className="library-song-cover-placeholder">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 18V5l12-2v13" />
-                  <circle cx="6" cy="18" r="3" />
-                  <circle cx="18" cy="16" r="3" />
-                </svg>
-              </div>
+              {song.coverUrl ? (
+                <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" />
+              ) : (
+                <div className="library-song-cover-placeholder">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                </div>
+              )}
             </div>
             <div className="playlist-detail-song-info">
               <span className="playlist-detail-song-title truncate">{song.title}</span>

@@ -17,24 +17,29 @@ export async function syncUser(user) {
   if (!isFirebaseConfigured || !db || !user?.uid) return null
 
   try {
-    const userRef = doc(db, 'users', user.uid)
-    const userDoc = await getDoc(userRef)
+    const syncWork = async () => {
+      const userRef = doc(db, 'users', user.uid)
+      const userDoc = await getDoc(userRef)
 
-    const payload = {
-      uid: user.uid,
-      displayName: user.displayName || user.email?.split('@')[0] || 'Friend',
-      email: user.email || null,
-      photoURL: user.photoURL || null,
-      lastSeen: serverTimestamp(),
+      const payload = {
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'Friend',
+        email: user.email || null,
+        photoURL: user.photoURL || null,
+        lastSeen: serverTimestamp(),
+      }
+
+      if (!userDoc.exists()) {
+        payload.createdAt = serverTimestamp()
+        payload.role = 'user'
+      }
+
+      await setDoc(userRef, payload, { merge: true })
+      return payload
     }
 
-    if (!userDoc.exists()) {
-      payload.createdAt = serverTimestamp()
-      payload.role = 'user'
-    }
-
-    await setDoc(userRef, payload, { merge: true })
-    return payload
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2500))
+    return await Promise.race([syncWork(), timeout])
   } catch (error) {
     console.error('Error syncing user to Firestore:', error)
     return null
@@ -136,3 +141,51 @@ export function subscribeToStorageMeta(onNext, onError) {
     return () => {}
   }
 }
+
+/**
+ * Save new uploaded song metadata to Firestore `songs` collection
+ * and atomically increment global storage metrics.
+ */
+export async function addSongToFirestore(songData) {
+  if (!isFirebaseConfigured || !db) {
+    console.warn('Firebase not configured. Song metadata saved in mock mode.')
+    return 'mock_song_' + Date.now()
+  }
+
+  try {
+    const { addDoc, increment } = await import('firebase/firestore')
+    const songsRef = collection(db, 'songs')
+    
+    const docRef = await addDoc(songsRef, {
+      title: songData.title || 'Untitled',
+      artist: songData.artist || 'Unknown Artist',
+      album: songData.album || '',
+      duration: songData.duration || 0,
+      r2Key: songData.r2Key || '',
+      audioUrl: songData.audioUrl || '',
+      coverUrl: songData.coverUrl || '',
+      fileSize: songData.fileSize || 0,
+      uploaderUid: songData.uploaderUid || 'anonymous',
+      uploaderName: songData.uploaderName || 'Friend',
+      uploadedAt: serverTimestamp(),
+    })
+
+    // Increment global storage tracking
+    const metaRef = doc(db, 'storage_meta', 'global')
+    await setDoc(
+      metaRef,
+      {
+        totalBytesUsed: increment(songData.fileSize || 0),
+        songCount: increment(1),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    )
+
+    return docRef.id
+  } catch (err) {
+    console.error('Error writing song to Firestore:', err)
+    throw err
+  }
+}
+

@@ -2,11 +2,29 @@ import { Link } from 'react-router-dom'
 import './Playlists.css'
 
 export default function Playlists() {
-  // Placeholder demo data — Phase 6 will wire up Firestore
+  // Demo playlist data
   const playlists = [
-    { id: 'vibe1', name: 'Late Night Vibes', songCount: 12, isCollaborative: false },
-    { id: 'vibe2', name: 'Morning Coffee', songCount: 8, isCollaborative: true },
-    { id: 'vibe3', name: 'Road Trip Bangers', songCount: 24, isCollaborative: false },
+    {
+      id: 'vibe1',
+      name: 'Late Night Vibes',
+      songCount: 12,
+      isCollaborative: false,
+      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 'vibe2',
+      name: 'Morning Coffee',
+      songCount: 8,
+      isCollaborative: true,
+      coverUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 'vibe3',
+      name: 'Road Trip Bangers',
+      songCount: 24,
+      isCollaborative: false,
+      coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&auto=format&fit=crop&q=80',
+    },
   ]
 
   return (
@@ -37,13 +55,17 @@ export default function Playlists() {
             style={{ animationDelay: `${index * 80}ms` }}
           >
             <div className="playlist-card-cover">
-              <div className="playlist-card-cover-placeholder">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18V5l12-2v13" />
-                  <circle cx="6" cy="18" r="3" />
-                  <circle cx="18" cy="16" r="3" />
-                </svg>
-              </div>
+              {playlist.coverUrl ? (
+                <img src={playlist.coverUrl} alt={playlist.name} className="playlist-card-cover-img" />
+              ) : (
+                <div className="playlist-card-cover-placeholder">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                </div>
+              )}
             </div>
             <div className="playlist-card-info">
               <h3 className="playlist-card-name truncate">{playlist.name}</h3>
