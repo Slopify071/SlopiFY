@@ -1,0 +1,170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "project": {
+    "name": "SlopiFY",
+    "description": "Private, lightweight music streaming web application for friends (100% free tier architecture).",
+    "version": "0.1.0",
+    "last_updated": "2026-08-02T15:08:42+05:30",
+    "repository": "https://github.com/shreyanshh071-arch/SlopiFY.git"
+  },
+  "current_phase": {
+    "id": 1,
+    "name": "UI & Mobile Layout Foundation",
+    "status": "completed"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "name": "UI & Mobile Layout Foundation",
+      "status": "completed",
+      "completed_date": "2026-08-02",
+      "deliverables": [
+        "React 18 + Vite SPA setup with React Router v6",
+        "Custom Vanilla CSS3 Design System with HSL tokens, animations, and typography",
+        "AppShell component with collapsible desktop sidebar & fixed mobile navigation bar",
+        "Sticky/fixed bottom audio player component with responsive controls",
+        "Library page with storage bar, search filtering, and song list row grid",
+        "Upload page with drag-and-drop dropzone & metadata edit form",
+        "Playlists overview grid & Playlist detail page structure",
+        "Mobile layout optimization (fixed bottom bars, safe-area-inset, responsive song row grid)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Firebase Authentication & User Profiles",
+      "status": "pending",
+      "planned_deliverables": [
+        "Firebase SDK initialization (`src/config/firebase.js`)",
+        "Google Sign-In integration via Firebase Auth (`signInWithPopup`)",
+        "Global AuthContext & hook (`useAuth`)",
+        "User document auto-creation in Firestore `users/{userId}` collection",
+        "Route protection & auth state persistence"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Cloudflare R2 & Worker Storage API",
+      "status": "pending",
+      "planned_deliverables": [
+        "Cloudflare Worker API deployment for pre-signed upload URLs and R2 proxy",
+        "HTTP Range request support (`GET /api/audio/:r2Key`) for seeking",
+        "Client-side ID3 metadata parsing with `music-metadata-browser`",
+        "Audio file upload to R2 and global storage meter calculation"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Real-time Firestore Sync & Player Context",
+      "status": "pending",
+      "planned_deliverables": [
+        "Real-time Firestore listener for `songs` collection",
+        "Global `PlayerContext` HTML5 Audio engine (play, pause, seek, volume, FIFO queue)",
+        "Cross-device playback session sync (`users/{userId}/session/current`)",
+        "Navigator MediaSession API integration for native lockscreen controls"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Playlists & Sharing System",
+      "status": "pending",
+      "planned_deliverables": [
+        "Firestore `playlists` CRUD operations",
+        "Unique shareable link generation (`/playlist/:shareCode`)",
+        "Collaborative playlist edit modes",
+        "Touch & mouse hold-and-drag track reordering"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Production Deployment & Polish",
+      "status": "pending",
+      "planned_deliverables": [
+        "Cloudflare Pages production CI/CD deployment",
+        "Firestore Security Rules verification",
+        "End-to-end user flow testing across desktop and mobile devices"
+      ]
+    }
+  ],
+  "infrastructure": {
+    "hosting": {
+      "provider": "Cloudflare Pages",
+      "tier": "Free",
+      "build_command": "npx vite build",
+      "output_directory": "dist",
+      "status": "configured"
+    },
+    "authentication": {
+      "provider": "Firebase Auth",
+      "tier": "Spark (Free)",
+      "methods": ["Google Sign-In"],
+      "status": "pending_integration"
+    },
+    "database": {
+      "provider": "Firebase Firestore",
+      "tier": "Spark (Free 1GB)",
+      "collections": [
+        "users",
+        "songs",
+        "playlists",
+        "storage_meta"
+      ],
+      "status": "pending_integration"
+    },
+    "object_storage": {
+      "provider": "Cloudflare R2",
+      "tier": "Free (10GB / 0$ egress)",
+      "allowed_formats": [".mp3", ".m4a", ".wav", ".ogg", ".flac"],
+      "status": "pending_integration"
+    },
+    "api_worker": {
+      "provider": "Cloudflare Workers",
+      "tier": "Free (100K requests/day)",
+      "endpoints": [
+        { "method": "POST", "path": "/api/upload", "description": "Pre-signed audio upload handler" },
+        { "method": "GET", "path": "/api/audio/:r2Key", "description": "Audio streaming with HTTP Range headers" },
+        { "method": "DELETE", "path": "/api/audio/:r2Key", "description": "Remove audio from R2" },
+        { "method": "GET", "path": "/api/storage-info", "description": "Global storage usage lookup" }
+      ],
+      "status": "pending_integration"
+    }
+  },
+  "environment_variables": {
+    "frontend": [
+      "VITE_FIREBASE_API_KEY",
+      "VITE_FIREBASE_AUTH_DOMAIN",
+      "VITE_FIREBASE_PROJECT_ID",
+      "VITE_FIREBASE_STORAGE_BUCKET",
+      "VITE_FIREBASE_MESSAGING_SENDER_ID",
+      "VITE_FIREBASE_APP_ID",
+      "VITE_CLOUDFLARE_WORKER_URL"
+    ],
+    "worker": [
+      "R2_BUCKET",
+      "FIREBASE_PROJECT_ID"
+    ]
+  },
+  "file_map": {
+    "entry": "index.html",
+    "main": "src/main.jsx",
+    "app_router": "src/App.jsx",
+    "global_css": ["src/index.css", "src/App.css"],
+    "layout_components": [
+      "src/components/Layout/AppShell.jsx",
+      "src/components/Layout/Sidebar.jsx",
+      "src/components/Layout/BottomPlayer.jsx",
+      "src/components/Layout/MobileNav.jsx"
+    ],
+    "pages": [
+      "src/pages/Library.jsx",
+      "src/pages/Upload.jsx",
+      "src/pages/Playlists.jsx",
+      "src/pages/PlaylistDetail.jsx",
+      "src/pages/Login.jsx"
+    ],
+    "docs": [
+      "project_context.md",
+      "handoff.md",
+      "infra_map.json"
+    ]
+  }
+}

@@ -1,0 +1,213 @@
+/* ============================================================
+   Upload Page Styles
+   ============================================================ */
+
+/* Dropzone */
+.upload-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-8);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-out);
+  margin-bottom: var(--space-8);
+  min-height: 240px;
+}
+
+.upload-dropzone:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-primary-subtle);
+}
+
+.upload-dropzone.dragging {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  transform: scale(1.01);
+  box-shadow: var(--shadow-glow);
+}
+
+.upload-dropzone.has-file {
+  padding: var(--space-6) var(--space-8);
+  min-height: auto;
+  border-style: solid;
+  border-color: var(--color-border-light);
+  cursor: default;
+}
+
+.upload-dropzone-icon {
+  color: var(--color-primary-light);
+  margin-bottom: var(--space-4);
+  transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.upload-dropzone:hover .upload-dropzone-icon {
+  transform: translateY(-4px);
+}
+
+.upload-dropzone-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.upload-dropzone-subtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.upload-dropzone-formats {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.5px;
+}
+
+.upload-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* File Preview */
+.upload-file-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.upload-file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.upload-file-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.upload-file-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.upload-file-size {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Metadata Form */
+.upload-metadata {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+}
+
+.upload-metadata-title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.upload-metadata-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 520px;
+}
+
+.upload-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.upload-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.upload-submit {
+  margin-top: var(--space-2);
+  align-self: flex-start;
+}
+
+.upload-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+  .upload-dropzone {
+    padding: var(--space-8) var(--space-4);
+    min-height: 200px;
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-5);
+  }
+
+  .upload-dropzone-icon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .upload-dropzone-title {
+    font-size: var(--text-md);
+    text-align: center;
+  }
+
+  .upload-dropzone-subtitle {
+    font-size: var(--text-sm);
+  }
+
+  .upload-metadata {
+    padding: var(--space-5) var(--space-4);
+    border-radius: var(--radius-lg);
+  }
+
+  .upload-metadata-title {
+    font-size: var(--text-lg);
+  }
+
+  .upload-form {
+    max-width: 100%;
+  }
+
+  .upload-submit {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .upload-file-icon {
+    width: 44px;
+    height: 44px;
+  }
+}

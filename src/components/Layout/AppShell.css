@@ -1,0 +1,64 @@
+/* ============================================================
+   AppShell — Main Layout Grid
+   ============================================================ */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: 1fr var(--player-height);
+  min-height: 100vh;
+  transition: grid-template-columns var(--duration-slow) var(--ease-out);
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width) 1fr;
+}
+
+.main-content {
+  grid-column: 2;
+  grid-row: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - var(--player-height));
+  background: var(--color-bg);
+}
+
+.main-content-inner {
+  padding: var(--space-8) var(--space-10);
+  max-width: 1400px;
+  width: 100%;
+}
+
+/* --- Tablet --- */
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: var(--sidebar-collapsed-width) 1fr;
+  }
+
+  .main-content-inner {
+    padding: var(--space-6) var(--space-6);
+  }
+}
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .main-content {
+    flex: 1;
+    height: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Space for fixed player + nav at the bottom */
+    padding-bottom: calc(var(--player-height) + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .main-content-inner {
+    padding: var(--space-4) var(--space-4);
+  }
+}

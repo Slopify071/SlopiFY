@@ -1,0 +1,114 @@
+/* ============================================================
+   App-level Layout Styles
+   ============================================================ */
+
+/* Page transition wrapper */
+.page-content {
+  animation: fadeInUp var(--duration-slow) var(--ease-out) both;
+}
+
+/* Page header */
+.page-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-header h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.page-header p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-md);
+}
+
+/* Search bar */
+.search-bar {
+  position: relative;
+  max-width: 400px;
+}
+
+.search-bar .search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.search-bar input {
+  padding-left: var(--space-10);
+  background: var(--color-surface-secondary);
+  border-color: transparent;
+}
+
+.search-bar input:focus {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16) var(--space-8);
+  text-align: center;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) both;
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-6);
+  opacity: 0.6;
+}
+
+.empty-state h3 {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+  color: var(--color-text-secondary);
+  max-width: 360px;
+  margin-bottom: var(--space-6);
+}
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+  .page-header {
+    margin-bottom: var(--space-5);
+  }
+
+  .page-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .page-header p {
+    font-size: var(--text-base);
+  }
+
+  .search-bar {
+    max-width: 100%;
+  }
+
+  .search-bar input {
+    height: 40px;
+  }
+
+  .empty-state {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .btn-lg {
+    height: 44px;
+    padding: var(--space-2) var(--space-6);
+    font-size: var(--text-base);
+  }
+}
