@@ -128,11 +128,30 @@ export default function Upload() {
 
   const acceptedFormats = '.mp3,.m4a,.wav,.ogg,.flac'
 
+  const totalStorageUsed = 2.3 // GB placeholder
+  const maxStorage = 10
+
   return (
     <div className="page-content">
       <div className="page-header">
         <h1>Upload</h1>
         <p>Add new tracks to the communal music library</p>
+      </div>
+
+      {/* Storage Bar */}
+      <div className="upload-storage animate-fade-in-up">
+        <div className="upload-storage-info">
+          <span className="upload-storage-label">Storage Used</span>
+          <span className="upload-storage-value">
+            {totalStorageUsed} GB / {maxStorage} GB
+          </span>
+        </div>
+        <div className="progress-bar">
+          <div
+            className="progress-bar-fill"
+            style={{ width: `${(totalStorageUsed / maxStorage) * 100}%` }}
+          />
+        </div>
       </div>
 
       {error && (

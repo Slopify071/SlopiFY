@@ -67,6 +67,19 @@
   min-height: var(--header-height);
 }
 
+.sidebar-logo-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.sidebar-logo-link:hover {
+  opacity: 0.8;
+}
+
 .sidebar-logo-icon {
   display: flex;
   align-items: center;
