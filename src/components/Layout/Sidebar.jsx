@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import './Sidebar.css'
 
@@ -79,20 +79,22 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
           </button>
         ) : (
           <>
-            <div className="sidebar-logo-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                <defs>
-                  <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#6C5CE7" />
-                    <stop offset="100%" stopColor="#A29BFE" />
-                  </linearGradient>
-                </defs>
-                <circle cx="12" cy="12" r="10" stroke="url(#logoGrad2)" strokeWidth="2" fill="none" />
-                <circle cx="12" cy="12" r="3" fill="url(#logoGrad2)" />
-                <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#logoGrad2)" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">SlopiFY</span>
+            <Link to="/library" className="sidebar-logo-link" title="SlopiFY Home">
+              <div className="sidebar-logo-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <defs>
+                    <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#6C5CE7" />
+                      <stop offset="100%" stopColor="#A29BFE" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="12" cy="12" r="10" stroke="url(#logoGrad2)" strokeWidth="2" fill="none" />
+                  <circle cx="12" cy="12" r="3" fill="url(#logoGrad2)" />
+                  <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#logoGrad2)" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </div>
+              <span className="sidebar-logo-text">SlopiFY</span>
+            </Link>
             <button
               className="sidebar-collapse-btn"
               onClick={onToggleCollapse}
