@@ -41,11 +41,12 @@ const NAV_ITEMS = [
   },
 ]
 
-export default function Sidebar({ collapsed, onToggleCollapse }) {
+export default function Sidebar({ collapsed, onToggleCollapse, onLogoutRequest }) {
   const { user, logout } = useAuth()
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Friend'
   const initial = displayName.charAt(0).toUpperCase()
+  const handleLogout = onLogoutRequest || logout
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -144,7 +145,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
           )}
           <button
             className="sidebar-logout-btn"
-            onClick={logout}
+            onClick={handleLogout}
             title="Sign Out"
             aria-label="Sign Out"
           >

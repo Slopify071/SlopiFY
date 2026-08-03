@@ -9,38 +9,38 @@
 
 /* --- CSS Custom Properties (Design Tokens) --- */
 :root {
-  /* Colors — Primary Accent (Minimalist Dark Charcoal) */
-  --color-primary: #0F172A;
-  --color-primary-light: #334155;
-  --color-primary-dark: #020617;
-  --color-primary-subtle: #F1F5F9;
-  --color-primary-hover: rgba(15, 23, 42, 0.06);
+  /* Colors — Warm Caramel & Honey Amber Accents */
+  --color-primary: #E58E26;
+  --color-primary-light: #F59E0B;
+  --color-primary-dark: #B45309;
+  --color-primary-subtle: #1E2433;
+  --color-primary-hover: rgba(229, 142, 38, 0.15);
 
-  /* Minimalist Accents */
-  --gradient-primary: #0F172A;
-  --gradient-warm: #334155;
-  --gradient-cool: #0F172A;
-  --gradient-glass: #FFFFFF;
+  /* Modern Accents */
+  --gradient-primary: linear-gradient(135deg, #E58E26 0%, #D97706 100%);
+  --gradient-warm: linear-gradient(135deg, #1A1E29 0%, #12151C 100%);
+  --gradient-cool: #12151C;
+  --gradient-glass: rgba(18, 21, 28, 0.85);
 
-  /* Neutral Palette */
-  --color-bg: #FAFAFC;
-  --color-bg-elevated: #FFFFFF;
-  --color-bg-hover: #F1F5F9;
-  --color-bg-active: #E2E8F0;
-  --color-surface: #FFFFFF;
-  --color-surface-secondary: #F8FAFC;
+  /* Pitch Black Neutral Palette */
+  --color-bg: #000000;
+  --color-bg-elevated: #0B0B0B;
+  --color-bg-hover: #141414;
+  --color-bg-active: #1F1F1F;
+  --color-surface: #0B0B0B;
+  --color-surface-secondary: #141414;
 
-  /* Text System (High Contrast) */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #334155;
+  /* Text System (Crisp White & Slate High Contrast) */
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
   --color-text-tertiary: #64748B;
-  --color-text-inverse: #FFFFFF;
-  --color-text-accent: #0F172A;
+  --color-text-inverse: #000000;
+  --color-text-accent: #F59E0B;
 
   /* Borders & Dividers */
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
-  --color-border-focus: #0F172A;
+  --color-border: #1F1F1F;
+  --color-border-light: #141414;
+  --color-border-focus: #E58E26;
 
   /* Semantic Colors */
   --color-success: #10B981;
@@ -48,15 +48,15 @@
   --color-error: #EF4444;
   --color-info: #3B82F6;
 
-  /* Flat Minimalist Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.08);
-  --shadow-glow: none;
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.8);
+  --shadow-glow: 0 0 20px rgba(229, 142, 38, 0.25);
   --shadow-card: none;
-  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.5);
 
   /* Typography */
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -151,10 +151,11 @@ body {
   font-size: var(--text-base);
   font-weight: var(--weight-regular);
   color: var(--color-text-primary);
-  background-color: var(--color-bg);
+  background-color: #000000;
   line-height: 1.6;
   overflow-x: hidden;
   min-height: 100vh;
+  transition: background-color var(--duration-normal) var(--ease-out), color var(--duration-normal) var(--ease-out);
 }
 
 #root {

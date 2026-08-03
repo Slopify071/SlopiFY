@@ -5,7 +5,7 @@
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-rows: 1fr var(--player-height);
+  grid-template-rows: 1fr;
   min-height: 100vh;
   transition: grid-template-columns var(--duration-slow) var(--ease-out);
 }
@@ -19,12 +19,13 @@
   grid-row: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  height: calc(100vh - var(--player-height));
-  background: var(--color-bg);
+  height: 100vh;
+  background: #000000;
 }
 
 .main-content-inner {
   padding: var(--space-8) var(--space-10);
+  padding-bottom: calc(var(--player-height) + 40px);
   max-width: 1400px;
   width: 100%;
 }

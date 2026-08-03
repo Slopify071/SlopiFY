@@ -60,16 +60,16 @@ export default function BottomPlayer() {
 
           {/* Play/Pause */}
           <button
-            className="btn-icon player-btn-play"
+            className={`btn-icon player-btn-play ${isPlaying ? 'is-playing' : ''}`}
             onClick={() => setIsPlaying(!isPlaying)}
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
               </svg>
             ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
