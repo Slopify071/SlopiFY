@@ -41,7 +41,7 @@ const NAV_ITEMS = [
   },
 ]
 
-export default function Sidebar({ collapsed, onToggleCollapse, onLogoutRequest }) {
+export default function Sidebar({ onLogoutRequest }) {
   const { user, logout } = useAuth()
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Friend'
@@ -49,65 +49,25 @@ export default function Sidebar({ collapsed, onToggleCollapse, onLogoutRequest }
   const handleLogout = onLogoutRequest || logout
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className="sidebar">
       {/* Logo / Header */}
       <div className="sidebar-logo">
-        {collapsed ? (
-          <button
-            className="sidebar-toggle-btn collapsed-toggle"
-            onClick={onToggleCollapse}
-            aria-label="Expand sidebar"
-            title="Expand sidebar"
-          >
-            <div className="sidebar-logo-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                <defs>
-                  <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#6C5CE7" />
-                    <stop offset="100%" stopColor="#A29BFE" />
-                  </linearGradient>
-                </defs>
-                <circle cx="12" cy="12" r="10" stroke="url(#logoGrad)" strokeWidth="2" fill="none" />
-                <circle cx="12" cy="12" r="3" fill="url(#logoGrad)" />
-                <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#logoGrad)" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div className="sidebar-expand-hover-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9,18 15,12 9,6" />
-              </svg>
-            </div>
-          </button>
-        ) : (
-          <>
-            <Link to="/library" className="sidebar-logo-link" title="SlopiFY Home">
-              <div className="sidebar-logo-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <defs>
-                    <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#6C5CE7" />
-                      <stop offset="100%" stopColor="#A29BFE" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="12" cy="12" r="10" stroke="url(#logoGrad2)" strokeWidth="2" fill="none" />
-                  <circle cx="12" cy="12" r="3" fill="url(#logoGrad2)" />
-                  <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#logoGrad2)" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </div>
-              <span className="sidebar-logo-text">SlopiFY</span>
-            </Link>
-            <button
-              className="sidebar-collapse-btn"
-              onClick={onToggleCollapse}
-              aria-label="Collapse sidebar"
-              title="Collapse sidebar"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-            </button>
-          </>
-        )}
+        <Link to="/library" className="sidebar-logo-link" title="SlopiFY Home">
+          <div className="sidebar-logo-icon">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+              <defs>
+                <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#6C5CE7" />
+                  <stop offset="100%" stopColor="#A29BFE" />
+                </linearGradient>
+              </defs>
+              <circle cx="12" cy="12" r="10" stroke="url(#logoGrad2)" strokeWidth="2" fill="none" />
+              <circle cx="12" cy="12" r="3" fill="url(#logoGrad2)" />
+              <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#logoGrad2)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
+          <span className="sidebar-logo-text">SlopiFY</span>
+        </Link>
       </div>
 
       {/* Navigation */}
@@ -116,20 +76,19 @@ export default function Sidebar({ collapsed, onToggleCollapse, onLogoutRequest }
           <NavLink
             key={item.path}
             to={item.path}
-            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               `sidebar-nav-item ${isActive ? 'active' : ''}`
             }
           >
             <span className="sidebar-nav-icon">{item.icon}</span>
-            {!collapsed && <span className="sidebar-nav-label">{item.label}</span>}
+            <span className="sidebar-nav-label">{item.label}</span>
           </NavLink>
         ))}
       </nav>
 
       {/* Footer / User */}
       <div className="sidebar-footer">
-        <div className="sidebar-user" title={collapsed ? `${displayName} (Click to Sign Out)` : undefined}>
+        <div className="sidebar-user">
           <div className="sidebar-user-avatar">
             {user?.photoURL ? (
               <img src={user.photoURL} alt={displayName} className="user-avatar-img" />
@@ -137,12 +96,10 @@ export default function Sidebar({ collapsed, onToggleCollapse, onLogoutRequest }
               <span className="user-initial">{initial}</span>
             )}
           </div>
-          {!collapsed && (
-            <div className="sidebar-user-info">
-              <span className="sidebar-user-name">{displayName}</span>
-              <span className="sidebar-user-status">Online</span>
-            </div>
-          )}
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">{displayName}</span>
+            <span className="sidebar-user-status">Online</span>
+          </div>
           <button
             className="sidebar-logout-btn"
             onClick={handleLogout}

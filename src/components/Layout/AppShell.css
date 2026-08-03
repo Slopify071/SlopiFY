@@ -10,10 +10,6 @@
   transition: grid-template-columns var(--duration-slow) var(--ease-out);
 }
 
-.app-shell.sidebar-collapsed {
-  grid-template-columns: var(--sidebar-collapsed-width) 1fr;
-}
-
 .main-content {
   grid-column: 2;
   grid-row: 1;
@@ -32,10 +28,6 @@
 
 /* --- Tablet --- */
 @media (max-width: 1024px) {
-  .app-shell {
-    grid-template-columns: var(--sidebar-collapsed-width) 1fr;
-  }
-
   .main-content-inner {
     padding: var(--space-6) var(--space-6);
   }

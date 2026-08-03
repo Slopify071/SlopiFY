@@ -9,6 +9,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../config/firebase'
+import { deleteAudioFile } from './storage'
 
 /**
  * Sync user info to Firestore collection `users/{uid}` on login
@@ -161,8 +162,9 @@ export async function addSongToFirestore(songData) {
       artist: songData.artist || 'Unknown Artist',
       album: songData.album || '',
       duration: songData.duration || 0,
-      r2Key: songData.r2Key || '',
-      audioUrl: songData.audioUrl || '',
+      storagePath: songData.storagePath || songData.r2Key || '',
+      r2Key: songData.storagePath || songData.r2Key || '',
+      audioUrl: songData.audioUrl || songData.downloadUrl || '',
       coverUrl: songData.coverUrl || '',
       fileSize: songData.fileSize || 0,
       uploaderUid: songData.uploaderUid || 'anonymous',
@@ -188,4 +190,44 @@ export async function addSongToFirestore(songData) {
     throw err
   }
 }
+
+/**
+ * Delete song document from Firestore and corresponding file from Firebase Storage
+ */
+export async function deleteSongFromFirestore(songId, storagePath, fileSize = 0) {
+  if (!isFirebaseConfigured || !db || !songId) {
+    return { success: true }
+  }
+
+  try {
+    const { deleteDoc, increment } = await import('firebase/firestore')
+    
+    // 1. Delete audio file from Firebase Storage if storagePath exists
+    if (storagePath) {
+      await deleteAudioFile(storagePath)
+    }
+
+    // 2. Delete Firestore song document
+    const songRef = doc(db, 'songs', songId)
+    await deleteDoc(songRef)
+
+    // 3. Decrement global storage metrics
+    const metaRef = doc(db, 'storage_meta', 'global')
+    await setDoc(
+      metaRef,
+      {
+        totalBytesUsed: increment(-Math.abs(fileSize || 0)),
+        songCount: increment(-1),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    )
+
+    return { success: true }
+  } catch (err) {
+    console.error('Error deleting song from Firestore:', err)
+    throw err
+  }
+}
+
 

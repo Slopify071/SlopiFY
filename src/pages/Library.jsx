@@ -1,59 +1,15 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { usePlayer } from '../context/PlayerContext'
+import SongCard from '../components/Song/SongCard'
+import { subscribeToLibrary, deleteSongFromFirestore } from '../services/firestore'
 import './Library.css'
 
 export default function Library() {
-  // Demo library songs with artwork
-  const songs = [
-    {
-      id: '1',
-      title: 'Midnight City',
-      artist: 'M83',
-      album: 'Hurry Up, We\'re Dreaming',
-      duration: 243,
-      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '2',
-      title: 'Redbone',
-      artist: 'Childish Gambino',
-      album: 'Awaken, My Love!',
-      duration: 327,
-      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '3',
-      title: 'Blinding Lights',
-      artist: 'The Weeknd',
-      album: 'After Hours',
-      duration: 200,
-      coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '4',
-      title: 'Tadow',
-      artist: 'Masego & FKJ',
-      album: 'Tadow',
-      duration: 295,
-      coverUrl: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=200&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '5',
-      title: 'Electric Feel',
-      artist: 'MGMT',
-      album: 'Oracular Spectacular',
-      duration: 228,
-      coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=200&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '6',
-      title: 'Ivy',
-      artist: 'Frank Ocean',
-      album: 'Blonde',
-      duration: 249,
-      coverUrl: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=200&auto=format&fit=crop&q=80',
-    },
-  ]
-
+  const { user } = useAuth()
+  const { playSong, playAll, enqueue } = usePlayer()
+  const [songs, setSongs] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
@@ -61,33 +17,50 @@ export default function Library() {
   const dropdownRef = useRef(null)
   const inputRef = useRef(null)
 
+  // Subscribe to live Firestore songs collection
+  useEffect(() => {
+    setLoading(true)
+    const unsubscribe = subscribeToLibrary(
+      (liveSongs) => {
+        setSongs(liveSongs)
+        setLoading(false)
+      },
+      (err) => {
+        console.error('Library subscription error:', err)
+        setLoading(false)
+      }
+    )
+    return () => unsubscribe()
+  }, [])
+
   const formatDuration = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00'
     const m = Math.floor(seconds / 60)
-    const s = seconds % 60
+    const s = Math.floor(seconds % 60)
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  // Real-time filtered results — updates on every keystroke
+  // Real-time filtered results — updates on every keystroke across title, artist, album, uploader
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []
     const query = searchQuery.toLowerCase()
     return songs
       .filter(
         (song) =>
-          song.title.toLowerCase().includes(query) ||
-          song.artist.toLowerCase().includes(query) ||
-          song.album.toLowerCase().includes(query)
+          (song.title && song.title.toLowerCase().includes(query)) ||
+          (song.artist && song.artist.toLowerCase().includes(query)) ||
+          (song.album && song.album.toLowerCase().includes(query)) ||
+          (song.uploaderName && song.uploaderName.toLowerCase().includes(query))
       )
       .sort((a, b) => {
-        // Prioritize title matches, then artist, then album
-        const aTitle = a.title.toLowerCase().startsWith(query) ? 0 : 1
-        const bTitle = b.title.toLowerCase().startsWith(query) ? 0 : 1
+        const aTitle = a.title?.toLowerCase().startsWith(query) ? 0 : 1
+        const bTitle = b.title?.toLowerCase().startsWith(query) ? 0 : 1
         if (aTitle !== bTitle) return aTitle - bTitle
-        const aArtist = a.artist.toLowerCase().startsWith(query) ? 0 : 1
-        const bArtist = b.artist.toLowerCase().startsWith(query) ? 0 : 1
+        const aArtist = a.artist?.toLowerCase().startsWith(query) ? 0 : 1
+        const bArtist = b.artist?.toLowerCase().startsWith(query) ? 0 : 1
         return aArtist - bArtist
       })
-  }, [searchQuery])
+  }, [searchQuery, songs])
 
   // Show dropdown when we have a query AND input is focused
   const showDropdown = isSearchFocused && searchQuery.trim().length > 0
@@ -100,10 +73,7 @@ export default function Library() {
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(e.target)
-      ) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
         setIsSearchFocused(false)
       }
     }
@@ -138,6 +108,7 @@ export default function Library() {
 
   // Highlight matching text in results
   const highlightMatch = (text, query) => {
+    if (!text) return ''
     if (!query.trim()) return text
     const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
     const parts = text.split(regex)
@@ -150,9 +121,23 @@ export default function Library() {
     )
   }
 
+  const handlePlaySong = (song) => {
+    const songIndex = songs.findIndex((s) => s.id === song.id)
+    playAll(songs, songIndex >= 0 ? songIndex : 0)
+  }
+
+  const handleDeleteSong = async (song) => {
+    try {
+      await deleteSongFromFirestore(song.id, song.storagePath || song.r2Key, song.fileSize)
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert('Failed to delete song: ' + err.message)
+    }
+  }
+
   return (
     <div className="page-content">
-      {/* Search — pinned to top, centered, independent of content */}
+      {/* Search — pinned to top, centered */}
       <div className="library-search-wrapper animate-fade-in-up">
         <div className="search-container" ref={searchRef}>
           <div className={`search-bar ${isSearchFocused ? 'search-bar--focused' : ''}`}>
@@ -206,7 +191,6 @@ export default function Library() {
                         className={`search-result-item ${index === highlightedIndex ? 'search-result-item--active' : ''}`}
                         onMouseEnter={() => setHighlightedIndex(index)}
                         onClick={() => {
-                          // Scroll to the song in the list (future: play it)
                           const songRow = document.querySelector(`[data-song-id="${song.id}"]`)
                           if (songRow) {
                             songRow.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -234,9 +218,9 @@ export default function Library() {
                             {highlightMatch(song.title, searchQuery)}
                           </span>
                           <span className="search-result-meta">
-                            {highlightMatch(song.artist, searchQuery)}
+                            {highlightMatch(song.artist || 'Unknown Artist', searchQuery)}
                             <span className="search-result-separator">·</span>
-                            {highlightMatch(song.album, searchQuery)}
+                            {highlightMatch(song.album || 'Single', searchQuery)}
                           </span>
                         </div>
                         <span className="search-result-duration">{formatDuration(song.duration)}</span>
@@ -266,57 +250,63 @@ export default function Library() {
         <p>All songs uploaded by the crew</p>
       </div>
 
-      {/* Song count */}
+      {/* Toolbar */}
       <div className="library-toolbar animate-fade-in-up delay-1">
         <div className="library-meta">
-          <span className="badge">{songs.length} songs</span>
+          <span className="badge">{songs.length} song{songs.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
-      {/* Song List */}
-      <div className="library-song-list">
-        {songs.map((song, index) => (
-          <div
-            key={song.id}
-            data-song-id={song.id}
-            className="library-song-row animate-fade-in-up"
-            style={{ animationDelay: `${(index + 2) * 50}ms` }}
-          >
-            <div className="library-song-index">{index + 1}</div>
-            <div className="library-song-cover">
-              {song.coverUrl ? (
-                <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" />
-              ) : (
-                <div className="library-song-cover-placeholder">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 18V5l12-2v13" />
-                    <circle cx="6" cy="18" r="3" />
-                    <circle cx="18" cy="16" r="3" />
-                  </svg>
-                </div>
-              )}
-              <div className="library-song-play-overlay">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+      {/* Song List / Skeleton / Empty State */}
+      {loading ? (
+        <div className="library-song-list">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div key={n} className="library-skeleton-row animate-fade-in">
+              <div className="skeleton-box" style={{ height: '16px', width: '20px' }} />
+              <div className="skeleton-box" style={{ height: '48px', width: '48px', borderRadius: '6px' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="skeleton-box" style={{ height: '16px', width: '180px' }} />
+                <div className="skeleton-box" style={{ height: '12px', width: '120px' }} />
               </div>
+              <div className="skeleton-box" style={{ height: '14px', width: '100px' }} />
+              <div className="skeleton-box" style={{ height: '14px', width: '40px' }} />
+              <div className="skeleton-box" style={{ height: '24px', width: '24px', borderRadius: '50%' }} />
             </div>
-            <div className="library-song-info">
-              <span className="library-song-title truncate">{song.title}</span>
-              <span className="library-song-artist truncate">{song.artist}</span>
-            </div>
-            <span className="library-song-album truncate">{song.album}</span>
-            <span className="library-song-duration">{formatDuration(song.duration)}</span>
-            <button className="btn-icon library-song-more" aria-label="More options">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="5" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="12" cy="19" r="2" />
-              </svg>
-            </button>
+          ))}
+        </div>
+      ) : songs.length === 0 ? (
+        <div className="library-empty-state animate-fade-in-up" style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div style={{ marginBottom: '16px', opacity: 0.6 }}>
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
           </div>
-        ))}
-      </div>
+          <h2 style={{ fontSize: '1.4rem', marginBottom: '8px' }}>Your library is empty</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
+            Upload your favorite audio tracks to start building your crew's music library.
+          </p>
+          <a href="/upload" className="btn btn-primary btn-lg">
+            Upload First Song
+          </a>
+        </div>
+      ) : (
+        <div className="library-song-list">
+          {songs.map((song, index) => (
+            <SongCard
+              key={song.id}
+              song={song}
+              index={index}
+              currentUserId={user?.uid}
+              onPlay={handlePlaySong}
+              onDelete={handleDeleteSong}
+              onEnqueue={enqueue}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
+

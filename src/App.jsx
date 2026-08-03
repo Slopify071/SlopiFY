@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { PlayerProvider } from './context/PlayerContext'
 import AppShell from './components/Layout/AppShell'
 import Login from './pages/Login'
 import Library from './pages/Library'
@@ -54,11 +55,15 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <PlayerProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </PlayerProvider>
     </AuthProvider>
   )
 }
 
 export default App
+
+

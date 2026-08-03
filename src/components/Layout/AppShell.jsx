@@ -8,7 +8,6 @@ import './AppShell.css'
 
 export default function AppShell({ children }) {
   const { logout } = useAuth()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const handleConfirmLogout = async () => {
@@ -17,10 +16,8 @@ export default function AppShell({ children }) {
   }
 
   return (
-    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className="app-shell">
       <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         onLogoutRequest={() => setShowLogoutModal(true)}
       />
 

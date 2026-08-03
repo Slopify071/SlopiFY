@@ -115,6 +115,14 @@
   background: var(--color-bg-hover);
 }
 
+.player-btn-active {
+  color: var(--color-primary) !important;
+}
+
+.player-btn-active:hover {
+  color: var(--color-primary) !important;
+}
+
 .player-btn-play {
   display: inline-flex;
   align-items: center;

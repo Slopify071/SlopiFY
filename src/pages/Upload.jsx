@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as musicMetadata from 'music-metadata'
 import { useAuth } from '../context/AuthContext'
-import { uploadAudioToWorker, getAudioStreamUrl } from '../services/api'
-import { addSongToFirestore } from '../services/firestore'
+import { uploadAudioFile, getAudioStreamUrl } from '../services/storage'
+import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
 import './Upload.css'
 
 export default function Upload() {
@@ -14,6 +14,14 @@ export default function Upload() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [error, setError] = useState(null)
+  const [storageMeta, setStorageMeta] = useState({ totalBytesUsed: 0, songCount: 0 })
+
+  useEffect(() => {
+    const unsubscribe = subscribeToStorageMeta((meta) => {
+      if (meta) setStorageMeta(meta)
+    })
+    return () => unsubscribe()
+  }, [])
 
   const [metadata, setMetadata] = useState({
     title: '',
@@ -83,17 +91,12 @@ export default function Upload() {
     setError(null)
 
     try {
-      let token = null
-      if (user) {
-        token = await user.getIdToken()
-      }
-
-      // 1. Upload audio to Cloudflare R2 / Worker API
-      const result = await uploadAudioToWorker(selectedFile, token, (percent) => {
+      // 1. Upload audio to Firebase Storage
+      const result = await uploadAudioFile(selectedFile, user, (percent) => {
         setUploadProgress(percent)
       })
 
-      const audioUrl = result.audioUrl || getAudioStreamUrl(result.r2Key)
+      const audioUrl = getAudioStreamUrl(result)
 
       // 2. Write song metadata record to Firestore
       await addSongToFirestore({
@@ -101,10 +104,10 @@ export default function Upload() {
         artist: metadata.artist || 'Unknown Artist',
         album: metadata.album || '',
         duration: metadata.duration || 0,
-        r2Key: result.r2Key,
+        storagePath: result.storagePath,
         audioUrl: audioUrl,
         coverUrl: metadata.coverUrl || '',
-        fileSize: selectedFile.size,
+        fileSize: result.fileSize || selectedFile.size,
         uploaderUid: user?.uid || 'anonymous',
         uploaderName: user?.displayName || user?.email?.split('@')[0] || 'Friend',
       })
@@ -128,8 +131,8 @@ export default function Upload() {
 
   const acceptedFormats = '.mp3,.m4a,.wav,.ogg,.flac'
 
-  const totalStorageUsed = 2.3 // GB placeholder
-  const maxStorage = 10
+  const totalStorageUsedGB = (storageMeta.totalBytesUsed / (1024 * 1024 * 1024)).toFixed(2)
+  const maxStorageGB = 25 // Cloudinary Free Monthly Credits allowance
 
   return (
     <div className="page-content">
@@ -141,15 +144,15 @@ export default function Upload() {
       {/* Storage Bar */}
       <div className="upload-storage animate-fade-in-up">
         <div className="upload-storage-info">
-          <span className="upload-storage-label">Storage Used</span>
+          <span className="upload-storage-label">Cloudinary Storage Used</span>
           <span className="upload-storage-value">
-            {totalStorageUsed} GB / {maxStorage} GB
+            {totalStorageUsedGB} GB / {maxStorageGB} GB
           </span>
         </div>
         <div className="progress-bar">
           <div
             className="progress-bar-fill"
-            style={{ width: `${(totalStorageUsed / maxStorage) * 100}%` }}
+            style={{ width: `${Math.min(100, (totalStorageUsedGB / maxStorageGB) * 100)}%` }}
           />
         </div>
       </div>
@@ -291,7 +294,7 @@ export default function Upload() {
                         style={{ width: `${uploadProgress}%` }}
                       ></div>
                     </div>
-                    <span className="upload-progress-text">Uploading to Cloudflare R2... {uploadProgress}%</span>
+                    <span className="upload-progress-text">Uploading to Cloudinary... {uploadProgress}%</span>
                   </div>
                 )}
 
@@ -321,3 +324,4 @@ export default function Upload() {
     </div>
   )
 }
+

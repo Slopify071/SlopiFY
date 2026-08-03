@@ -27,8 +27,11 @@ pnpm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+.cursor/
+mcp.json
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+

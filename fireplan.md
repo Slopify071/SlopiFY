@@ -43,6 +43,9 @@ A private, lightweight music streaming web app for friends, built on React 18 + 
 
 ## Phase 3: Firebase Storage — Audio File Uploads
 
+> ✅ **Completed**. Audio file uploads now use Firebase Storage SDK via `src/services/storage.js` with direct upload progress, permanent HTTPS download URLs, delete operations, and real-time global storage metrics.
+
+
 > [!IMPORTANT]
 > This replaces the old Cloudflare R2 + Workers phase entirely. No separate project, no Worker deployment, no payment method. Everything runs through your existing Firebase project.
 
@@ -98,6 +101,9 @@ service firebase.storage {
 
 ## Phase 4: Music Upload & Library (Wire to Live Data)
 
+> ✅ **Completed**. `Library.jsx` is wired to real-time Firestore `subscribeToLibrary`, with animated skeleton loading states, empty states, instant live search filtering, and song deletion via `SongCard.jsx`.
+
+
 ### [MODIFY] [Library.jsx](file:///c:/Users/ishaa/OneDrive/Desktop/SlopiFY/src/pages/Library.jsx)
 - Replace the hardcoded `songs` array with real-time Firestore `onSnapshot` listener on `songs` collection (using existing `subscribeToLibrary`)
 - Show skeleton loading state while data loads
@@ -113,6 +119,9 @@ service firebase.storage {
 ---
 
 ## Phase 5: Audio Player & FIFO Queue
+
+> ✅ **Completed**. Full audio playback engine via `PlayerContext.jsx` with HTML5 Audio, seek, volume, shuffle, repeat (off/all/one), FIFO queue, play history, Media Session API, and all BottomPlayer controls wired.
+
 
 ### [NEW] [PlayerContext.jsx](file:///c:/Users/ishaa/OneDrive/Desktop/SlopiFY/src/context/PlayerContext.jsx)
 - Global state: `currentSong`, `queue[]`, `history[]`, `isPlaying`, `progress`, `volume`, `shuffle`, `repeat`
