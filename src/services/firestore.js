@@ -122,37 +122,6 @@ export function subscribeToLibrary(onNext, onError) {
   }
 }
 
-/**
- * Subscribe to communal playlists in real-time
- */
-export function subscribeToPlaylists(onNext, onError) {
-  if (!isFirebaseConfigured || !db) {
-    onNext([])
-    return () => {}
-  }
-
-  try {
-    const q = query(collection(db, 'playlists'), orderBy('updatedAt', 'desc'))
-    return onSnapshot(
-      q,
-      (snapshot) => {
-        const playlists = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }))
-        onNext(playlists)
-      },
-      (err) => {
-        console.error('Error listening to playlists collection:', err)
-        if (onError) onError(err)
-      }
-    )
-  } catch (err) {
-    console.error('Failed to attach playlists listener:', err)
-    onNext([])
-    return () => {}
-  }
-}
 
 /**
  * Subscribe to global storage metadata (e.g. storage size tracking)
