@@ -3,6 +3,8 @@ import { useAuth } from '../../context/AuthContext'
 import Sidebar from './Sidebar'
 import BottomPlayer from './BottomPlayer'
 import MobileNav from './MobileNav'
+import QueueSidebar from '../Queue/QueueSidebar'
+import Toast from '../Common/Toast'
 import ConfirmModal from '../Common/ConfirmModal'
 import './AppShell.css'
 
@@ -27,8 +29,10 @@ export default function AppShell({ children }) {
         </div>
       </main>
 
+      <QueueSidebar />
       <BottomPlayer />
       <MobileNav onLogoutRequest={() => setShowLogoutModal(true)} />
+      <Toast />
 
       <ConfirmModal
         isOpen={showLogoutModal}

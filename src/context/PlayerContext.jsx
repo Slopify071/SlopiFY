@@ -1,6 +1,21 @@
 import { createContext, useContext, useReducer, useRef, useEffect, useCallback } from 'react'
+import { useAuth } from './AuthContext'
+import { saveUserSession, subscribeToUserSession } from '../services/firestore'
 
 const PlayerContext = createContext(null)
+
+function getDeviceId() {
+  try {
+    let id = sessionStorage.getItem('slopify_device_id')
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now()
+      sessionStorage.setItem('slopify_device_id', id)
+    }
+    return id
+  } catch {
+    return 'dev_' + Math.random().toString(36).substring(2, 9)
+  }
+}
 
 const initialState = {
   currentSong: null,
@@ -13,17 +28,28 @@ const initialState = {
   muted: false,
   shuffle: false,
   repeat: 'off', // 'off' | 'all' | 'one'
+  isQueueOpen: false,
+  toast: null, // { id, message }
 }
 
 function playerReducer(state, action) {
   switch (action.type) {
+    case 'SYNC_REMOTE_STATE':
+      return {
+        ...state,
+        ...(action.payload.currentSong !== undefined ? { currentSong: action.payload.currentSong } : {}),
+        ...(action.payload.isPlaying !== undefined ? { isPlaying: action.payload.isPlaying } : {}),
+        ...(action.payload.currentTime !== undefined ? { currentTime: action.payload.currentTime } : {}),
+        ...(action.payload.duration !== undefined ? { duration: action.payload.duration } : {}),
+        ...(action.payload.queue !== undefined ? { queue: action.payload.queue } : {}),
+      }
     case 'SET_SONG':
       return {
         ...state,
         currentSong: action.payload,
         isPlaying: true,
         currentTime: 0,
-        duration: 0,
+        duration: action.payload?.duration || 0,
       }
     case 'TOGGLE_PLAY':
       return { ...state, isPlaying: !state.isPlaying }
@@ -48,19 +74,48 @@ function playerReducer(state, action) {
       return { ...state, queue: action.payload }
     case 'ENQUEUE':
       return { ...state, queue: [...state.queue, action.payload] }
+    case 'REMOVE_FROM_QUEUE':
+      return {
+        ...state,
+        queue: state.queue.filter((_, i) => i !== action.payload),
+      }
     case 'CLEAR_QUEUE':
       return { ...state, queue: [] }
+    case 'TOGGLE_QUEUE':
+      return { ...state, isQueueOpen: !state.isQueueOpen }
+    case 'SET_QUEUE_OPEN':
+      return { ...state, isQueueOpen: !!action.payload }
+    case 'SHOW_TOAST':
+      return { ...state, toast: { id: Date.now(), message: action.payload } }
+    case 'HIDE_TOAST':
+      return { ...state, toast: null }
     case 'PUSH_HISTORY':
       return { ...state, history: [...state.history, action.payload] }
     case 'POP_HISTORY': {
       const newHistory = [...state.history]
       const prev = newHistory.pop()
-      return { ...state, history: newHistory, currentSong: prev || state.currentSong }
+      const nextSong = prev || state.currentSong
+      return {
+        ...state,
+        history: newHistory,
+        currentSong: nextSong,
+        currentTime: 0,
+        duration: nextSong?.duration || 0,
+        isPlaying: prev ? true : state.isPlaying,
+      }
     }
     case 'DEQUEUE': {
       const newQueue = [...state.queue]
       const next = newQueue.shift()
-      return { ...state, queue: newQueue, currentSong: next || state.currentSong }
+      const nextSong = next || state.currentSong
+      return {
+        ...state,
+        queue: newQueue,
+        currentSong: nextSong,
+        currentTime: 0,
+        duration: nextSong?.duration || 0,
+        isPlaying: next ? true : state.isPlaying,
+      }
     }
     default:
       return state
@@ -68,9 +123,107 @@ function playerReducer(state, action) {
 }
 
 export function PlayerProvider({ children }) {
+  const { user } = useAuth()
   const [state, dispatch] = useReducer(playerReducer, initialState)
   const audioRef = useRef(null)
   const allSongsRef = useRef([])
+  const stateRef = useRef(state)
+  const playPromiseRef = useRef(null)
+  const isChangingSrcRef = useRef(false)
+  const isSeekingAudioRef = useRef(false)
+  const deviceIdRef = useRef(getDeviceId())
+  const isSyncingFromRemoteRef = useRef(false)
+
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
+
+  // 1. Listen for cross-device playback session changes from Firestore
+  useEffect(() => {
+    if (!user?.uid) return
+
+    const unsubscribe = subscribeToUserSession(
+      user.uid,
+      (remoteData) => {
+        if (!remoteData || remoteData.deviceId === deviceIdRef.current) return
+
+        isSyncingFromRemoteRef.current = true
+
+        const payload = {}
+        let shouldSync = false
+
+        if (remoteData.currentSong && remoteData.currentSong.id !== stateRef.current.currentSong?.id) {
+          payload.currentSong = remoteData.currentSong
+          payload.duration = remoteData.currentSong.duration || 0
+          payload.currentTime = typeof remoteData.currentTime === 'number' ? remoteData.currentTime : 0
+          shouldSync = true
+          if (audioRef.current && isFinite(payload.currentTime)) {
+            audioRef.current.currentTime = payload.currentTime
+          }
+        }
+
+        if (typeof remoteData.isPlaying === 'boolean' && remoteData.isPlaying !== stateRef.current.isPlaying) {
+          payload.isPlaying = remoteData.isPlaying
+          shouldSync = true
+        }
+
+        if (Array.isArray(remoteData.queue) && JSON.stringify(remoteData.queue) !== JSON.stringify(stateRef.current.queue)) {
+          payload.queue = remoteData.queue
+          shouldSync = true
+        }
+
+        if (typeof remoteData.currentTime === 'number' && Math.abs(remoteData.currentTime - stateRef.current.currentTime) > 2) {
+          payload.currentTime = remoteData.currentTime
+          shouldSync = true
+          if (audioRef.current && isFinite(remoteData.currentTime)) {
+            audioRef.current.currentTime = remoteData.currentTime
+          }
+        }
+
+        if (shouldSync) {
+          dispatch({ type: 'SYNC_REMOTE_STATE', payload })
+        }
+
+        setTimeout(() => {
+          isSyncingFromRemoteRef.current = false
+        }, 300)
+      },
+      (err) => console.warn('User session listener error:', err)
+    )
+
+    return () => unsubscribe()
+  }, [user?.uid])
+
+  // 2. Broadcast local playback state changes to Firestore
+  useEffect(() => {
+    if (!user?.uid || isSyncingFromRemoteRef.current) return
+
+    saveUserSession(user.uid, {
+      deviceId: deviceIdRef.current,
+      currentSong: state.currentSong,
+      isPlaying: state.isPlaying,
+      currentTime: state.currentTime,
+      queue: state.queue,
+    })
+  }, [user?.uid, state.currentSong?.id, state.isPlaying, state.queue?.length])
+
+  // 3. Periodic position sync during active playback (every 5 seconds)
+  useEffect(() => {
+    if (!user?.uid || !state.isPlaying) return
+
+    const interval = setInterval(() => {
+      if (isSyncingFromRemoteRef.current) return
+      saveUserSession(user.uid, {
+        deviceId: deviceIdRef.current,
+        currentSong: stateRef.current.currentSong,
+        isPlaying: true,
+        currentTime: stateRef.current.currentTime,
+        queue: stateRef.current.queue,
+      })
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [user?.uid, state.isPlaying])
 
   // Create audio element once
   useEffect(() => {
@@ -85,7 +238,7 @@ export function PlayerProvider({ children }) {
     }
   }, [])
 
-  // Sync audio src when currentSong changes
+  // Single, consolidated effect to sync audio src and play/pause state
   useEffect(() => {
     const audio = audioRef.current
     if (!audio || !state.currentSong) return
@@ -93,25 +246,65 @@ export function PlayerProvider({ children }) {
     const url = state.currentSong.audioUrl || state.currentSong.downloadUrl || ''
     if (!url) return
 
-    audio.src = url
-    audio.load()
-    audio.play().catch((err) => {
-      console.warn('Autoplay blocked or failed:', err)
-      dispatch({ type: 'SET_PLAYING', payload: false })
-    })
-  }, [state.currentSong])
+    let srcChanged = false
+    try {
+      const currentSrc = audio.src ? new URL(audio.src, window.location.href).href : ''
+      const targetSrc = new URL(url, window.location.href).href
+      if (currentSrc !== targetSrc) {
+        srcChanged = true
+      }
+    } catch {
+      if (audio.src !== url) {
+        srcChanged = true
+      }
+    }
 
-  // Sync play/pause
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !state.currentSong) return
+    if (srcChanged) {
+      isChangingSrcRef.current = true
+      audio.currentTime = 0
+      audio.src = url
+      audio.load()
+    }
 
     if (state.isPlaying) {
-      audio.play().catch(() => dispatch({ type: 'SET_PLAYING', payload: false }))
+      const playPromise = audio.play()
+      playPromiseRef.current = playPromise
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            playPromiseRef.current = null
+            isChangingSrcRef.current = false
+          })
+          .catch((err) => {
+            playPromiseRef.current = null
+            if (err && err.name === 'AbortError') {
+              // A newer track load interrupted this one - keep isChangingSrcRef true so onPause doesn't flip state
+              return
+            }
+            isChangingSrcRef.current = false
+            console.warn('Autoplay or playback failed:', err)
+            dispatch({ type: 'SET_PLAYING', payload: false })
+          })
+      } else {
+        isChangingSrcRef.current = false
+      }
     } else {
-      audio.pause()
+      if (playPromiseRef.current) {
+        playPromiseRef.current
+          .then(() => {
+            audio.pause()
+            isChangingSrcRef.current = false
+          })
+          .catch(() => {
+            audio.pause()
+            isChangingSrcRef.current = false
+          })
+      } else {
+        audio.pause()
+        isChangingSrcRef.current = false
+      }
     }
-  }, [state.isPlaying])
+  }, [state.currentSong?.id, state.currentSong?.audioUrl, state.currentSong?.downloadUrl, state.isPlaying])
 
   // Sync volume + mute
   useEffect(() => {
@@ -120,64 +313,134 @@ export function PlayerProvider({ children }) {
     audio.volume = state.muted ? 0 : state.volume
   }, [state.volume, state.muted])
 
-  // Audio event listeners
+  // Audio event listeners attached once
+  const lastTimeDispatchRef = useRef(0)
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    const onTimeUpdate = () => dispatch({ type: 'SET_CURRENT_TIME', payload: audio.currentTime })
-    const onLoadedMetadata = () => dispatch({ type: 'SET_DURATION', payload: audio.duration })
+    const updateDuration = () => {
+      if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+        dispatch({ type: 'SET_DURATION', payload: audio.duration })
+      } else if (stateRef.current.currentSong?.duration) {
+        dispatch({ type: 'SET_DURATION', payload: stateRef.current.currentSong.duration })
+      }
+    }
+
+    const onTimeUpdate = () => {
+      const cur = audio.currentTime
+      const knownDuration = stateRef.current.duration
+      // Clamp currentTime to never exceed the known duration
+      const clampedTime = (knownDuration > 0 && cur > knownDuration) ? knownDuration : cur
+      if (Math.abs(clampedTime - lastTimeDispatchRef.current) >= 0.25 || clampedTime === 0 || audio.ended) {
+        lastTimeDispatchRef.current = clampedTime
+        dispatch({ type: 'SET_CURRENT_TIME', payload: clampedTime })
+      }
+
+      const metaDuration = stateRef.current.currentSong?.duration || 0
+      const currentDuration = stateRef.current.duration
+
+      if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+        if (audio.duration !== currentDuration) {
+          dispatch({ type: 'SET_DURATION', payload: audio.duration })
+        }
+      } else if (metaDuration > 0 && currentDuration !== metaDuration) {
+        dispatch({ type: 'SET_DURATION', payload: metaDuration })
+      }
+    }
+    const onLoadedMetadata = () => updateDuration()
+    const onDurationChange = () => updateDuration()
+    const onCanPlay = () => {
+      updateDuration()
+      isChangingSrcRef.current = false
+    }
+
+    const onSeeking = () => {
+      isSeekingAudioRef.current = true
+    }
+
+    const onSeeked = () => {
+      isSeekingAudioRef.current = false
+      if (stateRef.current.isPlaying && audio.paused) {
+        audio.play().catch(() => {})
+      }
+    }
+
     const onEnded = () => {
-      if (state.repeat === 'one') {
+      const currentState = stateRef.current
+      if (currentState.repeat === 'one') {
         audio.currentTime = 0
         audio.play()
         return
       }
-      // Try to play next in queue
-      if (state.queue.length > 0) {
-        if (state.currentSong) {
-          dispatch({ type: 'PUSH_HISTORY', payload: state.currentSong })
+      if (currentState.queue.length > 0) {
+        if (currentState.currentSong) {
+          dispatch({ type: 'PUSH_HISTORY', payload: currentState.currentSong })
         }
-        if (state.shuffle) {
-          const randomIndex = Math.floor(Math.random() * state.queue.length)
-          const nextSong = state.queue[randomIndex]
-          const newQueue = state.queue.filter((_, i) => i !== randomIndex)
+        if (currentState.shuffle) {
+          const randomIndex = Math.floor(Math.random() * currentState.queue.length)
+          const nextSong = currentState.queue[randomIndex]
+          const newQueue = currentState.queue.filter((_, i) => i !== randomIndex)
           dispatch({ type: 'SET_QUEUE', payload: newQueue })
           dispatch({ type: 'SET_SONG', payload: nextSong })
         } else {
           dispatch({ type: 'DEQUEUE' })
         }
-      } else if (state.repeat === 'all' && allSongsRef.current.length > 0) {
-        // Repeat all: rebuild queue from all songs
+      } else if (currentState.repeat === 'all' && allSongsRef.current.length > 0) {
         const currentIndex = allSongsRef.current.findIndex(
-          (s) => s.id === state.currentSong?.id
+          (s) => s.id === currentState.currentSong?.id
         )
         const nextIndex = (currentIndex + 1) % allSongsRef.current.length
-        if (state.currentSong) {
-          dispatch({ type: 'PUSH_HISTORY', payload: state.currentSong })
+        if (currentState.currentSong) {
+          dispatch({ type: 'PUSH_HISTORY', payload: currentState.currentSong })
         }
         dispatch({ type: 'SET_SONG', payload: allSongsRef.current[nextIndex] })
       } else {
         dispatch({ type: 'SET_PLAYING', payload: false })
       }
     }
-    const onPlay = () => dispatch({ type: 'SET_PLAYING', payload: true })
-    const onPause = () => dispatch({ type: 'SET_PLAYING', payload: false })
+    const onPlay = () => {
+      isChangingSrcRef.current = false
+      if (!stateRef.current.isPlaying) {
+        dispatch({ type: 'SET_PLAYING', payload: true })
+      }
+    }
+    const onPause = () => {
+      if (isChangingSrcRef.current || isSeekingAudioRef.current) return
+      if (stateRef.current.isPlaying) {
+        dispatch({ type: 'SET_PLAYING', payload: false })
+      }
+    }
+    const onError = (e) => {
+      console.warn('Audio element error:', e)
+      isChangingSrcRef.current = false
+      dispatch({ type: 'SET_PLAYING', payload: false })
+    }
 
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
+    audio.addEventListener('durationchange', onDurationChange)
+    audio.addEventListener('canplay', onCanPlay)
+    audio.addEventListener('seeking', onSeeking)
+    audio.addEventListener('seeked', onSeeked)
     audio.addEventListener('ended', onEnded)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
+    audio.addEventListener('error', onError)
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate)
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+      audio.removeEventListener('durationchange', onDurationChange)
+      audio.removeEventListener('canplay', onCanPlay)
+      audio.removeEventListener('seeking', onSeeking)
+      audio.removeEventListener('seeked', onSeeked)
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('error', onError)
     }
-  }, [state.queue, state.repeat, state.shuffle, state.currentSong])
+  }, [])
 
   // Media Session API (OS lock-screen controls)
   useEffect(() => {
@@ -207,6 +470,7 @@ export function PlayerProvider({ children }) {
       if (isInput) return
 
       if (e.code === 'Space' || e.key === ' ') {
+        if (e.repeat) return
         if (state.currentSong) {
           e.preventDefault()
           dispatch({ type: 'TOGGLE_PLAY' })
@@ -281,6 +545,7 @@ export function PlayerProvider({ children }) {
   const seek = useCallback((time) => {
     const audio = audioRef.current
     if (audio && isFinite(time)) {
+      isSeekingAudioRef.current = true
       audio.currentTime = time
       dispatch({ type: 'SET_CURRENT_TIME', payload: time })
     }
@@ -304,10 +569,32 @@ export function PlayerProvider({ children }) {
 
   const enqueue = useCallback((song) => {
     dispatch({ type: 'ENQUEUE', payload: song })
+    const msg = song?.title ? `Added "${song.title}" to queue` : 'Added to queue'
+    dispatch({ type: 'SHOW_TOAST', payload: msg })
+  }, [])
+
+  const removeFromQueue = useCallback((index) => {
+    dispatch({ type: 'REMOVE_FROM_QUEUE', payload: index })
   }, [])
 
   const clearQueue = useCallback(() => {
     dispatch({ type: 'CLEAR_QUEUE' })
+  }, [])
+
+  const toggleQueue = useCallback(() => {
+    dispatch({ type: 'TOGGLE_QUEUE' })
+  }, [])
+
+  const setQueueOpen = useCallback((isOpen) => {
+    dispatch({ type: 'SET_QUEUE_OPEN', payload: isOpen })
+  }, [])
+
+  const showToast = useCallback((msg) => {
+    dispatch({ type: 'SHOW_TOAST', payload: msg })
+  }, [])
+
+  const hideToast = useCallback(() => {
+    dispatch({ type: 'HIDE_TOAST' })
   }, [])
 
   const value = {
@@ -323,7 +610,12 @@ export function PlayerProvider({ children }) {
     toggleShuffle,
     cycleRepeat,
     enqueue,
+    removeFromQueue,
     clearQueue,
+    toggleQueue,
+    setQueueOpen,
+    showToast,
+    hideToast,
   }
 
   return (
@@ -336,7 +628,38 @@ export function PlayerProvider({ children }) {
 export function usePlayer() {
   const context = useContext(PlayerContext)
   if (!context) {
-    throw new Error('usePlayer must be used within a PlayerProvider')
+    console.warn('usePlayer used outside of PlayerProvider, returning fallback state.')
+    return {
+      currentSong: null,
+      queue: [],
+      history: [],
+      isPlaying: false,
+      currentTime: 0,
+      duration: 0,
+      volume: 0.7,
+      muted: false,
+      shuffle: false,
+      repeat: 'off',
+      isQueueOpen: false,
+      toast: null,
+      playSong: () => {},
+      playAll: () => {},
+      togglePlay: () => {},
+      playNext: () => {},
+      playPrevious: () => {},
+      seek: () => {},
+      setVolume: () => {},
+      toggleMute: () => {},
+      toggleShuffle: () => {},
+      cycleRepeat: () => {},
+      enqueue: () => {},
+      removeFromQueue: () => {},
+      clearQueue: () => {},
+      toggleQueue: () => {},
+      setQueueOpen: () => {},
+      showToast: () => {},
+      hideToast: () => {},
+    }
   }
   return context
 }

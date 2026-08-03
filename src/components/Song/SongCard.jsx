@@ -46,7 +46,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
   return (
     <div
       data-song-id={song.id}
-      className={`library-song-row animate-fade-in-up ${deleting ? 'deleting' : ''}`}
+      className={`library-song-row animate-fade-in-up ${deleting ? 'deleting' : ''} ${showMenu ? 'menu-open' : ''}`}
       onClick={() => onPlay && onPlay(song)}
     >
       <div className="library-song-index">{index + 1}</div>
@@ -82,7 +82,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
       <span className="library-song-album truncate">{song.album || 'Single'}</span>
       <span className="library-song-duration">{formatDuration(song.duration)}</span>
 
-      <div className="song-card-menu-container" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+      <div className={`song-card-menu-container ${showMenu ? 'is-active' : ''}`} ref={menuRef} onClick={(e) => e.stopPropagation()}>
         <button
           className="btn-icon library-song-more"
           aria-label="More options"

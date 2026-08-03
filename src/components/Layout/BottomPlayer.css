@@ -183,8 +183,9 @@
 .player-seek-track {
   position: relative;
   height: 4px;
-  background: var(--color-bg-active);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-full);
+  overflow: hidden;
   transition: height var(--duration-fast) var(--ease-out);
 }
 
@@ -212,6 +213,7 @@
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
   transition: transform var(--duration-fast) var(--ease-spring);
+  z-index: 2;
 }
 
 .player-seek-bar:hover .player-seek-thumb {

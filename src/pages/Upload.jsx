@@ -8,11 +8,12 @@ import './Upload.css'
 export default function Upload() {
   const { user } = useAuth()
   const [isDragging, setIsDragging] = useState(false)
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [parsing, setParsing] = useState(false)
+  const [fileList, setFileList] = useState([])
+  const [activeTrackIndex, setActiveTrackIndex] = useState(0)
   const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, percent: 0, stageText: '' })
   const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [completedCount, setCompletedCount] = useState(0)
   const [error, setError] = useState(null)
   const [storageMeta, setStorageMeta] = useState({ totalBytesUsed: 0, songCount: 0 })
 
@@ -22,14 +23,6 @@ export default function Upload() {
     })
     return () => unsubscribe()
   }, [])
-
-  const [metadata, setMetadata] = useState({
-    title: '',
-    artist: '',
-    album: '',
-    duration: 0,
-    coverUrl: '',
-  })
 
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -43,96 +36,190 @@ export default function Upload() {
   const handleDrop = (e) => {
     e.preventDefault()
     setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFileSelect(file)
-  }
-
-  const handleFileSelect = async (file) => {
-    setSelectedFile(file)
-    setParsing(true)
-    setError(null)
-    setUploadSuccess(false)
-
-    const cleanName = file.name.replace(/\.[^/.]+$/, '')
-    let title = cleanName
-    let artist = ''
-    let album = ''
-    let duration = 0
-    let coverUrl = ''
-
-    try {
-      const parsed = await musicMetadata.parseBlob(file)
-      if (parsed.common.title) title = parsed.common.title
-      if (parsed.common.artist) artist = parsed.common.artist
-      if (parsed.common.album) album = parsed.common.album
-      if (parsed.format.duration) duration = Math.round(parsed.format.duration)
-
-      if (parsed.common.picture && parsed.common.picture.length > 0) {
-        const pic = parsed.common.picture[0]
-        const blob = new Blob([pic.data], { type: pic.format })
-        coverUrl = URL.createObjectURL(blob)
-      }
-    } catch (err) {
-      console.warn('ID3 metadata parsing fallback:', err)
-    } finally {
-      setParsing(false)
-      setMetadata({ title, artist, album, duration, coverUrl })
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesSelect(e.dataTransfer.files)
     }
   }
 
-  const handleInputChange = (e) => {
-    setMetadata({ ...metadata, [e.target.name]: e.target.value })
+  const handleFilesSelect = async (files) => {
+    if (!files || files.length === 0) return
+    setError(null)
+    setUploadSuccess(false)
+
+    const validFiles = Array.from(files).filter((file) =>
+      /\.(mp3|m4a|wav|ogg|flac)$/i.test(file.name)
+    )
+
+    if (validFiles.length === 0) {
+      setError('Please select valid audio files (.mp3, .m4a, .wav, .ogg, .flac).')
+      return
+    }
+
+    const newItems = validFiles.map((file) => {
+      const cleanName = file.name.replace(/\.[^/.]+$/, '')
+      return {
+        id: Math.random().toString(36).substring(2, 9) + '_' + Date.now(),
+        file,
+        title: cleanName,
+        artist: '',
+        album: '',
+        duration: 0,
+        coverUrl: '',
+        parsing: true,
+        status: 'pending', // 'pending' | 'uploading' | 'saving' | 'completed' | 'error'
+        progress: 0,
+      }
+    })
+
+    setFileList((prev) => [...prev, ...newItems])
+
+    // Parse ID3 metadata for each selected file in parallel
+    newItems.forEach(async (item) => {
+      let title = item.title
+      let artist = ''
+      let album = ''
+      let duration = 0
+      let coverUrl = ''
+
+      try {
+        const parsed = await musicMetadata.parseBlob(item.file)
+        if (parsed.common.title) title = parsed.common.title
+        if (parsed.common.artist) artist = parsed.common.artist
+        if (parsed.common.album) album = parsed.common.album
+        if (parsed.format.duration) duration = Math.round(parsed.format.duration)
+
+        if (parsed.common.picture && parsed.common.picture.length > 0) {
+          const pic = parsed.common.picture[0]
+          const blob = new Blob([pic.data], { type: pic.format })
+          coverUrl = URL.createObjectURL(blob)
+        }
+      } catch (err) {
+        console.warn('ID3 parsing warning for ' + item.file.name, err)
+      } finally {
+        setFileList((prev) =>
+          prev.map((it) =>
+            it.id === item.id
+              ? { ...it, title, artist, album, duration, coverUrl, parsing: false }
+              : it
+          )
+        )
+      }
+    })
+  }
+
+  const handleMetadataChange = (id, field, value) => {
+    setFileList((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    )
+  }
+
+  const removeTrack = (id) => {
+    setFileList((prev) => {
+      const updated = prev.filter((item) => item.id !== id)
+      if (activeTrackIndex >= updated.length) {
+        setActiveTrackIndex(Math.max(0, updated.length - 1))
+      }
+      return updated
+    })
   }
 
   const handleUpload = async () => {
-    if (!selectedFile || !metadata.title) return
+    if (fileList.length === 0) return
     setUploading(true)
-    setUploadProgress(0)
     setError(null)
 
-    try {
-      // 1. Upload audio to Firebase Storage
-      const result = await uploadAudioFile(selectedFile, user, (percent) => {
-        setUploadProgress(percent)
+    let successCount = 0
+    const totalFiles = fileList.length
+
+    for (let i = 0; i < totalFiles; i++) {
+      const item = fileList[i]
+      setActiveTrackIndex(i)
+
+      setBatchProgress({
+        current: i + 1,
+        total: totalFiles,
+        percent: 0,
+        stageText: `Uploading track ${i + 1} of ${totalFiles}: "${item.title}"...`,
       })
 
-      const audioUrl = getAudioStreamUrl(result)
+      setFileList((prev) =>
+        prev.map((it, idx) => (idx === i ? { ...it, status: 'uploading', progress: 0 } : it))
+      )
 
-      // 2. Write song metadata record to Firestore
-      await addSongToFirestore({
-        title: metadata.title,
-        artist: metadata.artist || 'Unknown Artist',
-        album: metadata.album || '',
-        duration: metadata.duration || 0,
-        storagePath: result.storagePath,
-        audioUrl: audioUrl,
-        coverUrl: metadata.coverUrl || '',
-        fileSize: result.fileSize || selectedFile.size,
-        uploaderUid: user?.uid || 'anonymous',
-        uploaderName: user?.displayName || user?.email?.split('@')[0] || 'Friend',
-      })
+      try {
+        // 1. Upload audio file to Cloudinary / Firebase Storage
+        const result = await uploadAudioFile(item.file, user, (percent) => {
+          setFileList((prev) =>
+            prev.map((it, idx) =>
+              idx === i
+                ? {
+                    ...it,
+                    progress: percent,
+                    status: percent === 100 ? 'saving' : 'uploading',
+                  }
+                : it
+            )
+          )
+          setBatchProgress((prev) => ({
+            ...prev,
+            percent,
+            stageText:
+              percent === 100
+                ? `Saving track details ${i + 1} of ${totalFiles}...`
+                : `Uploading track ${i + 1} of ${totalFiles}: "${item.title}" (${percent}%)...`,
+          }))
+        })
 
+        const audioUrl = getAudioStreamUrl(result)
+
+        // 2. Save song record to Firestore
+        await addSongToFirestore({
+          title: item.title || 'Untitled',
+          artist: item.artist || 'Unknown Artist',
+          album: item.album || '',
+          duration: item.duration || 0,
+          storagePath: result.storagePath,
+          audioUrl: audioUrl,
+          coverUrl: item.coverUrl || '',
+          fileSize: result.fileSize || item.file.size,
+          uploaderUid: user?.uid || 'anonymous',
+          uploaderName: user?.displayName || user?.email?.split('@')[0] || 'Friend',
+        })
+
+        successCount++
+        setFileList((prev) =>
+          prev.map((it, idx) => (idx === i ? { ...it, status: 'completed', progress: 100 } : it))
+        )
+      } catch (err) {
+        console.error(`Upload error for track "${item.title}":`, err)
+        setFileList((prev) =>
+          prev.map((it, idx) => (idx === i ? { ...it, status: 'error' } : it))
+        )
+        setError(`Failed uploading "${item.title}". ${err.message || ''}`)
+      }
+    }
+
+    setUploading(false)
+    if (successCount > 0) {
+      setCompletedCount(successCount)
       setUploadSuccess(true)
-    } catch (err) {
-      console.error('Upload error:', err)
-      setError(err.message || 'Upload failed. Please try again.')
-    } finally {
-      setUploading(false)
     }
   }
 
   const resetForm = () => {
-    setSelectedFile(null)
-    setMetadata({ title: '', artist: '', album: '', duration: 0, coverUrl: '' })
+    setFileList([])
+    setActiveTrackIndex(0)
     setUploadSuccess(false)
+    setCompletedCount(0)
     setError(null)
-    setUploadProgress(0)
+    setUploading(false)
   }
 
   const acceptedFormats = '.mp3,.m4a,.wav,.ogg,.flac'
-
   const totalStorageUsedGB = (storageMeta.totalBytesUsed / (1024 * 1024 * 1024)).toFixed(2)
-  const maxStorageGB = 25 // Cloudinary Free Monthly Credits allowance
+  const maxStorageGB = 25
+
+  const activeTrack = fileList[activeTrackIndex] || fileList[0]
 
   return (
     <div className="page-content">
@@ -172,151 +259,180 @@ export default function Upload() {
             </svg>
           </div>
           <h2>Upload Complete!</h2>
-          <p>"{metadata.title}" has been added to the communal library.</p>
+          <p>
+            {completedCount} {completedCount === 1 ? 'track has' : 'tracks have'} been added to the communal library.
+          </p>
           <button className="btn btn-primary btn-lg" onClick={resetForm}>
-            Upload Another Song
+            Upload More Songs
           </button>
         </div>
       ) : (
         <>
           {/* Drop Zone */}
           <div
-            className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${selectedFile ? 'has-file' : ''}`}
+            className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${fileList.length > 0 ? 'has-file' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            {!selectedFile ? (
-              <>
-                <div className="upload-dropzone-icon">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17,8 12,3 7,8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-                <h3 className="upload-dropzone-title">Drag & drop your audio files</h3>
-                <p className="upload-dropzone-subtitle">or click to browse</p>
-                <p className="upload-dropzone-formats">MP3, M4A, WAV, OGG, FLAC</p>
-                <input
-                  type="file"
-                  className="upload-file-input"
-                  accept={acceptedFormats}
-                  onChange={(e) => e.target.files[0] && handleFileSelect(e.target.files[0])}
-                />
-              </>
-            ) : (
-              <div className="upload-file-preview">
-                {metadata.coverUrl ? (
-                  <img src={metadata.coverUrl} alt="Cover Preview" className="upload-cover-preview" />
-                ) : (
-                  <div className="upload-file-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 18V5l12-2v13" />
-                      <circle cx="6" cy="18" r="3" />
-                      <circle cx="18" cy="16" r="3" />
-                    </svg>
-                  </div>
-                )}
-                <div className="upload-file-details">
-                  <span className="upload-file-name truncate">{selectedFile.name}</span>
-                  <span className="upload-file-size">
-                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB {parsing ? '• Parsing metadata...' : ''}
-                  </span>
-                </div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={resetForm}
-                  disabled={uploading}
-                >
-                  Remove
-                </button>
-              </div>
-            )}
+            <div className="upload-dropzone-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17,8 12,3 7,8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <h3 className="upload-dropzone-title">
+              {fileList.length > 0 ? 'Drag & drop more files to add' : 'Drag & drop your audio files'}
+            </h3>
+            <p className="upload-dropzone-subtitle">or click to browse multiple files</p>
+            <p className="upload-dropzone-formats">MP3, M4A, WAV, OGG, FLAC (Multiple Selection Enabled)</p>
+            <input
+              type="file"
+              multiple
+              className="upload-file-input"
+              accept={acceptedFormats}
+              disabled={uploading}
+              onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
+            />
           </div>
 
-          {/* Metadata Form */}
-          {selectedFile && (
+          {/* Queue List & Edit Details */}
+          {fileList.length > 0 && (
             <div className="upload-metadata animate-fade-in-up">
-              <h3 className="upload-metadata-title">Song Details</h3>
-              <p className="upload-metadata-subtitle">
-                {parsing ? 'Auto-extracting metadata from audio file...' : 'Review and edit auto-detected metadata below'}
-              </p>
-
-              <div className="upload-form">
-                <div className="upload-form-group">
-                  <label htmlFor="upload-title" className="upload-label">Title</label>
-                  <input
-                    id="upload-title"
-                    type="text"
-                    name="title"
-                    className="input"
-                    placeholder="Song title"
-                    value={metadata.title}
-                    onChange={handleInputChange}
-                    disabled={uploading}
-                  />
+              <div className="upload-queue-header">
+                <div>
+                  <h3 className="upload-metadata-title">Selected Tracks ({fileList.length})</h3>
+                  <p className="upload-metadata-subtitle">
+                    Select a track below to edit metadata before uploading
+                  </p>
                 </div>
-
-                <div className="upload-form-group">
-                  <label htmlFor="upload-artist" className="upload-label">Artist</label>
-                  <input
-                    id="upload-artist"
-                    type="text"
-                    name="artist"
-                    className="input"
-                    placeholder="Artist name"
-                    value={metadata.artist}
-                    onChange={handleInputChange}
-                    disabled={uploading}
-                  />
-                </div>
-
-                <div className="upload-form-group">
-                  <label htmlFor="upload-album" className="upload-label">Album</label>
-                  <input
-                    id="upload-album"
-                    type="text"
-                    name="album"
-                    className="input"
-                    placeholder="Album name (optional)"
-                    value={metadata.album}
-                    onChange={handleInputChange}
-                    disabled={uploading}
-                  />
-                </div>
-
-                {uploading && (
-                  <div className="upload-progress-container">
-                    <div className="upload-progress-bar">
-                      <div
-                        className="upload-progress-fill"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                    <span className="upload-progress-text">Uploading to Cloudinary... {uploadProgress}%</span>
-                  </div>
-                )}
-
-                <button
-                  className="btn btn-primary btn-lg upload-submit"
-                  onClick={handleUpload}
-                  disabled={!metadata.title || uploading || parsing}
-                >
-                  {uploading ? (
-                    'Uploading...'
-                  ) : (
-                    <>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17,8 12,3 7,8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      Upload to Library
-                    </>
-                  )}
-                </button>
               </div>
+
+              {/* Track Queue List */}
+              <div className="upload-queue-list">
+                {fileList.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className={`upload-queue-item ${idx === activeTrackIndex ? 'active' : ''}`}
+                    onClick={() => setActiveTrackIndex(idx)}
+                  >
+                    {item.coverUrl ? (
+                      <img src={item.coverUrl} alt="Cover Preview" className="upload-cover-preview" />
+                    ) : (
+                      <div className="upload-file-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 18V5l12-2v13" />
+                          <circle cx="6" cy="18" r="3" />
+                          <circle cx="18" cy="16" r="3" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="upload-queue-details">
+                      <span className="upload-queue-title truncate">
+                        {item.title || item.file.name}
+                      </span>
+                      <span className="upload-queue-meta">
+                        {item.artist || 'Unknown Artist'} • {(item.file.size / (1024 * 1024)).toFixed(2)} MB{' '}
+                        {item.parsing ? '• Parsing metadata...' : ''}
+                      </span>
+                    </div>
+                    {item.status === 'completed' && <span className="upload-queue-status">✓ Completed</span>}
+                    {item.status === 'uploading' && <span className="upload-queue-status">Uploading... {item.progress}%</span>}
+                    {item.status === 'saving' && <span className="upload-queue-status">Saving...</span>}
+                    {item.status === 'pending' && !uploading && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeTrack(item.id)
+                        }}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Active Track Form */}
+              {activeTrack && (
+                <div className="upload-form" style={{ marginTop: 'var(--space-6)' }}>
+                  <h4 style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semibold)' }}>
+                    Edit Details: {activeTrack.title}
+                  </h4>
+
+                  <div className="upload-form-group">
+                    <label htmlFor="upload-title" className="upload-label">Title</label>
+                    <input
+                      id="upload-title"
+                      type="text"
+                      className="input"
+                      placeholder="Song title"
+                      value={activeTrack.title}
+                      onChange={(e) => handleMetadataChange(activeTrack.id, 'title', e.target.value)}
+                      disabled={uploading}
+                    />
+                  </div>
+
+                  <div className="upload-form-group">
+                    <label htmlFor="upload-artist" className="upload-label">Artist</label>
+                    <input
+                      id="upload-artist"
+                      type="text"
+                      className="input"
+                      placeholder="Artist name"
+                      value={activeTrack.artist}
+                      onChange={(e) => handleMetadataChange(activeTrack.id, 'artist', e.target.value)}
+                      disabled={uploading}
+                    />
+                  </div>
+
+                  <div className="upload-form-group">
+                    <label htmlFor="upload-album" className="upload-label">Album</label>
+                    <input
+                      id="upload-album"
+                      type="text"
+                      className="input"
+                      placeholder="Album name (optional)"
+                      value={activeTrack.album}
+                      onChange={(e) => handleMetadataChange(activeTrack.id, 'album', e.target.value)}
+                      disabled={uploading}
+                    />
+                  </div>
+
+                  {uploading && (
+                    <div className="upload-progress-container">
+                      <div className="upload-progress-bar">
+                        <div
+                          className="upload-progress-fill"
+                          style={{ width: `${batchProgress.percent}%` }}
+                        ></div>
+                      </div>
+                      <span className="upload-progress-text">{batchProgress.stageText}</span>
+                    </div>
+                  )}
+
+                  <button
+                    className="btn btn-primary btn-lg upload-submit"
+                    onClick={handleUpload}
+                    disabled={fileList.length === 0 || uploading || fileList.some((f) => f.parsing)}
+                  >
+                    {uploading ? (
+                      `Uploading (${batchProgress.current}/${batchProgress.total})...`
+                    ) : (
+                      <>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17,8 12,3 7,8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Upload {fileList.length} {fileList.length === 1 ? 'Track' : 'Tracks'} to Library
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -324,4 +440,5 @@ export default function Upload() {
     </div>
   )
 }
+
 

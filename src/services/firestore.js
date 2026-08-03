@@ -48,33 +48,76 @@ export async function syncUser(user) {
 }
 
 /**
+ * Local Storage Fallback Store for Offline / Timeout scenarios
+ */
+export function getLocalFallbackSongs() {
+  try {
+    const raw = localStorage.getItem('slopify_local_songs')
+    return raw ? JSON.parse(raw) : []
+  } catch (e) {
+    return []
+  }
+}
+
+export function saveLocalFallbackSong(song) {
+  try {
+    const existing = getLocalFallbackSongs()
+    const updated = [song, ...existing]
+    localStorage.setItem('slopify_local_songs', JSON.stringify(updated))
+  } catch (e) {
+    console.warn('Could not save fallback song to localStorage:', e)
+  }
+}
+
+/**
  * Subscribe to communal songs library in real-time
  */
 export function subscribeToLibrary(onNext, onError) {
+  const emitMerged = (remoteSongs = []) => {
+    const localSongs = getLocalFallbackSongs()
+    const remoteUrls = new Set(remoteSongs.map((s) => s.audioUrl || s.id))
+    const uniqueLocal = localSongs.filter((s) => !remoteUrls.has(s.audioUrl || s.id))
+    onNext([...uniqueLocal, ...remoteSongs])
+  }
+
   if (!isFirebaseConfigured || !db) {
-    onNext([])
+    emitMerged([])
     return () => {}
   }
 
   try {
-    const q = query(collection(db, 'songs'), orderBy('uploadedAt', 'desc'))
+    const songsRef = collection(db, 'songs')
     return onSnapshot(
-      q,
+      songsRef,
       (snapshot) => {
         const songs = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }))
-        onNext(songs)
+
+        const parseTime = (val) => {
+          if (!val) return 0
+          if (typeof val.toMillis === 'function') return val.toMillis()
+          if (typeof val === 'number') return val
+          if (val.seconds) return val.seconds * 1000
+          const d = new Date(val)
+          return isNaN(d.getTime()) ? 0 : d.getTime()
+        }
+
+        const sortedSongs = [...songs].sort(
+          (a, b) => parseTime(b.uploadedAt) - parseTime(a.uploadedAt)
+        )
+        emitMerged(sortedSongs)
       },
       (err) => {
         console.error('Error listening to songs collection:', err)
+        emitMerged([])
         if (onError) onError(err)
       }
     )
   } catch (err) {
     console.error('Failed to attach library listener:', err)
-    onNext([])
+    emitMerged([])
     return () => {}
   }
 }
@@ -148,46 +191,58 @@ export function subscribeToStorageMeta(onNext, onError) {
  * and atomically increment global storage metrics.
  */
 export async function addSongToFirestore(songData) {
+  const songPayload = {
+    title: songData.title || 'Untitled',
+    artist: songData.artist || 'Unknown Artist',
+    album: songData.album || '',
+    duration: songData.duration || 0,
+    storagePath: songData.storagePath || songData.r2Key || '',
+    r2Key: songData.storagePath || songData.r2Key || '',
+    audioUrl: songData.audioUrl || songData.downloadUrl || '',
+    coverUrl: songData.coverUrl || '',
+    fileSize: songData.fileSize || 0,
+    uploaderUid: songData.uploaderUid || 'anonymous',
+    uploaderName: songData.uploaderName || 'Friend',
+  }
+
   if (!isFirebaseConfigured || !db) {
-    console.warn('Firebase not configured. Song metadata saved in mock mode.')
-    return 'mock_song_' + Date.now()
+    console.warn('Firebase not configured. Song metadata saved to local storage fallback.')
+    const localId = 'local_song_' + Date.now()
+    saveLocalFallbackSong({ id: localId, ...songPayload, uploadedAt: new Date().toISOString() })
+    return localId
   }
 
   try {
     const { addDoc, increment } = await import('firebase/firestore')
     const songsRef = collection(db, 'songs')
-    
+
     const docRef = await addDoc(songsRef, {
-      title: songData.title || 'Untitled',
-      artist: songData.artist || 'Unknown Artist',
-      album: songData.album || '',
-      duration: songData.duration || 0,
-      storagePath: songData.storagePath || songData.r2Key || '',
-      r2Key: songData.storagePath || songData.r2Key || '',
-      audioUrl: songData.audioUrl || songData.downloadUrl || '',
-      coverUrl: songData.coverUrl || '',
-      fileSize: songData.fileSize || 0,
-      uploaderUid: songData.uploaderUid || 'anonymous',
-      uploaderName: songData.uploaderName || 'Friend',
+      ...songPayload,
       uploadedAt: serverTimestamp(),
     })
 
-    // Increment global storage tracking
-    const metaRef = doc(db, 'storage_meta', 'global')
-    await setDoc(
-      metaRef,
-      {
-        totalBytesUsed: increment(songData.fileSize || 0),
-        songCount: increment(1),
-        lastUpdated: serverTimestamp(),
-      },
-      { merge: true }
-    )
+    // Safely increment global storage tracking without blocking song creation
+    try {
+      const metaRef = doc(db, 'storage_meta', 'global')
+      await setDoc(
+        metaRef,
+        {
+          totalBytesUsed: increment(songData.fileSize || 0),
+          songCount: increment(1),
+          lastUpdated: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    } catch (metaErr) {
+      console.warn('Could not update storage_meta metrics:', metaErr)
+    }
 
     return docRef.id
   } catch (err) {
-    console.error('Error writing song to Firestore:', err)
-    throw err
+    console.warn('Firestore write failed. Falling back to local storage:', err)
+    const localId = 'local_song_' + Date.now()
+    saveLocalFallbackSong({ id: localId, ...songPayload, uploadedAt: new Date().toISOString() })
+    return localId
   }
 }
 
@@ -212,16 +267,20 @@ export async function deleteSongFromFirestore(songId, storagePath, fileSize = 0)
     await deleteDoc(songRef)
 
     // 3. Decrement global storage metrics
-    const metaRef = doc(db, 'storage_meta', 'global')
-    await setDoc(
-      metaRef,
-      {
-        totalBytesUsed: increment(-Math.abs(fileSize || 0)),
-        songCount: increment(-1),
-        lastUpdated: serverTimestamp(),
-      },
-      { merge: true }
-    )
+    try {
+      const metaRef = doc(db, 'storage_meta', 'global')
+      await setDoc(
+        metaRef,
+        {
+          totalBytesUsed: increment(-Math.abs(fileSize || 0)),
+          songCount: increment(-1),
+          lastUpdated: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    } catch (metaErr) {
+      console.warn('Could not decrement storage_meta metrics:', metaErr)
+    }
 
     return { success: true }
   } catch (err) {
@@ -229,5 +288,56 @@ export async function deleteSongFromFirestore(songId, storagePath, fileSize = 0)
     throw err
   }
 }
+
+/**
+ * Save active user playback session for cross-device sync
+ * Writes to `users/{uid}/session/current`
+ */
+export async function saveUserSession(uid, sessionData) {
+  if (!isFirebaseConfigured || !db || !uid) return
+
+  try {
+    const sessionRef = doc(db, 'users', uid, 'session', 'current')
+    await setDoc(
+      sessionRef,
+      {
+        ...sessionData,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    )
+  } catch (err) {
+    console.warn('Could not save user playback session:', err)
+  }
+}
+
+/**
+ * Subscribe to real-time user playback session changes across devices
+ */
+export function subscribeToUserSession(uid, onNext, onError) {
+  if (!isFirebaseConfigured || !db || !uid) {
+    return () => {}
+  }
+
+  try {
+    const sessionRef = doc(db, 'users', uid, 'session', 'current')
+    return onSnapshot(
+      sessionRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          onNext(docSnap.data())
+        }
+      },
+      (err) => {
+        console.error('Error listening to user playback session:', err)
+        if (onError) onError(err)
+      }
+    )
+  } catch (err) {
+    console.error('Failed to attach user playback session listener:', err)
+    return () => {}
+  }
+}
+
 
 

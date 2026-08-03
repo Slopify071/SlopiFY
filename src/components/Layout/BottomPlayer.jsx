@@ -13,6 +13,7 @@ export default function BottomPlayer() {
     shuffle,
     repeat,
     queue,
+    isQueueOpen,
     togglePlay,
     playNext,
     playPrevious,
@@ -21,6 +22,7 @@ export default function BottomPlayer() {
     toggleMute,
     toggleShuffle,
     cycleRepeat,
+    toggleQueue,
   } = usePlayer()
 
   const [isSeeking, setIsSeeking] = useState(false)
@@ -36,35 +38,47 @@ export default function BottomPlayer() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const [seekTime, setSeekTime] = useState(null)
+  const isSeekingRef = useRef(false)
+
+  const effectiveDuration = duration > 0 ? duration : (currentSong?.duration || 0)
+  const activeTime = isSeekingRef.current && seekTime !== null ? seekTime : currentTime
+  const displayTime = effectiveDuration > 0 ? Math.min(activeTime, effectiveDuration) : activeTime
+  const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (displayTime / effectiveDuration) * 100)) : 0
   const effectiveVolume = muted ? 0 : volume
 
   // --- Seek bar interaction ---
-  const handleSeekClick = useCallback((e) => {
-    if (!seekBarRef.current || !duration) return
+  const getTargetTimeFromEvent = useCallback((e) => {
+    if (!seekBarRef.current || !effectiveDuration) return 0
     const rect = seekBarRef.current.getBoundingClientRect()
     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    seek(percent * duration)
-  }, [duration, seek])
+    return percent * effectiveDuration
+  }, [effectiveDuration])
 
   const handleSeekMouseDown = useCallback((e) => {
+    if (!effectiveDuration) return
+    isSeekingRef.current = true
     setIsSeeking(true)
-    handleSeekClick(e)
+    const initialTime = getTargetTimeFromEvent(e)
+    setSeekTime(initialTime)
+
+    let latestTime = initialTime
 
     const onMove = (moveEvent) => {
-      if (!seekBarRef.current || !duration) return
-      const rect = seekBarRef.current.getBoundingClientRect()
-      const percent = Math.max(0, Math.min(1, (moveEvent.clientX - rect.left) / rect.width))
-      seek(percent * duration)
+      latestTime = getTargetTimeFromEvent(moveEvent)
+      setSeekTime(latestTime)
     }
     const onUp = () => {
+      isSeekingRef.current = false
       setIsSeeking(false)
+      setSeekTime(null)
+      seek(latestTime)
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
-  }, [duration, seek, handleSeekClick])
+  }, [effectiveDuration, seek, getTargetTimeFromEvent])
 
   // --- Volume bar interaction ---
   const handleVolumeClick = useCallback((e) => {
@@ -221,7 +235,7 @@ export default function BottomPlayer() {
 
         {/* Seek Bar */}
         <div className="player-seek">
-          <span className="player-time">{formatTime(currentTime)}</span>
+          <span className="player-time">{formatTime(displayTime)}</span>
           <div
             className="player-seek-bar"
             ref={seekBarRef}
@@ -238,14 +252,19 @@ export default function BottomPlayer() {
               />
             </div>
           </div>
-          <span className="player-time">{formatTime(duration)}</span>
+          <span className="player-time">{formatTime(effectiveDuration)}</span>
         </div>
       </div>
 
       {/* Volume & Extras */}
       <div className="player-extras">
         {/* Queue button */}
-        <button className="btn-icon player-btn-secondary" aria-label="Queue" title={`${queue.length} in queue`}>
+        <button
+          className={`btn-icon player-btn-secondary ${isQueueOpen ? 'player-btn-active' : ''}`}
+          onClick={toggleQueue}
+          aria-label="Queue"
+          title={`Queue (${queue.length} track${queue.length !== 1 ? 's' : ''})`}
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="8" y1="6" x2="21" y2="6" />
             <line x1="8" y1="12" x2="21" y2="12" />

@@ -8,7 +8,6 @@ export default function Login() {
   const {
     user,
     isAuthenticated,
-    isFirebaseConfigured,
     loginWithGoogle,
     loginWithEmail,
     signupWithEmail,
@@ -77,11 +76,7 @@ export default function Login() {
       <div className="login-bg-pattern" />
 
       <div className="login-card animate-fade-in-scale">
-        {!isFirebaseConfigured && (
-          <div className="login-demo-badge">
-            <span className="demo-dot" /> Graceful Demo Mode (Firebase unconfigured)
-          </div>
-        )}
+
 
         {/* Header */}
         <div className="login-header">

@@ -2,13 +2,13 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import SongCard from '../components/Song/SongCard'
-import { subscribeToLibrary, deleteSongFromFirestore } from '../services/firestore'
+import { subscribeToLibrary, deleteSongFromFirestore, getLocalFallbackSongs } from '../services/firestore'
 import './Library.css'
 
 export default function Library() {
   const { user } = useAuth()
   const { playSong, playAll, enqueue } = usePlayer()
-  const [songs, setSongs] = useState([])
+  const [songs, setSongs] = useState(() => getLocalFallbackSongs())
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
@@ -17,20 +17,35 @@ export default function Library() {
   const dropdownRef = useRef(null)
   const inputRef = useRef(null)
 
-  // Subscribe to live Firestore songs collection
+  // Subscribe to live Firestore songs collection with 400ms skeleton timeout cap
   useEffect(() => {
-    setLoading(true)
+    let isMounted = true
+
+    // Maximum 400ms skeleton loading duration cap
+    const skeletonTimer = setTimeout(() => {
+      if (isMounted) setLoading(false)
+    }, 400)
+
     const unsubscribe = subscribeToLibrary(
       (liveSongs) => {
+        if (!isMounted) return
+        clearTimeout(skeletonTimer)
         setSongs(liveSongs)
         setLoading(false)
       },
       (err) => {
+        if (!isMounted) return
+        clearTimeout(skeletonTimer)
         console.error('Library subscription error:', err)
         setLoading(false)
       }
     )
-    return () => unsubscribe()
+
+    return () => {
+      isMounted = false
+      clearTimeout(skeletonTimer)
+      unsubscribe()
+    }
   }, [])
 
   const formatDuration = (seconds) => {

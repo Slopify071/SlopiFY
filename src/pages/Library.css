@@ -272,6 +272,11 @@
   border-bottom: 1px solid var(--color-border);
   transition: all var(--duration-fast) var(--ease-out);
   cursor: pointer;
+  position: relative;
+}
+
+.library-song-row.menu-open {
+  z-index: 1000;
 }
 
 .library-song-row:hover {

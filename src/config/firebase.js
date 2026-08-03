@@ -38,10 +38,6 @@ if (isFirebaseConfigured) {
   } catch (error) {
     console.error('Failed to initialize Firebase:', error)
   }
-} else {
-  console.warn(
-    'SlopiFY: Firebase credentials are not set in .env.local. Running in Graceful Demo / Fallback Mode.'
-  )
 }
 
 export { app, auth, db, storage, googleProvider }
