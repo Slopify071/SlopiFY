@@ -44,5 +44,5 @@ if (isFirebaseConfigured) {
   )
 }
 
-export { app, auth, db, storage, googleProvider }
+export { auth, db, googleProvider }
 
