@@ -15,7 +15,7 @@
     "music-metadata": "^11.14.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.50.0",
