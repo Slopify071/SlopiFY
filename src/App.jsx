@@ -5,7 +5,8 @@ import { PlayerProvider } from './context/PlayerContext'
 import AppShell from './components/Layout/AppShell'
 import './App.css'
 
-const Login = lazy(() => import('./pages/Login'))
+import Login from './pages/Login'
+
 const Library = lazy(() => import('./pages/Library'))
 const Upload = lazy(() => import('./pages/Upload'))
 const Playlists = lazy(() => import('./pages/Playlists'))
