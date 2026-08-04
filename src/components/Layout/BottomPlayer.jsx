@@ -47,11 +47,12 @@ export default function BottomPlayer() {
   const getTargetTimeFromEvent = useCallback((e) => {
     if (!seekBarRef.current || !effectiveDuration) return 0
     const rect = seekBarRef.current.getBoundingClientRect()
-    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
     return percent * effectiveDuration
   }, [effectiveDuration])
 
-  const handleSeekMouseDown = useCallback((e) => {
+  const handleSeekStart = useCallback((e) => {
     if (!effectiveDuration) return
     isSeekingRef.current = true
     const initialTime = getTargetTimeFromEvent(e)
@@ -60,6 +61,9 @@ export default function BottomPlayer() {
     let latestTime = initialTime
 
     const onMove = (moveEvent) => {
+      if (moveEvent.cancelable && moveEvent.type === 'touchmove') {
+        moveEvent.preventDefault()
+      }
       latestTime = getTargetTimeFromEvent(moveEvent)
       setSeekTime(latestTime)
     }
@@ -69,9 +73,15 @@ export default function BottomPlayer() {
       seek(latestTime)
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
+      document.removeEventListener('touchmove', onMove)
+      document.removeEventListener('touchend', onUp)
+      document.removeEventListener('touchcancel', onUp)
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend', onUp)
+    document.addEventListener('touchcancel', onUp)
   }, [effectiveDuration, seek, getTargetTimeFromEvent])
 
   // --- Volume bar interaction ---
@@ -246,7 +256,8 @@ export default function BottomPlayer() {
           <div
             className="player-seek-bar"
             ref={seekBarRef}
-            onMouseDown={handleSeekMouseDown}
+            onMouseDown={handleSeekStart}
+            onTouchStart={handleSeekStart}
           >
             <div className={`player-seek-track ${isBuffering ? 'is-buffering' : ''}`}>
               <div

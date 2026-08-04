@@ -457,6 +457,12 @@ export function PlayerProvider({ children }) {
     }
 
     const onEnded = () => {
+      // Ignore spurious ended events (often fired by browsers during seek errors or buffering issues on streams)
+      if (audio.duration && Math.abs(audio.currentTime - audio.duration) > 2) {
+        console.warn('Spurious ended event ignored (currentTime is far from duration)')
+        return
+      }
+
       isBufferingRef.current = false
       dispatch({ type: 'SET_BUFFERING', payload: false })
       // Snap currentTime to duration so the UI shows exactly 100%
@@ -663,8 +669,10 @@ export function PlayerProvider({ children }) {
       isSeekingAudioRef.current = true
       isBufferingRef.current = true
       dispatch({ type: 'SET_BUFFERING', payload: true })
-      audio.currentTime = time
-      dispatch({ type: 'SET_CURRENT_TIME', payload: time })
+      const dur = audio.duration && isFinite(audio.duration) && audio.duration > 1 ? audio.duration - 0.5 : time
+      const targetTime = Math.max(0, Math.min(time, dur))
+      audio.currentTime = targetTime
+      dispatch({ type: 'SET_CURRENT_TIME', payload: targetTime })
     }
   }, [])
 
