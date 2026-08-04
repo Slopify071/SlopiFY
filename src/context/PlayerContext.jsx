@@ -4,6 +4,15 @@ import { saveUserSession, subscribeToUserSession } from '../services/firestore'
 
 const PlayerContext = createContext(null)
 
+let globalAudio = null
+function getAudioElement() {
+  if (!globalAudio && typeof window !== 'undefined') {
+    globalAudio = new Audio()
+    globalAudio.preload = 'metadata'
+  }
+  return globalAudio
+}
+
 function getDeviceId() {
   try {
     let id = sessionStorage.getItem('slopify_device_id')
@@ -125,7 +134,7 @@ function playerReducer(state, action) {
 export function PlayerProvider({ children }) {
   const { user } = useAuth()
   const [state, dispatch] = useReducer(playerReducer, initialState)
-  const audioRef = useRef(null)
+  const audioRef = useRef(getAudioElement())
   const allSongsRef = useRef([])
   const stateRef = useRef(state)
   const playPromiseRef = useRef(null)
@@ -225,22 +234,17 @@ export function PlayerProvider({ children }) {
     return () => clearInterval(interval)
   }, [user?.uid, state.isPlaying])
 
-  // Create audio element once
+  // Ensure singleton audio instance is configured
   useEffect(() => {
-    const audio = new Audio()
-    audio.preload = 'metadata'
-    audio.volume = initialState.volume
-    audioRef.current = audio
-
-    return () => {
-      audio.pause()
-      audio.src = ''
+    const audio = audioRef.current || getAudioElement()
+    if (audio) {
+      audio.volume = initialState.volume
     }
   }, [])
 
   // Single, consolidated effect to sync audio src and play/pause state
   useEffect(() => {
-    const audio = audioRef.current
+    const audio = audioRef.current || getAudioElement()
     if (!audio || !state.currentSong) return
 
     const url = state.currentSong.audioUrl || state.currentSong.downloadUrl || ''
@@ -261,6 +265,11 @@ export function PlayerProvider({ children }) {
 
     if (srcChanged) {
       isChangingSrcRef.current = true
+      try {
+        audio.pause()
+      } catch (e) {
+        // ignore pause errors
+      }
       audio.currentTime = 0
       audio.src = url
       audio.load()
@@ -308,7 +317,7 @@ export function PlayerProvider({ children }) {
 
   // Sync volume + mute
   useEffect(() => {
-    const audio = audioRef.current
+    const audio = audioRef.current || getAudioElement()
     if (!audio) return
     audio.volume = state.muted ? 0 : state.volume
   }, [state.volume, state.muted])
@@ -316,7 +325,7 @@ export function PlayerProvider({ children }) {
   // Audio event listeners attached once
   const lastTimeDispatchRef = useRef(0)
   useEffect(() => {
-    const audio = audioRef.current
+    const audio = audioRef.current || getAudioElement()
     if (!audio) return
 
     const updateDuration = () => {
@@ -361,9 +370,6 @@ export function PlayerProvider({ children }) {
 
     const onSeeked = () => {
       isSeekingAudioRef.current = false
-      if (stateRef.current.isPlaying && audio.paused) {
-        audio.play().catch(() => {})
-      }
     }
 
     const onEnded = () => {
