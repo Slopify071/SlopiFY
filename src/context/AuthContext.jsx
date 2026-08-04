@@ -24,7 +24,19 @@ export const useAuth = () => {
 function getCachedUser() {
   try {
     const cached = sessionStorage.getItem('slopify_cached_user')
-    if (cached) return JSON.parse(cached)
+    if (cached) {
+      const parsed = JSON.parse(cached)
+      if (parsed?.isDemo || parsed?.uid?.startsWith('demo-')) {
+        sessionStorage.removeItem('slopify_cached_user')
+        localStorage.removeItem('slopify_demo_user')
+        return null
+      }
+      return parsed
+    }
+  } catch { /* ignore */ }
+  // Also clear legacy localStorage demo user if present
+  try {
+    localStorage.removeItem('slopify_demo_user')
   } catch { /* ignore */ }
   return null
 }
@@ -56,6 +68,12 @@ export function AuthProvider({ children }) {
   // Listen to Firebase Auth state changes
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
+      setUser(null)
+      cacheUser(null)
+      try {
+        localStorage.removeItem('slopify_demo_user')
+        sessionStorage.removeItem('slopify_cached_user')
+      } catch { /* ignore */ }
       setLoading(false)
       return
     }
