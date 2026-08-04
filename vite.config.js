@@ -64,4 +64,21 @@ export default defineConfig({
     strictPort: true,
     open: true,
   },
+  build: {
+    minify: 'esbuild',
+    cssMinify: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/firebase')) {
+            return 'vendor-firebase'
+          }
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
+            return 'vendor-react'
+          }
+        },
+      },
+    },
+  },
 })

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
-import { Glass } from '@samasante/liquid-glass'
 import SongCard from '../components/Song/SongCard'
 import { subscribeToLibrary, deleteSongFromFirestore } from '../services/firestore'
 import './Library.css'
@@ -154,8 +153,15 @@ export default function Library() {
 
   return (
     <div className="page-content">
+      {/* Search backdrop blur overlay */}
+      <div
+        className={`search-backdrop ${isSearchFocused ? 'is-active' : ''}`}
+        onClick={() => setIsSearchFocused(false)}
+        aria-hidden="true"
+      />
+
       {/* Search — pinned to top, centered */}
-      <div className="library-search-wrapper animate-fade-in-up">
+      <div className={`library-search-wrapper animate-fade-in-up ${isSearchFocused ? 'library-search-wrapper--focused' : ''}`}>
         <div className="search-container" ref={searchRef}>
           <div className={`search-bar ${isSearchFocused ? 'search-bar--focused' : ''}`}>
             <span className="search-icon">
@@ -190,7 +196,7 @@ export default function Library() {
 
           {/* Live search dropdown — renders as you type */}
           {showDropdown && (
-            <Glass className="search-dropdown animate-fade-in-scale" ref={dropdownRef} radius={14} optics={{ frost: 0.4, dispersion: 0.3, bend: 0, glow: 0.1 }}>
+            <div className="search-dropdown animate-fade-in-scale" ref={dropdownRef}>
               {searchResults.length > 0 ? (
                 <>
                   <div className="search-dropdown-header">
@@ -219,7 +225,7 @@ export default function Library() {
                       >
                         <div className="search-result-cover">
                           {song.coverUrl ? (
-                            <img src={song.coverUrl} alt={song.title} loading="lazy" />
+                            <img src={song.coverUrl} alt={song.title} loading="lazy" decoding="async" />
                           ) : (
                             <div className="search-result-cover-placeholder">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -256,7 +262,7 @@ export default function Library() {
                   <span>Try searching by song title, artist, or album</span>
                 </div>
               )}
-            </Glass>
+            </div>
           )}
         </div>
       </div>

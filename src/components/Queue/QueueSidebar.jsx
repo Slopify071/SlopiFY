@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
-import { Glass } from '@samasante/liquid-glass'
 import './QueueSidebar.css'
 
 export default function QueueSidebar() {
@@ -44,19 +43,10 @@ export default function QueueSidebar() {
         onClick={() => setQueueOpen(false)}
       />
 
-      <Glass
+      <aside
         ref={sidebarRef}
         className={`queue-sidebar ${isQueueOpen ? 'is-open' : ''}`}
         aria-label="Play Queue Sidebar"
-        radius={0}
-        optics={{
-          frost: 0.3,
-          dispersion: 0.2,
-          curvature: 0.1,
-          bend: 0.1,
-          depth: 0.3,
-          glow: 0.1
-        }}
       >
         <div className="queue-sidebar-inner">
           {/* Sidebar Header */}
@@ -231,7 +221,7 @@ export default function QueueSidebar() {
             </div>
           </div>
         </div>
-      </Glass>
+      </aside>
     </>
   )
 }

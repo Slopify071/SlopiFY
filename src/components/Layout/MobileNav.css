@@ -20,8 +20,10 @@
     box-sizing: border-box;
     overflow: hidden;
     background: rgba(12, 13, 18, 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    will-change: transform;
+    transform: translateZ(0);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
     padding: 0 var(--space-2);

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 // music-metadata is lazy-loaded via dynamic import() on first file parse
 // to keep it out of the main bundle (~1MB savings)
-import { Glass } from '@samasante/liquid-glass'
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
@@ -279,7 +278,7 @@ export default function Upload() {
       )}
 
       {uploadSuccess ? (
-        <Glass className="upload-success-card animate-fade-in-up" radius={24} optics={glassOptics}>
+        <div className="upload-success-card animate-fade-in-up">
           <div className="upload-success-card-inner">
             <div className="upload-success-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -295,7 +294,7 @@ export default function Upload() {
               Upload More Songs
             </button>
           </div>
-        </Glass>
+        </div>
       ) : (
         <>
           {/* Drop Zone */}
@@ -336,7 +335,7 @@ export default function Upload() {
 
           {/* Queue List & Edit Details */}
           {fileList.length > 0 && (
-            <Glass className="upload-metadata animate-fade-in-up" radius={24} optics={glassOptics}>
+            <div className="upload-metadata animate-fade-in-up">
               <div className="upload-metadata-inner">
                 <div className="upload-queue-header">
                   <div>
@@ -472,7 +471,7 @@ export default function Upload() {
                   </div>
                 )}
               </div>
-            </Glass>
+            </div>
           )}
         </>
       )}

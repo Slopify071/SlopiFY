@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
-import { Glass } from '@samasante/liquid-glass'
 import './BottomPlayer.css'
 
 export default function BottomPlayer() {
@@ -27,11 +26,8 @@ export default function BottomPlayer() {
     toggleQueue,
   } = usePlayer()
 
-  const [isSeeking, setIsSeeking] = useState(false)
   const seekBarRef = useRef(null)
   const volumeBarRef = useRef(null)
-
-  const hasSong = !!currentSong
 
   const formatTime = (seconds) => {
     if (!seconds || !isFinite(seconds)) return '0:00'
@@ -45,12 +41,9 @@ export default function BottomPlayer() {
 
   const effectiveDuration = duration > 0 ? duration : (currentSong?.duration || 0)
   const activeTime = isSeekingRef.current && seekTime !== null ? seekTime : currentTime
-  // Do NOT clamp activeTime against effectiveDuration — the audio element's
-  // currentTime is authoritative.  Progress naturally caps at 100% via Math.min below.
   const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (activeTime / effectiveDuration) * 100)) : 0
   const effectiveVolume = muted ? 0 : volume
 
-  // --- Seek bar interaction ---
   const getTargetTimeFromEvent = useCallback((e) => {
     if (!seekBarRef.current || !effectiveDuration) return 0
     const rect = seekBarRef.current.getBoundingClientRect()
@@ -61,7 +54,6 @@ export default function BottomPlayer() {
   const handleSeekMouseDown = useCallback((e) => {
     if (!effectiveDuration) return
     isSeekingRef.current = true
-    setIsSeeking(true)
     const initialTime = getTargetTimeFromEvent(e)
     setSeekTime(initialTime)
 
@@ -73,7 +65,6 @@ export default function BottomPlayer() {
     }
     const onUp = () => {
       isSeekingRef.current = false
-      setIsSeeking(false)
       setSeekTime(null)
       seek(latestTime)
       document.removeEventListener('mousemove', onMove)
@@ -135,25 +126,16 @@ export default function BottomPlayer() {
     )
   }
 
+  const hasSong = !!currentSong
+
   return (
-    <Glass 
-      className={`bottom-player ${hasSong ? 'has-song' : ''}`}
-      radius={16}
-      optics={{
-        frost: 0.3,
-        dispersion: 0.2,
-        curvature: 0.1,
-        bend: 0.1,
-        depth: 0.2,
-        glow: 0.1
-      }}
-    >
+    <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
       <div className="bottom-player-inner">
       {/* Song Info */}
       <div className="player-song-info">
         <div className="player-cover-art">
           {currentSong?.coverUrl ? (
-            <img src={currentSong.coverUrl} alt="Cover" />
+            <img src={currentSong.coverUrl} alt="Cover" loading="eager" decoding="async" />
           ) : (
             <div className="player-cover-placeholder">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -316,8 +298,6 @@ export default function BottomPlayer() {
           </div>
         </div>
       </div>
-      </div>
-
       {/* Mobile Player Progress Bar */}
       <div className="mobile-player-progress" ref={seekBarRef} onMouseDown={handleSeekMouseDown}>
         <div className="mobile-player-progress-fill" style={{ width: `${progress}%` }} />
