@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 
-# Agent Accessibility
+# Sitemaps
+Sitemap: https://slopify-nu.vercel.app/sitemap.xml
 Sitemap: https://slopify.homiez.workers.dev/llms.txt
