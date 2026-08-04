@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
+import { Glass } from '@samasante/liquid-glass'
 import './Upload.css'
 
 export default function Upload() {
