@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
+import { Glass } from '@samasante/liquid-glass'
 import './BottomPlayer.css'
 
 export default function BottomPlayer() {
@@ -133,7 +134,19 @@ export default function BottomPlayer() {
   }
 
   return (
-    <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
+    <Glass 
+      className={`bottom-player ${hasSong ? 'has-song' : ''}`}
+      radius={16}
+      optics={{
+        frost: 0.3,
+        dispersion: 0.2,
+        curvature: 0.1,
+        bend: 0.1,
+        depth: 0.2,
+        glow: 0.1
+      }}
+    >
+      <div className="bottom-player-inner">
       {/* Song Info */}
       <div className="player-song-info">
         <div className="player-cover-art">
@@ -291,6 +304,7 @@ export default function BottomPlayer() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Glass>
   )
 }

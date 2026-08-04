@@ -5,9 +5,9 @@
 .create-pl-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 2500;
   display: flex;
   align-items: center;
@@ -17,7 +17,9 @@
 }
 
 .create-pl-modal {
-  background: #0C0D12;
+  background: var(--color-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   width: 100%;
@@ -25,7 +27,7 @@
   max-height: calc(100vh - 32px);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow: hidden;
   margin: auto;
 }
@@ -52,7 +54,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  color: var(--color-primary, #E58E26);
+  color: var(--color-primary);
 }
 
 .create-pl-header h2 {
@@ -120,7 +122,7 @@
   height: 140px;
   border-radius: 14px;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(229, 142, 38, 0.2) 0%, rgba(217, 119, 6, 0.05) 100%);
+  background: var(--color-primary-subtle);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   position: relative;
@@ -170,7 +172,7 @@
 .create-pl-input {
   width: 100%;
   padding: 8px 12px;
-  background: #050507;
+  background: var(--color-bg-elevated);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   color: #F8FAFC;
@@ -181,9 +183,9 @@
 
 .create-pl-input:focus {
   outline: none;
-  border-color: var(--color-primary, #E58E26);
-  box-shadow: 0 0 0 3px rgba(229, 142, 38, 0.25);
-  background: #08080C;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  background: var(--color-surface);
 }
 
 .create-pl-textarea {
@@ -197,7 +199,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: #050507;
+  background: var(--color-bg-elevated);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   cursor: pointer;
@@ -206,7 +208,7 @@
 }
 
 .create-pl-collab-row:hover {
-  border-color: rgba(229, 142, 38, 0.5);
+  border-color: var(--color-primary-dark);
 }
 
 .create-pl-toggle {
@@ -220,7 +222,7 @@
 }
 
 .create-pl-toggle.is-active {
-  background: var(--color-primary, #E58E26);
+  background: var(--color-primary);
 }
 
 .create-pl-toggle-handle {
@@ -270,19 +272,6 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #E58E26 0%, #D97706 100%) !important;
-  color: #000000 !important;
-  font-weight: 700 !important;
-  border-radius: 8px !important;
-  padding: 8px 18px !important;
-  font-size: 0.85rem !important;
-  box-shadow: 0 4px 16px rgba(229, 142, 38, 0.3) !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-}
-
-.create-pl-submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(229, 142, 38, 0.45) !important;
 }
 
 .create-pl-spinner {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { subscribeToUserPlaylists, addSongToPlaylist } from '../../services/firestore'
 import { usePlayer } from '../../context/PlayerContext'
+import { Glass } from '@samasante/liquid-glass'
 import './SongCard.css'
 
 export default function SongCard({ song, index, currentUserId, onPlay, onDelete, onEnqueue }) {
@@ -127,7 +128,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
         </button>
 
         {showMenu && (
-          <div className="song-card-menu animate-fade-in-scale">
+          <Glass className="song-card-menu animate-fade-in-scale" radius={12} optics={{ frost: 0.5, dispersion: 0.2, curvature: 0.1, bend: 0.1, depth: 0.3, glow: 0.1 }}>
             <button className="song-menu-item" onClick={() => { onPlay && onPlay(song); setShowMenu(false); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="5 3 19 12 5 21 5 3" />
@@ -190,7 +191,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
                 Delete Track
               </button>
             )}
-          </div>
+          </Glass>
         )}
       </div>
     </div>

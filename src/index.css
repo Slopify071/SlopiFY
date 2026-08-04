@@ -9,26 +9,26 @@
 
 /* --- CSS Custom Properties (Design Tokens) --- */
 :root {
-  /* Colors — Warm Caramel & Honey Amber Accents */
-  --color-primary: #E58E26;
-  --color-primary-light: #F59E0B;
-  --color-primary-dark: #B45309;
-  --color-primary-subtle: #1E2433;
-  --color-primary-hover: rgba(229, 142, 38, 0.15);
+  /* Colors — Cool Slate & Glass Accents */
+  --color-primary: #F8FAFC;
+  --color-primary-light: #FFFFFF;
+  --color-primary-dark: #94A3B8;
+  --color-primary-subtle: rgba(255, 255, 255, 0.1);
+  --color-primary-hover: rgba(255, 255, 255, 0.15);
 
   /* Modern Accents */
-  --gradient-primary: linear-gradient(135deg, #E58E26 0%, #D97706 100%);
+  --gradient-primary: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
   --gradient-warm: linear-gradient(135deg, #1A1E29 0%, #12151C 100%);
   --gradient-cool: #12151C;
   --gradient-glass: rgba(18, 21, 28, 0.85);
 
-  /* Pitch Black Neutral Palette */
-  --color-bg: #000000;
-  --color-bg-elevated: #0B0B0B;
-  --color-bg-hover: #141414;
-  --color-bg-active: #1F1F1F;
-  --color-surface: #0B0B0B;
-  --color-surface-secondary: #141414;
+  /* Pitch Black Neutral Palette -> Translucent Glass Palette */
+  --color-bg: transparent;
+  --color-bg-elevated: rgba(255, 255, 255, 0.05);
+  --color-bg-hover: rgba(255, 255, 255, 0.08);
+  --color-bg-active: rgba(255, 255, 255, 0.12);
+  --color-surface: rgba(0, 0, 0, 0.2);
+  --color-surface-secondary: rgba(0, 0, 0, 0.3);
 
   /* Text System (Crisp White & Slate High Contrast) */
   --color-text-primary: #F8FAFC;
@@ -152,6 +152,10 @@ body {
   font-weight: var(--weight-regular);
   color: var(--color-text-primary);
   background-color: #000000;
+  background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   line-height: 1.6;
   overflow-x: hidden;
   min-height: 100vh;
@@ -442,13 +446,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary {
-  background: var(--gradient-primary);
+  background: var(--color-primary-light);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-sm), 0 2px 8px rgba(108, 92, 231, 0.25);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
 }
 
 .btn-primary:hover {
-  box-shadow: var(--shadow-md), 0 4px 16px rgba(108, 92, 231, 0.35);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4);
   transform: translateY(-1px);
 }
 
@@ -457,14 +461,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary {
-  background: var(--color-bg-elevated);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .btn-secondary:hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-border-focus);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .btn-ghost {

@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { Glass } from '@samasante/liquid-glass'
 import './Sidebar.css'
 
 const NAV_ITEMS = [
@@ -49,7 +50,19 @@ export default function Sidebar({ onLogoutRequest }) {
   const handleLogout = onLogoutRequest || logout
 
   return (
-    <aside className="sidebar">
+    <Glass 
+      className="sidebar"
+      radius={20}
+      optics={{
+        frost: 0.3,
+        dispersion: 0.2,
+        curvature: 0.3,
+        bend: 0.1,
+        depth: 0.4,
+        glow: 0.1
+      }}
+    >
+      <div className="sidebar-inner">
       {/* Logo / Header */}
       <div className="sidebar-logo">
         <Link to="/library" className="sidebar-logo-link" title="SlopiFY Home">
@@ -114,6 +127,7 @@ export default function Sidebar({ onLogoutRequest }) {
           </button>
         </div>
       </div>
-    </aside>
+      </div>
+    </Glass>
   )
 }

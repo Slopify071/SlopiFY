@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import * as musicMetadata from 'music-metadata'
+import { Glass } from '@samasante/liquid-glass'
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
@@ -16,6 +17,15 @@ export default function Upload() {
   const [completedCount, setCompletedCount] = useState(0)
   const [error, setError] = useState(null)
   const [storageMeta, setStorageMeta] = useState({ totalBytesUsed: 0, songCount: 0 })
+
+  const glassOptics = {
+    frost: 0.8,
+    dispersion: 0.2,
+    curvature: 0.1,
+    bend: 0.1,
+    depth: 0.5,
+    glow: 0.05
+  }
 
   useEffect(() => {
     const unsubscribe = subscribeToStorageMeta((meta) => {
@@ -238,20 +248,22 @@ export default function Upload() {
       </div>
 
       {/* Storage Bar */}
-      <div className="upload-storage animate-fade-in-up">
-        <div className="upload-storage-info">
-          <span className="upload-storage-label">Firebase Storage Used</span>
-          <span className="upload-storage-value">
-            {totalStorageUsedGB} GB / {maxStorageGB} GB
-          </span>
+      <Glass className="upload-storage animate-fade-in-up" radius={16} optics={glassOptics}>
+        <div className="upload-storage-inner">
+          <div className="upload-storage-info">
+            <span className="upload-storage-label">Firebase Storage Used</span>
+            <span className="upload-storage-value">
+              {totalStorageUsedGB} GB / {maxStorageGB} GB
+            </span>
+          </div>
+          <div className="progress-bar">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${Math.min(100, (totalStorageUsedGB / maxStorageGB) * 100)}%` }}
+            />
+          </div>
         </div>
-        <div className="progress-bar">
-          <div
-            className="progress-bar-fill"
-            style={{ width: `${Math.min(100, (totalStorageUsedGB / maxStorageGB) * 100)}%` }}
-          />
-        </div>
-      </div>
+      </Glass>
 
       {error && (
         <div className="upload-alert upload-alert-error animate-fade-in">
@@ -260,189 +272,198 @@ export default function Upload() {
       )}
 
       {uploadSuccess ? (
-        <div className="upload-success-card animate-fade-in-up">
-          <div className="upload-success-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+        <Glass className="upload-success-card animate-fade-in-up" radius={24} optics={glassOptics}>
+          <div className="upload-success-card-inner">
+            <div className="upload-success-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+            <h2>Upload Complete!</h2>
+            <p>
+              {completedCount} {completedCount === 1 ? 'track has' : 'tracks have'} been added to the communal library.
+            </p>
+            <button className="btn btn-primary btn-lg" onClick={resetForm}>
+              Upload More Songs
+            </button>
           </div>
-          <h2>Upload Complete!</h2>
-          <p>
-            {completedCount} {completedCount === 1 ? 'track has' : 'tracks have'} been added to the communal library.
-          </p>
-          <button className="btn btn-primary btn-lg" onClick={resetForm}>
-            Upload More Songs
-          </button>
-        </div>
+        </Glass>
       ) : (
         <>
           {/* Drop Zone */}
-          <div
+          <Glass
             className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${fileList.length > 0 ? 'has-file' : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            radius={24} optics={glassOptics}
           >
-            <div className="upload-dropzone-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17,8 12,3 7,8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
+            <div
+              className="upload-dropzone-inner"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="upload-dropzone-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17,8 12,3 7,8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <h3 className="upload-dropzone-title">
+                {fileList.length > 0 ? 'Drag & drop more files to add' : 'Drag & drop your audio files'}
+              </h3>
+              <p className="upload-dropzone-subtitle">or click to browse multiple files</p>
+              <p className="upload-dropzone-formats">MP3, M4A, WAV, OGG, FLAC (Multiple Selection Enabled)</p>
+              <input
+                type="file"
+                multiple
+                className="upload-file-input"
+                accept={acceptedFormats}
+                disabled={uploading}
+                onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
+              />
             </div>
-            <h3 className="upload-dropzone-title">
-              {fileList.length > 0 ? 'Drag & drop more files to add' : 'Drag & drop your audio files'}
-            </h3>
-            <p className="upload-dropzone-subtitle">or click to browse multiple files</p>
-            <p className="upload-dropzone-formats">MP3, M4A, WAV, OGG, FLAC (Multiple Selection Enabled)</p>
-            <input
-              type="file"
-              multiple
-              className="upload-file-input"
-              accept={acceptedFormats}
-              disabled={uploading}
-              onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
-            />
-          </div>
+          </Glass>
 
           {/* Queue List & Edit Details */}
           {fileList.length > 0 && (
-            <div className="upload-metadata animate-fade-in-up">
-              <div className="upload-queue-header">
-                <div>
-                  <h3 className="upload-metadata-title">Selected Tracks ({fileList.length})</h3>
-                  <p className="upload-metadata-subtitle">
-                    Select a track below to edit metadata before uploading
-                  </p>
+            <Glass className="upload-metadata animate-fade-in-up" radius={24} optics={glassOptics}>
+              <div className="upload-metadata-inner">
+                <div className="upload-queue-header">
+                  <div>
+                    <h3 className="upload-metadata-title">Selected Tracks ({fileList.length})</h3>
+                    <p className="upload-metadata-subtitle">
+                      Select a track below to edit metadata before uploading
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Track Queue List */}
-              <div className="upload-queue-list">
-                {fileList.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className={`upload-queue-item ${idx === activeTrackIndex ? 'active' : ''}`}
-                    onClick={() => setActiveTrackIndex(idx)}
-                  >
-                    {item.coverUrl ? (
-                      <img src={item.coverUrl} alt="Cover Preview" className="upload-cover-preview" />
-                    ) : (
-                      <div className="upload-file-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 18V5l12-2v13" />
-                          <circle cx="6" cy="18" r="3" />
-                          <circle cx="18" cy="16" r="3" />
-                        </svg>
+                {/* Track Queue List */}
+                <div className="upload-queue-list">
+                  {fileList.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className={`upload-queue-item ${idx === activeTrackIndex ? 'active' : ''}`}
+                      onClick={() => setActiveTrackIndex(idx)}
+                    >
+                      {item.coverUrl ? (
+                        <img src={item.coverUrl} alt="Cover Preview" className="upload-cover-preview" />
+                      ) : (
+                        <div className="upload-file-icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 18V5l12-2v13" />
+                            <circle cx="6" cy="18" r="3" />
+                            <circle cx="18" cy="16" r="3" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="upload-queue-details">
+                        <span className="upload-queue-title truncate">
+                          {item.title || item.file.name}
+                        </span>
+                        <span className="upload-queue-meta">
+                          {item.artist || 'Unknown Artist'} • {(item.file.size / (1024 * 1024)).toFixed(2)} MB{' '}
+                          {item.parsing ? '• Parsing metadata...' : ''}
+                        </span>
+                      </div>
+                      {item.status === 'completed' && <span className="upload-queue-status">✓ Completed</span>}
+                      {item.status === 'uploading' && <span className="upload-queue-status">Uploading... {item.progress}%</span>}
+                      {item.status === 'saving' && <span className="upload-queue-status">Saving...</span>}
+                      {item.status === 'pending' && !uploading && (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeTrack(item.id)
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Active Track Form */}
+                {activeTrack && (
+                  <div className="upload-form" style={{ marginTop: 'var(--space-6)' }}>
+                    <h4 style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semibold)' }}>
+                      Edit Details: {activeTrack.title}
+                    </h4>
+
+                    <div className="upload-form-group">
+                      <label htmlFor="upload-title" className="upload-label">Title</label>
+                      <input
+                        id="upload-title"
+                        type="text"
+                        className="input"
+                        placeholder="Song title"
+                        value={activeTrack.title}
+                        onChange={(e) => handleMetadataChange(activeTrack.id, 'title', e.target.value)}
+                        disabled={uploading}
+                      />
+                    </div>
+
+                    <div className="upload-form-group">
+                      <label htmlFor="upload-artist" className="upload-label">Artist</label>
+                      <input
+                        id="upload-artist"
+                        type="text"
+                        className="input"
+                        placeholder="Artist name"
+                        value={activeTrack.artist}
+                        onChange={(e) => handleMetadataChange(activeTrack.id, 'artist', e.target.value)}
+                        disabled={uploading}
+                      />
+                    </div>
+
+                    <div className="upload-form-group">
+                      <label htmlFor="upload-album" className="upload-label">Album</label>
+                      <input
+                        id="upload-album"
+                        type="text"
+                        className="input"
+                        placeholder="Album name (optional)"
+                        value={activeTrack.album}
+                        onChange={(e) => handleMetadataChange(activeTrack.id, 'album', e.target.value)}
+                        disabled={uploading}
+                      />
+                    </div>
+
+                    {uploading && (
+                      <div className="upload-progress-container">
+                        <div className="upload-progress-bar">
+                          <div
+                            className="upload-progress-fill"
+                            style={{ width: `${batchProgress.percent}%` }}
+                          ></div>
+                        </div>
+                        <span className="upload-progress-text">{batchProgress.stageText}</span>
                       </div>
                     )}
-                    <div className="upload-queue-details">
-                      <span className="upload-queue-title truncate">
-                        {item.title || item.file.name}
-                      </span>
-                      <span className="upload-queue-meta">
-                        {item.artist || 'Unknown Artist'} • {(item.file.size / (1024 * 1024)).toFixed(2)} MB{' '}
-                        {item.parsing ? '• Parsing metadata...' : ''}
-                      </span>
-                    </div>
-                    {item.status === 'completed' && <span className="upload-queue-status">✓ Completed</span>}
-                    {item.status === 'uploading' && <span className="upload-queue-status">Uploading... {item.progress}%</span>}
-                    {item.status === 'saving' && <span className="upload-queue-status">Saving...</span>}
-                    {item.status === 'pending' && !uploading && (
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removeTrack(item.id)
-                        }}
-                      >
-                        Remove
-                      </button>
-                    )}
+
+                    <button
+                      className="btn btn-primary btn-lg upload-submit"
+                      onClick={handleUpload}
+                      disabled={fileList.length === 0 || uploading || fileList.some((f) => f.parsing)}
+                    >
+                      {uploading ? (
+                        `Uploading (${batchProgress.current}/${batchProgress.total})...`
+                      ) : (
+                        <>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17,8 12,3 7,8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                          </svg>
+                          Upload {fileList.length} {fileList.length === 1 ? 'Track' : 'Tracks'} to Library
+                        </>
+                      )}
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
-
-              {/* Active Track Form */}
-              {activeTrack && (
-                <div className="upload-form" style={{ marginTop: 'var(--space-6)' }}>
-                  <h4 style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semibold)' }}>
-                    Edit Details: {activeTrack.title}
-                  </h4>
-
-                  <div className="upload-form-group">
-                    <label htmlFor="upload-title" className="upload-label">Title</label>
-                    <input
-                      id="upload-title"
-                      type="text"
-                      className="input"
-                      placeholder="Song title"
-                      value={activeTrack.title}
-                      onChange={(e) => handleMetadataChange(activeTrack.id, 'title', e.target.value)}
-                      disabled={uploading}
-                    />
-                  </div>
-
-                  <div className="upload-form-group">
-                    <label htmlFor="upload-artist" className="upload-label">Artist</label>
-                    <input
-                      id="upload-artist"
-                      type="text"
-                      className="input"
-                      placeholder="Artist name"
-                      value={activeTrack.artist}
-                      onChange={(e) => handleMetadataChange(activeTrack.id, 'artist', e.target.value)}
-                      disabled={uploading}
-                    />
-                  </div>
-
-                  <div className="upload-form-group">
-                    <label htmlFor="upload-album" className="upload-label">Album</label>
-                    <input
-                      id="upload-album"
-                      type="text"
-                      className="input"
-                      placeholder="Album name (optional)"
-                      value={activeTrack.album}
-                      onChange={(e) => handleMetadataChange(activeTrack.id, 'album', e.target.value)}
-                      disabled={uploading}
-                    />
-                  </div>
-
-                  {uploading && (
-                    <div className="upload-progress-container">
-                      <div className="upload-progress-bar">
-                        <div
-                          className="upload-progress-fill"
-                          style={{ width: `${batchProgress.percent}%` }}
-                        ></div>
-                      </div>
-                      <span className="upload-progress-text">{batchProgress.stageText}</span>
-                    </div>
-                  )}
-
-                  <button
-                    className="btn btn-primary btn-lg upload-submit"
-                    onClick={handleUpload}
-                    disabled={fileList.length === 0 || uploading || fileList.some((f) => f.parsing)}
-                  >
-                    {uploading ? (
-                      `Uploading (${batchProgress.current}/${batchProgress.total})...`
-                    ) : (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17,8 12,3 7,8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                        Upload {fileList.length} {fileList.length === 1 ? 'Track' : 'Tracks'} to Library
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
+            </Glass>
           )}
         </>
       )}

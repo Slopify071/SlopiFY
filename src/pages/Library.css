@@ -80,10 +80,8 @@
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
+  /* Glass background handled by liquid-glass package */
   border-radius: var(--radius-lg);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   transform-origin: top center;
   z-index: 1000;

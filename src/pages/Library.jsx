@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
+import { Glass } from '@samasante/liquid-glass'
 import SongCard from '../components/Song/SongCard'
 import { subscribeToLibrary, deleteSongFromFirestore } from '../services/firestore'
 import './Library.css'
@@ -188,7 +189,7 @@ export default function Library() {
 
           {/* Live search dropdown — renders as you type */}
           {showDropdown && (
-            <div className="search-dropdown animate-fade-in-scale" ref={dropdownRef}>
+            <Glass className="search-dropdown animate-fade-in-scale" ref={dropdownRef} radius={14} optics={{ frost: 0.4, dispersion: 0.3, curvature: 0.1, bend: 0.1, depth: 0.3, glow: 0.1 }}>
               {searchResults.length > 0 ? (
                 <>
                   <div className="search-dropdown-header">
@@ -254,7 +255,7 @@ export default function Library() {
                   <span>Try searching by song title, artist, or album</span>
                 </div>
               )}
-            </div>
+            </Glass>
           )}
         </div>
       </div>

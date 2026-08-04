@@ -16,7 +16,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   height: 100vh;
-  background: #000000;
+  background: transparent;
 }
 
 .main-content-inner {
