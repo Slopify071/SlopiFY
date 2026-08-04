@@ -288,38 +288,41 @@
 }
 
 /* Google Button */
-.google-btn-glass {
-  width: 100%;
-  height: 48px;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.2s ease;
-}
-
-.google-btn-glass:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
+.google-btn-glass,
 .login-google-btn {
+  width: 100%;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 var(--space-6);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  border: none;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
 
+.google-btn-glass:hover,
+.login-google-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+.google-btn-glass:active,
 .login-google-btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.98);
 }
 
 /* Footer Link */
