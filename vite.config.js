@@ -69,11 +69,16 @@ export default defineConfig({
     minify: 'esbuild',
     cssMinify: true,
     cssCodeSplit: true,
+    sourcemap: true,
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/firebase')) {
+          // Split Firebase into auth vs everything else to reduce initial unused JS
+          if (id.includes('node_modules/firebase/auth') || id.includes('node_modules/@firebase/auth')) {
+            return 'vendor-firebase-auth'
+          }
+          if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
             return 'vendor-firebase'
           }
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
@@ -84,6 +89,9 @@ export default defineConfig({
           }
           if (id.includes('node_modules/@samasante/liquid-glass')) {
             return 'vendor-liquid-glass'
+          }
+          if (id.includes('node_modules/music-metadata')) {
+            return 'vendor-music-metadata'
           }
         },
       },

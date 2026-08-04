@@ -73,7 +73,7 @@ export default function Login() {
   }
 
   return (
-    <div className="login-page">
+    <main className="login-page" role="main">
       <div className="login-bg-pattern" />
 
       <div className="login-card-wrapper">
@@ -240,6 +240,6 @@ export default function Login() {
 
         </Glass>
       </div>
-    </div>
+    </main>
   )
 }
