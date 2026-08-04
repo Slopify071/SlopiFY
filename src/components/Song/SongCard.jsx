@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
+import { subscribeToUserPlaylists, addSongToPlaylist } from '../../services/firestore'
+import { usePlayer } from '../../context/PlayerContext'
 import './SongCard.css'
 
 export default function SongCard({ song, index, currentUserId, onPlay, onDelete, onEnqueue }) {
   const [showMenu, setShowMenu] = useState(false)
+  const [showPlaylistMenu, setShowPlaylistMenu] = useState(false)
+  const [userPlaylists, setUserPlaylists] = useState([])
   const [deleting, setDeleting] = useState(false)
+  const { showToast } = usePlayer()
   const menuRef = useRef(null)
 
   const formatDuration = (seconds) => {
@@ -18,6 +23,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false)
+        setShowPlaylistMenu(false)
       }
     }
     if (showMenu) {
@@ -25,6 +31,15 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
     }
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMenu])
+
+  // Fetch playlists when playlist submenu opens
+  useEffect(() => {
+    if (!showPlaylistMenu) return
+    const unsubscribe = subscribeToUserPlaylists(currentUserId, (playlists) => {
+      setUserPlaylists(playlists)
+    })
+    return () => unsubscribe()
+  }, [showPlaylistMenu, currentUserId])
 
   const handleDelete = async (e) => {
     e.stopPropagation()
@@ -38,6 +53,19 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
       } finally {
         setDeleting(false)
       }
+    }
+  }
+
+  const handleAddToPlaylist = async (e, playlist) => {
+    e.stopPropagation()
+    try {
+      await addSongToPlaylist(playlist.id, song)
+      showToast(`Added to "${playlist.name}"`)
+      setShowMenu(false)
+      setShowPlaylistMenu(false)
+    } catch (err) {
+      console.error('Failed to add song to playlist:', err)
+      showToast('Failed to add song to playlist')
     }
   }
 
@@ -86,7 +114,10 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
         <button
           className="btn-icon library-song-more"
           aria-label="More options"
-          onClick={() => setShowMenu(!showMenu)}
+          onClick={() => {
+            setShowMenu(!showMenu)
+            setShowPlaylistMenu(false)
+          }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="5" r="2" />
@@ -103,6 +134,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
               </svg>
               Play Track
             </button>
+
             <button className="song-menu-item" onClick={() => { onEnqueue && onEnqueue(song); setShowMenu(false); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -110,11 +142,34 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
               </svg>
               Add to Queue
             </button>
+
+            <button className="song-menu-item" onClick={() => setShowPlaylistMenu(!showPlaylistMenu)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+              Add to Playlist ▸
+            </button>
+
+            {showPlaylistMenu && (
+              <div className="song-card-submenu">
+                {userPlaylists.length === 0 ? (
+                  <div className="song-submenu-empty">No playlists created</div>
+                ) : (
+                  userPlaylists.map((pl) => (
+                    <button key={pl.id} className="song-menu-item truncate" onClick={(e) => handleAddToPlaylist(e, pl)}>
+                      {pl.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
             <button
               className="song-menu-item"
               onClick={() => {
                 if (song.audioUrl) {
                   navigator.clipboard.writeText(song.audioUrl)
+                  showToast('Audio URL copied to clipboard')
                 }
                 setShowMenu(false)
               }}
@@ -125,6 +180,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
               </svg>
               Copy Audio Link
             </button>
+
             {isOwner && (
               <button className="song-menu-item song-menu-item-danger" onClick={handleDelete}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

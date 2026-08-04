@@ -2,13 +2,13 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import SongCard from '../components/Song/SongCard'
-import { subscribeToLibrary, deleteSongFromFirestore, getLocalFallbackSongs } from '../services/firestore'
+import { subscribeToLibrary, deleteSongFromFirestore } from '../services/firestore'
 import './Library.css'
 
 export default function Library() {
   const { user } = useAuth()
   const { playSong, playAll, enqueue } = usePlayer()
-  const [songs, setSongs] = useState(() => getLocalFallbackSongs())
+  const [songs, setSongs] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)

@@ -2,8 +2,13 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
   collection,
   query,
+  where,
   orderBy,
   onSnapshot,
   serverTimestamp,
@@ -48,40 +53,11 @@ export async function syncUser(user) {
 }
 
 /**
- * Local Storage Fallback Store for Offline / Timeout scenarios
- */
-export function getLocalFallbackSongs() {
-  try {
-    const raw = localStorage.getItem('slopify_local_songs')
-    return raw ? JSON.parse(raw) : []
-  } catch (e) {
-    return []
-  }
-}
-
-export function saveLocalFallbackSong(song) {
-  try {
-    const existing = getLocalFallbackSongs()
-    const updated = [song, ...existing]
-    localStorage.setItem('slopify_local_songs', JSON.stringify(updated))
-  } catch (e) {
-    console.warn('Could not save fallback song to localStorage:', e)
-  }
-}
-
-/**
- * Subscribe to communal songs library in real-time
+ * Subscribe to communal songs library in real-time directly from Firestore
  */
 export function subscribeToLibrary(onNext, onError) {
-  const emitMerged = (remoteSongs = []) => {
-    const localSongs = getLocalFallbackSongs()
-    const remoteUrls = new Set(remoteSongs.map((s) => s.audioUrl || s.id))
-    const uniqueLocal = localSongs.filter((s) => !remoteUrls.has(s.audioUrl || s.id))
-    onNext([...uniqueLocal, ...remoteSongs])
-  }
-
   if (!isFirebaseConfigured || !db) {
-    emitMerged([])
+    onNext([])
     return () => {}
   }
 
@@ -107,21 +83,20 @@ export function subscribeToLibrary(onNext, onError) {
         const sortedSongs = [...songs].sort(
           (a, b) => parseTime(b.uploadedAt) - parseTime(a.uploadedAt)
         )
-        emitMerged(sortedSongs)
+        onNext(sortedSongs)
       },
       (err) => {
         console.error('Error listening to songs collection:', err)
-        emitMerged([])
+        onNext([])
         if (onError) onError(err)
       }
     )
   } catch (err) {
     console.error('Failed to attach library listener:', err)
-    emitMerged([])
+    onNext([])
     return () => {}
   }
 }
-
 
 /**
  * Subscribe to global storage metadata (e.g. storage size tracking)
@@ -156,7 +131,7 @@ export function subscribeToStorageMeta(onNext, onError) {
 }
 
 /**
- * Save new uploaded song metadata to Firestore `songs` collection
+ * Save new uploaded song metadata directly to Firestore `songs` collection
  * and atomically increment global storage metrics.
  */
 export async function addSongToFirestore(songData) {
@@ -175,44 +150,34 @@ export async function addSongToFirestore(songData) {
   }
 
   if (!isFirebaseConfigured || !db) {
-    console.warn('Firebase not configured. Song metadata saved to local storage fallback.')
-    const localId = 'local_song_' + Date.now()
-    saveLocalFallbackSong({ id: localId, ...songPayload, uploadedAt: new Date().toISOString() })
-    return localId
+    throw new Error('Firebase is not configured')
   }
 
+  const { increment } = await import('firebase/firestore')
+  const songsRef = collection(db, 'songs')
+
+  const docRef = await addDoc(songsRef, {
+    ...songPayload,
+    uploadedAt: serverTimestamp(),
+  })
+
+  // Increment global storage tracking
   try {
-    const { addDoc, increment } = await import('firebase/firestore')
-    const songsRef = collection(db, 'songs')
-
-    const docRef = await addDoc(songsRef, {
-      ...songPayload,
-      uploadedAt: serverTimestamp(),
-    })
-
-    // Safely increment global storage tracking without blocking song creation
-    try {
-      const metaRef = doc(db, 'storage_meta', 'global')
-      await setDoc(
-        metaRef,
-        {
-          totalBytesUsed: increment(songData.fileSize || 0),
-          songCount: increment(1),
-          lastUpdated: serverTimestamp(),
-        },
-        { merge: true }
-      )
-    } catch (metaErr) {
-      console.warn('Could not update storage_meta metrics:', metaErr)
-    }
-
-    return docRef.id
-  } catch (err) {
-    console.warn('Firestore write failed. Falling back to local storage:', err)
-    const localId = 'local_song_' + Date.now()
-    saveLocalFallbackSong({ id: localId, ...songPayload, uploadedAt: new Date().toISOString() })
-    return localId
+    const metaRef = doc(db, 'storage_meta', 'global')
+    await setDoc(
+      metaRef,
+      {
+        totalBytesUsed: increment(songData.fileSize || 0),
+        songCount: increment(1),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    )
+  } catch (metaErr) {
+    console.warn('Could not update storage_meta metrics:', metaErr)
   }
+
+  return docRef.id
 }
 
 /**
@@ -224,7 +189,7 @@ export async function deleteSongFromFirestore(songId, storagePath, fileSize = 0)
   }
 
   try {
-    const { deleteDoc, increment } = await import('firebase/firestore')
+    const { increment } = await import('firebase/firestore')
     
     // 1. Delete audio file from Firebase Storage if storagePath exists
     if (storagePath) {
@@ -308,5 +273,247 @@ export function subscribeToUserSession(uid, onNext, onError) {
   }
 }
 
+/**
+ * Generate unique 8-character share code
+ */
+function generateShareCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
 
+/**
+ * Subscribe to playlists for current user directly from Firestore
+ */
+export function subscribeToUserPlaylists(userUid, onNext, onError) {
+  if (!isFirebaseConfigured || !db) {
+    onNext([])
+    return () => {}
+  }
 
+  try {
+    const playlistsRef = collection(db, 'playlists')
+    return onSnapshot(
+      playlistsRef,
+      (snapshot) => {
+        const playlists = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }))
+
+        // Filter playlists owned by user or shared/collaborative
+        const userPlaylists = playlists.filter(
+          (p) => p.ownerUid === userUid || p.isCollaborative || p.collaborators?.includes(userUid)
+        )
+
+        userPlaylists.sort((a, b) => {
+          const tA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0
+          const tB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0
+          return tB - tA
+        })
+
+        onNext(userPlaylists)
+      },
+      (err) => {
+        console.error('Error subscribing to playlists:', err)
+        onNext([])
+        if (onError) onError(err)
+      }
+    )
+  } catch (err) {
+    console.error('Failed to attach playlists listener:', err)
+    onNext([])
+    return () => {}
+  }
+}
+
+/**
+ * Subscribe to single playlist detail by ID or shareCode directly from Firestore
+ */
+export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
+  if (!isFirebaseConfigured || !db || !idOrShareCode) {
+    onNext(null)
+    return () => {}
+  }
+
+  try {
+    const docRef = doc(db, 'playlists', idOrShareCode)
+
+    return onSnapshot(
+      docRef,
+      async (docSnap) => {
+        if (docSnap.exists()) {
+          onNext({ id: docSnap.id, ...docSnap.data() })
+        } else {
+          // If not found by direct ID, search by shareCode
+          try {
+            const q = query(collection(db, 'playlists'), where('shareCode', '==', idOrShareCode))
+            const querySnap = await getDocs(q)
+            if (!querySnap.empty) {
+              const matchedDoc = querySnap.docs[0]
+              onNext({ id: matchedDoc.id, ...matchedDoc.data() })
+            } else {
+              onNext(null)
+            }
+          } catch (e) {
+            console.error('Error querying playlist by shareCode:', e)
+            onNext(null)
+          }
+        }
+      },
+      (err) => {
+        console.error('Error subscribing to playlist detail:', err)
+        if (onError) onError(err)
+      }
+    )
+  } catch (err) {
+    console.error('Failed to attach playlist detail listener:', err)
+    onNext(null)
+    return () => {}
+  }
+}
+
+/**
+ * Create a new playlist directly in Firestore
+ */
+export async function createPlaylist({ name, description = '', coverUrl = '', ownerUid, ownerName, isCollaborative = false }) {
+  if (!isFirebaseConfigured || !db) {
+    throw new Error('Firebase is not configured')
+  }
+
+  const shareCode = generateShareCode()
+  const payload = {
+    name: name.trim() || 'Untitled Playlist',
+    description: description.trim(),
+    coverUrl: coverUrl.trim(),
+    ownerUid: ownerUid || 'anonymous',
+    ownerName: ownerName || 'Friend',
+    isCollaborative: Boolean(isCollaborative),
+    shareCode,
+    songs: [],
+    collaborators: ownerUid ? [ownerUid] : [],
+    createdAt: serverTimestamp(),
+  }
+
+  const docRef = await addDoc(collection(db, 'playlists'), payload)
+  return docRef.id
+}
+
+/**
+ * Delete a playlist from Firestore
+ */
+export async function deletePlaylist(playlistId) {
+  if (!isFirebaseConfigured || !db || !playlistId) return
+
+  try {
+    const docRef = doc(db, 'playlists', playlistId)
+    await deleteDoc(docRef)
+  } catch (err) {
+    console.error('Error deleting playlist:', err)
+    throw err
+  }
+}
+
+/**
+ * Add a song to playlist in Firestore
+ */
+export async function addSongToPlaylist(playlistId, song) {
+  if (!isFirebaseConfigured || !db || !playlistId || !song) return
+
+  try {
+    const playlistRef = doc(db, 'playlists', playlistId)
+    const snap = await getDoc(playlistRef)
+    if (!snap.exists()) return
+
+    const data = snap.data()
+    const songs = data.songs || []
+    
+    // Avoid duplicate song addition
+    if (songs.some((s) => s.id === song.id)) {
+      return
+    }
+
+    const cleanSong = {
+      id: song.id,
+      title: song.title || 'Untitled',
+      artist: song.artist || 'Unknown Artist',
+      album: song.album || '',
+      duration: song.duration || 0,
+      audioUrl: song.audioUrl || '',
+      coverUrl: song.coverUrl || '',
+      addedAt: new Date().toISOString(),
+    }
+
+    await updateDoc(playlistRef, {
+      songs: [...songs, cleanSong],
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error adding song to playlist:', err)
+    throw err
+  }
+}
+
+/**
+ * Remove a song from playlist in Firestore
+ */
+export async function removeSongFromPlaylist(playlistId, songId) {
+  if (!isFirebaseConfigured || !db || !playlistId || !songId) return
+
+  try {
+    const playlistRef = doc(db, 'playlists', playlistId)
+    const snap = await getDoc(playlistRef)
+    if (!snap.exists()) return
+
+    const data = snap.data()
+    const songs = data.songs || []
+    const updatedSongs = songs.filter((s) => s.id !== songId)
+
+    await updateDoc(playlistRef, {
+      songs: updatedSongs,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error removing song from playlist:', err)
+    throw err
+  }
+}
+
+/**
+ * Reorder playlist songs in Firestore
+ */
+export async function reorderPlaylistSongs(playlistId, reorderedSongs) {
+  if (!isFirebaseConfigured || !db || !playlistId) return
+
+  try {
+    const playlistRef = doc(db, 'playlists', playlistId)
+    await updateDoc(playlistRef, {
+      songs: reorderedSongs,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error reordering playlist songs:', err)
+    throw err
+  }
+}
+
+/**
+ * Toggle playlist collaborative mode in Firestore
+ */
+export async function togglePlaylistCollaboration(playlistId, isCollaborative) {
+  if (!isFirebaseConfigured || !db || !playlistId) return
+
+  try {
+    const playlistRef = doc(db, 'playlists', playlistId)
+    await updateDoc(playlistRef, {
+      isCollaborative: Boolean(isCollaborative),
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error toggling playlist collaboration:', err)
+    throw err
+  }
+}

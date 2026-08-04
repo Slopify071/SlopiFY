@@ -144,6 +144,9 @@ service firebase.storage {
 
 ## Phase 6: Playlists & Sharing
 
+> ✅ **Completed**. Real-time playlist CRUD, custom `CreatePlaylistModal.jsx` and `AddSongModal.jsx` UIs, 8-character `shareCode` link copying, song reordering & deletion, collaborative mode toggle, and `SongCard.jsx` context menu integration.
+
+
 ### [MODIFY] [Playlists.jsx](file:///c:/Users/ishaa/OneDrive/Desktop/SlopiFY/src/pages/Playlists.jsx)
 - Real-time Firestore listener on `playlists` collection (filtered by `ownerId`)
 - "Create Playlist" modal: name, description, optional cover

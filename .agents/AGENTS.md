@@ -6,4 +6,6 @@
 
 ## Git & Workflow Guardrails
 - **NEVER use or suggest `git rebase`**: Under no circumstances should `git rebase`, `git pull --rebase`, or any rebase operation be executed or recommended. Always use standard merging (`git merge`, `git pull --no-rebase`) or feature branches instead.
+- **NEVER execute `git push` without explicit command**: Do not run or suggest any `git push` command unless explicitly commanded by the user.
+
 

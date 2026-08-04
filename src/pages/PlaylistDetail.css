@@ -75,20 +75,22 @@
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-8);
+  flex-wrap: wrap;
 }
 
 /* Song List */
 .playlist-detail-songs {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .playlist-detail-song-row {
   display: grid;
-  grid-template-columns: 32px 40px 1fr 60px;
+  grid-template-columns: 32px 40px 1fr 60px auto auto;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-3);
+  padding: var(--space-2.5) var(--space-3);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-out);
@@ -137,6 +139,48 @@
   font-variant-numeric: tabular-nums;
 }
 
+.playlist-detail-reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.playlist-detail-reorder-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  transition: color var(--duration-fast);
+}
+
+.playlist-detail-reorder-btn:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.playlist-detail-reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.playlist-detail-empty {
+  padding: var(--space-12) var(--space-4);
+  text-align: center;
+  background: var(--color-bg-card);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-secondary);
+}
+
 /* --- Mobile --- */
 @media (max-width: 768px) {
   .playlist-detail-header {
@@ -170,16 +214,12 @@
   }
 
   .playlist-detail-song-row {
-    grid-template-columns: 36px 1fr 50px;
+    grid-template-columns: 40px 1fr 50px auto auto;
     padding: var(--space-2);
     min-height: 52px;
   }
 
   .playlist-detail-song-index {
     display: none;
-  }
-
-  .playlist-detail-song-row {
-    grid-template-columns: 36px 1fr 50px;
   }
 }
