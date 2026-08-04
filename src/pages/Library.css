@@ -102,7 +102,11 @@
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  /* Glass background handled by liquid-glass package */
+  background: rgba(12, 10, 22, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-lg);
   overflow: hidden;
   transform-origin: top center;

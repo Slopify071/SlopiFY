@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 // music-metadata is lazy-loaded via dynamic import() on first file parse
 // to keep it out of the main bundle (~1MB savings)
-import { Glass } from '@samasante/liquid-glass'
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
@@ -250,7 +249,7 @@ export default function Upload() {
       </div>
 
       {/* Storage Bar */}
-      <Glass className="upload-storage animate-fade-in-up" radius={16} optics={glassOptics}>
+      <div className="upload-storage animate-fade-in-up">
         <div className="upload-storage-inner">
           <div className="upload-storage-info">
             <span className="upload-storage-label">Storage Used</span>
@@ -265,7 +264,7 @@ export default function Upload() {
             />
           </div>
         </div>
-      </Glass>
+      </div>
 
       {error && (
         <div className="upload-alert upload-alert-error animate-fade-in">
@@ -274,7 +273,7 @@ export default function Upload() {
       )}
 
       {uploadSuccess ? (
-        <Glass className="upload-success-card animate-fade-in-up" radius={24} optics={glassOptics}>
+        <div className="upload-success-card animate-fade-in-up">
           <div className="upload-success-card-inner">
             <div className="upload-success-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -290,13 +289,12 @@ export default function Upload() {
               Upload More Songs
             </button>
           </div>
-        </Glass>
+        </div>
       ) : (
         <>
           {/* Drop Zone */}
-          <Glass
+          <div
             className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${fileList.length > 0 ? 'has-file' : ''}`}
-            radius={24} optics={glassOptics}
           >
             <div
               className="upload-dropzone-inner"
@@ -325,11 +323,11 @@ export default function Upload() {
                 onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
               />
             </div>
-          </Glass>
+          </div>
 
           {/* Queue List & Edit Details */}
           {fileList.length > 0 && (
-            <Glass className="upload-metadata animate-fade-in-up" radius={24} optics={glassOptics}>
+            <div className="upload-metadata animate-fade-in-up">
               <div className="upload-metadata-inner">
                 <div className="upload-queue-header">
                   <div>
@@ -465,7 +463,7 @@ export default function Upload() {
                   </div>
                 )}
               </div>
-            </Glass>
+            </div>
           )}
         </>
       )}

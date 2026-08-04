@@ -1,6 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Glass } from '@samasante/liquid-glass'
 import './Sidebar.css'
 
 const NAV_ITEMS = [
@@ -31,12 +30,7 @@ const NAV_ITEMS = [
     label: 'Playlists',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="8" y1="6" x2="21" y2="6" />
-        <line x1="8" y1="12" x2="21" y2="12" />
-        <line x1="8" y1="18" x2="21" y2="18" />
-        <line x1="3" y1="6" x2="3.01" y2="6" />
-        <line x1="3" y1="12" x2="3.01" y2="12" />
-        <line x1="3" y1="18" x2="3.01" y2="18" />
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
       </svg>
     ),
   },
@@ -50,18 +44,7 @@ export default function Sidebar({ onLogoutRequest }) {
   const handleLogout = onLogoutRequest || logout
 
   return (
-    <Glass 
-      className="sidebar"
-      radius={20}
-      optics={{
-        frost: 0.3,
-        dispersion: 0.2,
-        curvature: 0.3,
-        bend: 0.1,
-        depth: 0.4,
-        glow: 0.1
-      }}
-    >
+    <aside className="sidebar">
       <div className="sidebar-inner">
       {/* Logo / Header */}
       <div className="sidebar-logo">
@@ -128,6 +111,6 @@ export default function Sidebar({ onLogoutRequest }) {
         </div>
       </div>
       </div>
-    </Glass>
+    </aside>
   )
 }
