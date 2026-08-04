@@ -59,14 +59,7 @@
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 24px 48px rgba(0, 0, 0, 0.6);
 }
 
-/* Light mode adjustment */
-@media (prefers-color-scheme: light) {
-  .login-card {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
-  }
-}
+/* Light mode override removed to preserve liquid glass transparency */
 
 
 /* Header */
@@ -237,16 +230,17 @@
   width: 100%;
   height: 48px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.45), rgba(139, 92, 246, 0.4)); /* Dark Blueberry glass tint */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
 }
 
 .submit-btn-glass:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.65), rgba(139, 92, 246, 0.6));
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.1);
 }
 
 .login-submit-btn {

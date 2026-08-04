@@ -242,17 +242,22 @@ export default function Upload() {
   const activeTrack = fileList[activeTrackIndex] || fileList[0]
 
   return (
-    <div className="page-content">
+    <div className="upload-page page-content">
       <div className="page-header">
-        <h1>Upload</h1>
-        <p>Add new tracks to the communal music library</p>
+        <h1>Upload Songs</h1>
+        <p>Add new audio tracks to your communal SlopiFY library</p>
       </div>
 
       {/* Storage Bar */}
-      <div className="upload-storage animate-fade-in-up">
+      <Glass className="upload-storage animate-fade-in-up" radius={18} optics={glassOptics}>
         <div className="upload-storage-inner">
           <div className="upload-storage-info">
-            <span className="upload-storage-label">Storage Used</span>
+            <span className="upload-storage-label">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+              </svg>
+              Storage Used
+            </span>
             <span className="upload-storage-value">
               {totalStorageUsedGB} GB / {maxStorageGB} GB
             </span>
@@ -260,11 +265,11 @@ export default function Upload() {
           <div className="progress-bar">
             <div
               className="progress-bar-fill"
-              style={{ width: `${Math.min(100, (totalStorageUsedGB / maxStorageGB) * 100)}%` }}
+              style={{ width: `${Math.max(1, Math.min(100, (totalStorageUsedGB / maxStorageGB) * 100))}%` }}
             />
           </div>
         </div>
-      </div>
+      </Glass>
 
       {error && (
         <div className="upload-alert upload-alert-error animate-fade-in">
@@ -293,36 +298,39 @@ export default function Upload() {
       ) : (
         <>
           {/* Drop Zone */}
-          <div
-            className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${fileList.length > 0 ? 'has-file' : ''}`}
-          >
-            <div
-              className="upload-dropzone-inner"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
+          <div className="upload-dropzone-wrapper">
+            <Glass
+              className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${fileList.length > 0 ? 'has-file' : ''}`}
+              radius={24} optics={glassOptics}
             >
-              <div className="upload-dropzone-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17,8 12,3 7,8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
+              <div
+                className="upload-dropzone-inner"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="upload-dropzone-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17,8 12,3 7,8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <h3 className="upload-dropzone-title">
+                  {fileList.length > 0 ? 'Drag & drop more files to add' : 'Drag & drop your audio files'}
+                </h3>
+                <p className="upload-dropzone-subtitle">or click to browse multiple files</p>
+                <p className="upload-dropzone-formats">MP3, M4A, WAV, OGG, FLAC (Multiple Selection Enabled)</p>
+                <input
+                  type="file"
+                  multiple
+                  className="upload-file-input"
+                  accept={acceptedFormats}
+                  disabled={uploading}
+                  onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
+                />
               </div>
-              <h3 className="upload-dropzone-title">
-                {fileList.length > 0 ? 'Drag & drop more files to add' : 'Drag & drop your audio files'}
-              </h3>
-              <p className="upload-dropzone-subtitle">or click to browse multiple files</p>
-              <p className="upload-dropzone-formats">MP3, M4A, WAV, OGG, FLAC (Multiple Selection Enabled)</p>
-              <input
-                type="file"
-                multiple
-                className="upload-file-input"
-                accept={acceptedFormats}
-                disabled={uploading}
-                onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
-              />
-            </div>
+            </Glass>
           </div>
 
           {/* Queue List & Edit Details */}

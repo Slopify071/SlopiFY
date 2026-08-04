@@ -152,6 +152,11 @@ export default function BottomPlayer() {
           </span>
           <span className="player-song-artist truncate">
             {currentSong?.artist || 'Select a song to start'}
+            {hasSong && (
+              <span className="mobile-time-badge">
+                {' '}· {formatTime(activeTime)} / {formatTime(effectiveDuration)}
+              </span>
+            )}
           </span>
         </div>
       </div>
@@ -262,7 +267,7 @@ export default function BottomPlayer() {
       <div className="player-extras">
         {/* Queue button */}
         <button
-          className={`btn-icon player-btn-secondary ${isQueueOpen ? 'player-btn-active' : ''}`}
+          className={`btn-icon player-btn-secondary player-btn-queue ${isQueueOpen ? 'player-btn-active' : ''}`}
           onClick={toggleQueue}
           aria-label="Queue"
           title={`Queue (${queue.length} track${queue.length !== 1 ? 's' : ''})`}
@@ -293,6 +298,10 @@ export default function BottomPlayer() {
           </div>
         </div>
       </div>
+      </div>
+      {/* Mobile Player Progress Bar */}
+      <div className="mobile-player-progress" ref={seekBarRef} onMouseDown={handleSeekMouseDown}>
+        <div className="mobile-player-progress-fill" style={{ width: `${progress}%` }} />
       </div>
     </div>
   )
