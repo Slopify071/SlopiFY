@@ -189,7 +189,7 @@ export default function Library() {
 
           {/* Live search dropdown — renders as you type */}
           {showDropdown && (
-            <Glass className="search-dropdown animate-fade-in-scale" ref={dropdownRef} radius={14} optics={{ frost: 0.4, dispersion: 0.3, curvature: 0.1, bend: 0.1, depth: 0.3, glow: 0.1 }}>
+            <Glass className="search-dropdown animate-fade-in-scale" ref={dropdownRef} radius={14} optics={{ frost: 0.4, dispersion: 0.3, bend: 0, glow: 0.1 }}>
               {searchResults.length > 0 ? (
                 <>
                   <div className="search-dropdown-header">

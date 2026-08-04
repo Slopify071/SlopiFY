@@ -128,7 +128,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
         </button>
 
         {showMenu && (
-          <Glass className="song-card-menu animate-fade-in-scale" radius={12} optics={{ frost: 0.5, dispersion: 0.2, curvature: 0.1, bend: 0.1, depth: 0.3, glow: 0.1 }}>
+          <Glass className="song-card-menu animate-fade-in-scale" radius={12} optics={{ frost: 0.5, dispersion: 0.2, bend: 0, glow: 0.1 }}>
             <button className="song-menu-item" onClick={() => { onPlay && onPlay(song); setShowMenu(false); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="5 3 19 12 5 21 5 3" />
