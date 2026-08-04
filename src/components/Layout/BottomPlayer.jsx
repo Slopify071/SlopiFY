@@ -298,10 +298,11 @@ export default function BottomPlayer() {
           </div>
         </div>
       </div>
+      </div>
       {/* Mobile Player Progress Bar */}
       <div className="mobile-player-progress" ref={seekBarRef} onMouseDown={handleSeekMouseDown}>
         <div className="mobile-player-progress-fill" style={{ width: `${progress}%` }} />
       </div>
-    </Glass>
+    </div>
   )
 }
