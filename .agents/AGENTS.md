@@ -8,4 +8,8 @@
 - **NEVER use or suggest `git rebase`**: Under no circumstances should `git rebase`, `git pull --rebase`, or any rebase operation be executed or recommended. Always use standard merging (`git merge`, `git pull --no-rebase`) or feature branches instead.
 - **NEVER execute `git push` without explicit command**: Do not run or suggest any `git push` command unless explicitly commanded by the user.
 
+## Output Format Guidelines
+- **Always Provide Updated TODO Checklist**: After every task completion or significant milestone, always include the full updated phase-by-phase TODO checklist showing completed and remaining items.
+
+
 

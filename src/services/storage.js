@@ -1,83 +1,106 @@
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'o4qz7txk'
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'slopify_preset'
+import { storage } from '../config/firebase'
+import {
+  ref,
+  uploadBytesResumable,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from 'firebase/storage'
 
 /**
- * Upload an audio file to Cloudinary via direct unsigned browser upload
+ * Upload an audio file to Firebase Storage with real-time progress.
  * @param {File} file - Audio File object
  * @param {Object} [user] - Current Firebase Auth user object
- * @param {Function} [onProgress] - Optional progress callback percentage (0-100)
+ * @param {Function} [onProgress] - Progress callback (0-100)
  * @returns {Promise<{ downloadUrl: string, storagePath: string, fileSize: number, contentType: string }>}
  */
 export async function uploadAudioFile(file, user, onProgress) {
-  if (!CLOUD_NAME || !UPLOAD_PRESET) {
-    console.warn('Cloudinary credentials missing. Falling back to local ObjectURL mode.')
+  const uid = user?.uid || 'guest'
+  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const storagePath = `songs/${uid}_${Date.now()}_${cleanName}`
+
+  if (!storage) {
+    console.warn('Firebase Storage instance unavailable. Falling back to local ObjectURL.')
     if (onProgress) onProgress(100)
-    const mockPath = `songs/local_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-    const objectUrl = URL.createObjectURL(file)
     return {
-      downloadUrl: objectUrl,
-      storagePath: mockPath,
+      downloadUrl: URL.createObjectURL(file),
+      storagePath,
       fileSize: file.size,
       contentType: file.type || 'audio/mpeg',
       isLocalFallback: true,
     }
   }
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('upload_preset', UPLOAD_PRESET)
-  formData.append('folder', 'slopify_songs')
-
-  const xhr = new XMLHttpRequest()
+  const storageRef = ref(storage, storagePath)
+  const uploadTask = uploadBytesResumable(storageRef, file, {
+    contentType: file.type || 'audio/mpeg',
+  })
 
   return new Promise((resolve, reject) => {
-    xhr.open('POST', url)
-
-    if (xhr.upload && onProgress) {
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100)
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        if (snapshot.totalBytes > 0 && onProgress) {
+          const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
           onProgress(percent)
         }
-      }
-    }
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
+      },
+      (error) => {
+        console.error('Firebase Storage upload error:', error)
+        reject(error)
+      },
+      async () => {
         try {
-          const data = JSON.parse(xhr.responseText)
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
           resolve({
-            downloadUrl: data.secure_url,
-            storagePath: data.public_id,
-            fileSize: data.bytes || file.size,
-            contentType: data.format ? `audio/${data.format}` : (file.type || 'audio/mpeg'),
+            downloadUrl,
+            storagePath,
+            fileSize: file.size,
+            contentType: file.type || 'audio/mpeg',
           })
-        } catch (err) {
-          reject(new Error('Invalid response from Cloudinary upload API'))
-        }
-      } else {
-        try {
-          const res = JSON.parse(xhr.responseText)
-          reject(new Error(res.error?.message || `Cloudinary upload failed with status ${xhr.status}`))
-        } catch (e) {
-          reject(new Error(`Cloudinary upload failed with status ${xhr.status}`))
+        } catch (urlErr) {
+          reject(urlErr)
         }
       }
-    }
-
-    xhr.onerror = () => reject(new Error('Network error during Cloudinary file upload'))
-    xhr.send(formData)
+    )
   })
 }
 
 /**
- * Delete an audio file reference
- * @param {string} storagePath - Cloudinary public_id or storage path
+ * Upload cover image (e.g. parsed ID3 artwork) to Firebase Storage
+ * @param {Blob|File} imageBlob 
+ * @param {Object} [user] 
+ * @returns {Promise<string>} Download URL of the cover image
+ */
+export async function uploadCoverImage(imageBlob, user) {
+  if (!storage || !imageBlob) return ''
+  try {
+    const uid = user?.uid || 'guest'
+    const storagePath = `covers/${uid}_${Date.now()}.jpg`
+    const storageRef = ref(storage, storagePath)
+    await uploadBytes(storageRef, imageBlob, { contentType: imageBlob.type || 'image/jpeg' })
+    const downloadUrl = await getDownloadURL(storageRef)
+    return downloadUrl
+  } catch (err) {
+    console.warn('Failed to upload cover art image to Firebase Storage:', err)
+    return ''
+  }
+}
+
+/**
+ * Delete an audio file reference from Firebase Storage
+ * @param {string} storagePath 
  */
 export async function deleteAudioFile(storagePath) {
-  // Client-side delete operations are safely handled at the Firestore metadata level
-  return { success: true }
+  if (!storage || !storagePath) return { success: true }
+  try {
+    const storageRef = ref(storage, storagePath)
+    await deleteObject(storageRef)
+    return { success: true }
+  } catch (err) {
+    console.warn('Firebase Storage delete warning (file may not exist):', err)
+    return { success: true, warning: err.message }
+  }
 }
 
 /**

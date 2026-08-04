@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import * as musicMetadata from 'music-metadata'
 import { useAuth } from '../context/AuthContext'
-import { uploadAudioFile, getAudioStreamUrl } from '../services/storage'
+import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
 import './Upload.css'
 
@@ -65,6 +65,7 @@ export default function Upload() {
         album: '',
         duration: 0,
         coverUrl: '',
+        pictureBlob: null,
         parsing: true,
         status: 'pending', // 'pending' | 'uploading' | 'saving' | 'completed' | 'error'
         progress: 0,
@@ -80,6 +81,7 @@ export default function Upload() {
       let album = ''
       let duration = 0
       let coverUrl = ''
+      let pictureBlob = null
 
       try {
         const parsed = await musicMetadata.parseBlob(item.file)
@@ -90,8 +92,8 @@ export default function Upload() {
 
         if (parsed.common.picture && parsed.common.picture.length > 0) {
           const pic = parsed.common.picture[0]
-          const blob = new Blob([pic.data], { type: pic.format })
-          coverUrl = URL.createObjectURL(blob)
+          pictureBlob = new Blob([pic.data], { type: pic.format })
+          coverUrl = URL.createObjectURL(pictureBlob)
         }
       } catch (err) {
         console.warn('ID3 parsing warning for ' + item.file.name, err)
@@ -99,7 +101,7 @@ export default function Upload() {
         setFileList((prev) =>
           prev.map((it) =>
             it.id === item.id
-              ? { ...it, title, artist, album, duration, coverUrl, parsing: false }
+              ? { ...it, title, artist, album, duration, coverUrl, pictureBlob, parsing: false }
               : it
           )
         )
@@ -147,7 +149,7 @@ export default function Upload() {
       )
 
       try {
-        // 1. Upload audio file to Cloudinary / Firebase Storage
+        // 1. Upload audio file to Firebase Storage
         const result = await uploadAudioFile(item.file, user, (percent) => {
           setFileList((prev) =>
             prev.map((it, idx) =>
@@ -172,6 +174,13 @@ export default function Upload() {
 
         const audioUrl = getAudioStreamUrl(result)
 
+        // Upload cover art blob if available to get permanent HTTPS URL
+        let finalCoverUrl = item.coverUrl || ''
+        if (item.pictureBlob) {
+          const uploadedCoverUrl = await uploadCoverImage(item.pictureBlob, user)
+          if (uploadedCoverUrl) finalCoverUrl = uploadedCoverUrl
+        }
+
         // 2. Save song record to Firestore
         await addSongToFirestore({
           title: item.title || 'Untitled',
@@ -180,7 +189,7 @@ export default function Upload() {
           duration: item.duration || 0,
           storagePath: result.storagePath,
           audioUrl: audioUrl,
-          coverUrl: item.coverUrl || '',
+          coverUrl: finalCoverUrl,
           fileSize: result.fileSize || item.file.size,
           uploaderUid: user?.uid || 'anonymous',
           uploaderName: user?.displayName || user?.email?.split('@')[0] || 'Friend',
@@ -231,7 +240,7 @@ export default function Upload() {
       {/* Storage Bar */}
       <div className="upload-storage animate-fade-in-up">
         <div className="upload-storage-info">
-          <span className="upload-storage-label">Cloudinary Storage Used</span>
+          <span className="upload-storage-label">Firebase Storage Used</span>
           <span className="upload-storage-value">
             {totalStorageUsedGB} GB / {maxStorageGB} GB
           </span>
