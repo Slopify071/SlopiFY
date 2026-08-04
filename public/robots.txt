@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Agent Accessibility
+Sitemap: https://slopify.homiez.workers.dev/llms.txt
