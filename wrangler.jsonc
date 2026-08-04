@@ -10,5 +10,16 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "vars": {
+    "VITE_FIREBASE_API_KEY": "AIzaSyCLiKERj-DXvqA-XKYOYuqT4BvKeW6q930",
+    "VITE_FIREBASE_AUTH_DOMAIN": "slopify-a4cda.firebaseapp.com",
+    "VITE_FIREBASE_PROJECT_ID": "slopify-a4cda",
+    "VITE_FIREBASE_STORAGE_BUCKET": "slopify-a4cda.firebasestorage.app",
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": "1028073270606",
+    "VITE_FIREBASE_APP_ID": "1:1028073270606:web:b1259d9e2274d19329021f",
+    "VITE_FIREBASE_MEASUREMENT_ID": "G-BCE6S5W6QX",
+    "VITE_CLOUDINARY_CLOUD_NAME": "o4qz7txk",
+    "VITE_CLOUDINARY_UPLOAD_PRESET": "slopify_preset"
+  }
 }

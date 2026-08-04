@@ -26,11 +26,6 @@ function getCachedUser() {
     const cached = sessionStorage.getItem('slopify_cached_user')
     if (cached) return JSON.parse(cached)
   } catch { /* ignore */ }
-  // Also check demo user in localStorage
-  try {
-    const demo = localStorage.getItem('slopify_demo_user')
-    if (demo) return JSON.parse(demo)
-  } catch { /* ignore */ }
   return null
 }
 
@@ -43,7 +38,6 @@ function cacheUser(u) {
         displayName: u.displayName,
         email: u.email,
         photoURL: u.photoURL,
-        isDemo: u.isDemo || false,
       }
       sessionStorage.setItem('slopify_cached_user', JSON.stringify(slim))
     } else {
@@ -62,18 +56,6 @@ export function AuthProvider({ children }) {
   // Listen to Firebase Auth state changes
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
-      // Check localStorage for demo login state
-      const demoUser = localStorage.getItem('slopify_demo_user')
-      if (demoUser) {
-        try {
-          const parsed = JSON.parse(demoUser)
-          setUser(parsed)
-          cacheUser(parsed)
-        } catch {
-          setUser(null)
-          cacheUser(null)
-        }
-      }
       setLoading(false)
       return
     }
@@ -119,17 +101,9 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = async () => {
     setAuthError(null)
     if (!isFirebaseConfigured || !auth) {
-      // Graceful demo login
-      const mockUser = {
-        uid: 'demo-user-123',
-        displayName: 'Homie (Demo)',
-        email: 'homie@slopify.demo',
-        photoURL: null,
-        isDemo: true,
-      }
-      localStorage.setItem('slopify_demo_user', JSON.stringify(mockUser))
-      setUser(mockUser)
-      return mockUser
+      const message = 'Firebase is not configured. Please set environment variables.'
+      setAuthError(message)
+      throw new Error(message)
     }
 
     try {
@@ -155,17 +129,9 @@ export function AuthProvider({ children }) {
   const signupWithEmail = async (email, password, displayName) => {
     setAuthError(null)
     if (!isFirebaseConfigured || !auth) {
-      // Graceful demo signup
-      const mockUser = {
-        uid: `demo-user-${Date.now()}`,
-        displayName: displayName || email.split('@')[0],
-        email,
-        photoURL: null,
-        isDemo: true,
-      }
-      localStorage.setItem('slopify_demo_user', JSON.stringify(mockUser))
-      setUser(mockUser)
-      return mockUser
+      const message = 'Firebase is not configured. Please set environment variables.'
+      setAuthError(message)
+      throw new Error(message)
     }
 
     try {
@@ -200,17 +166,9 @@ export function AuthProvider({ children }) {
   const loginWithEmail = async (email, password) => {
     setAuthError(null)
     if (!isFirebaseConfigured || !auth) {
-      // Graceful demo login
-      const mockUser = {
-        uid: 'demo-user-123',
-        displayName: email.split('@')[0] || 'Demo Homie',
-        email,
-        photoURL: null,
-        isDemo: true,
-      }
-      localStorage.setItem('slopify_demo_user', JSON.stringify(mockUser))
-      setUser(mockUser)
-      return mockUser
+      const message = 'Firebase is not configured. Please set environment variables.'
+      setAuthError(message)
+      throw new Error(message)
     }
 
     try {
@@ -239,7 +197,6 @@ export function AuthProvider({ children }) {
   // 4. Sign Out
   const logout = async () => {
     setAuthError(null)
-    localStorage.removeItem('slopify_demo_user')
     cacheUser(null)
     if (isFirebaseConfigured && auth) {
       try {
