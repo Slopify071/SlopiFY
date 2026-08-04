@@ -65,17 +65,33 @@ export default defineConfig({
     open: true,
   },
   build: {
+    target: 'es2020',
     minify: 'esbuild',
     cssMinify: true,
-    chunkSizeWarningLimit: 1000,
+    cssCodeSplit: true,
+    sourcemap: true,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/firebase')) {
+          // Split Firebase into auth vs everything else to reduce initial unused JS
+          if (id.includes('node_modules/firebase/auth') || id.includes('node_modules/@firebase/auth')) {
+            return 'vendor-firebase-auth'
+          }
+          if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
             return 'vendor-firebase'
           }
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
             return 'vendor-react'
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons'
+          }
+          if (id.includes('node_modules/@samasante/liquid-glass')) {
+            return 'vendor-liquid-glass'
+          }
+          if (id.includes('node_modules/music-metadata')) {
+            return 'vendor-music-metadata'
           }
         },
       },

@@ -4,13 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="SlopiFY — Private music streaming for friends. Upload, share, and listen together." />
+    <meta name="google-site-verification" content="Wf4mx_9qwhD9CawUAoB9YgB6b6oxXQLaVpmiQ6XVeGg" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <title>SlopiFY — Music for the homies</title>
 
-    <!-- Performance Preconnects & Resource Preloads -->
+    <!-- Performance Preconnects -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" />
+
+    <!-- Non-render-blocking Google Fonts (preload + swap) -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" /></noscript>
+
+    <!-- Critical inline CSS for instant first paint -->
+    <style>
+      body{margin:0;background:#0c0a16;color:#fff;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+      #root{min-height:100vh;min-height:100dvh}
+      .app-loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#94A3B8;font-size:.8125rem}
+      .app-loading-screen .spinner{width:36px;height:36px;border:3px solid #1F1F1F;border-top-color:#F8FAFC;border-radius:50%;animation:spin .8s linear infinite}
+      @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+
+    <!-- Preload hero background image -->
     <link rel="preload" href="/blueberry_wallpaper.webp" as="image" type="image/webp" fetchpriority="high" />
   </head>
   <body>

@@ -1,13 +1,24 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PlayerProvider } from './context/PlayerContext'
 import AppShell from './components/Layout/AppShell'
-import Login from './pages/Login'
-import Library from './pages/Library'
-import Upload from './pages/Upload'
-import Playlists from './pages/Playlists'
-import PlaylistDetail from './pages/PlaylistDetail'
 import './App.css'
+
+const Login = lazy(() => import('./pages/Login'))
+const Library = lazy(() => import('./pages/Library'))
+const Upload = lazy(() => import('./pages/Upload'))
+const Playlists = lazy(() => import('./pages/Playlists'))
+const PlaylistDetail = lazy(() => import('./pages/PlaylistDetail'))
+
+function PageFallback() {
+  return (
+    <div className="app-loading-screen">
+      <div className="spinner" />
+      <p>Loading...</p>
+    </div>
+  )
+}
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
@@ -30,25 +41,29 @@ function ProtectedRoute({ children }) {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <Routes>
-                <Route path="/" element={<Navigate to="/library" replace />} />
-                <Route path="/library" element={<Library />} />
-                <Route path="/upload" element={<Upload />} />
-                <Route path="/playlists" element={<Playlists />} />
-                <Route path="/playlist/:id" element={<PlaylistDetail />} />
-              </Routes>
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <Suspense fallback={<PageFallback />}>
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/library" replace />} />
+                    <Route path="/library" element={<Library />} />
+                    <Route path="/upload" element={<Upload />} />
+                    <Route path="/playlists" element={<Playlists />} />
+                    <Route path="/playlist/:id" element={<PlaylistDetail />} />
+                  </Routes>
+                </Suspense>
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Suspense>
   )
 }
 
