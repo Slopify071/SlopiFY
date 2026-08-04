@@ -63,8 +63,8 @@ function cacheUser(u) {
 export function AuthProvider({ children }) {
   const cachedUser = getCachedUser()
   const [user, setUser] = useState(cachedUser)
-  // Non-cached initial load resolves loading state quickly (300ms max) so FCP/LCP paints immediately
-  const [loading, setLoading] = useState(!cachedUser)
+  // Always start with loading false so unauthenticated cold start paints instantly on frame 1
+  const [loading, setLoading] = useState(false)
   const [authError, setAuthError] = useState(null)
 
   // Listen to Firebase Auth state changes

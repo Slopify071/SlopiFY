@@ -41,10 +41,16 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
+  const { isAuthenticated } = useAuth()
+
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/library" replace /> : <Login />} />
+        <Route
+          path="/"
+          element={isAuthenticated ? <Navigate to="/library" replace /> : <Login />}
+        />
         <Route
           path="/*"
           element={
@@ -52,7 +58,6 @@ function AppRoutes() {
               <AppShell>
                 <Suspense fallback={<PageFallback />}>
                   <Routes>
-                    <Route path="/" element={<Navigate to="/library" replace />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/upload" element={<Upload />} />
                     <Route path="/playlists" element={<Playlists />} />
