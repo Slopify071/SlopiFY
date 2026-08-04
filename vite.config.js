@@ -65,9 +65,11 @@ export default defineConfig({
     open: true,
   },
   build: {
+    target: 'es2020',
     minify: 'esbuild',
     cssMinify: true,
-    chunkSizeWarningLimit: 1000,
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -76,6 +78,12 @@ export default defineConfig({
           }
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
             return 'vendor-react'
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons'
+          }
+          if (id.includes('node_modules/@samasante/liquid-glass')) {
+            return 'vendor-liquid-glass'
           }
         },
       },
