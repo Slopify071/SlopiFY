@@ -26,7 +26,6 @@ export default function BottomPlayer() {
     toggleQueue,
   } = usePlayer()
 
-  const seekBarRef = useRef(null)
   const volumeBarRef = useRef(null)
 
   const formatTime = (seconds) => {
@@ -44,23 +43,38 @@ export default function BottomPlayer() {
   const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (activeTime / effectiveDuration) * 100)) : 0
   const effectiveVolume = muted ? 0 : volume
 
-  const getTargetTimeFromEvent = useCallback((e) => {
-    if (!seekBarRef.current || !effectiveDuration) return 0
-    const rect = seekBarRef.current.getBoundingClientRect()
-    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+  const getClientX = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      return e.touches[0].clientX
+    }
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      return e.changedTouches[0].clientX
+    }
+    return e.clientX
+  }
+
+  const getTargetTimeFromEvent = useCallback((e, barElement) => {
+    if (!barElement || !effectiveDuration) return 0
+    const rect = barElement.getBoundingClientRect()
+    if (!rect || rect.width <= 0) return 0
+    const clientX = getClientX(e)
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
     return percent * effectiveDuration
   }, [effectiveDuration])
 
   const handleSeekMouseDown = useCallback((e) => {
     if (!effectiveDuration) return
+    const barElement = e.currentTarget
+    if (!barElement) return
+
     isSeekingRef.current = true
-    const initialTime = getTargetTimeFromEvent(e)
+    const initialTime = getTargetTimeFromEvent(e, barElement)
     setSeekTime(initialTime)
 
     let latestTime = initialTime
 
     const onMove = (moveEvent) => {
-      latestTime = getTargetTimeFromEvent(moveEvent)
+      latestTime = getTargetTimeFromEvent(moveEvent, barElement)
       setSeekTime(latestTime)
     }
     const onUp = () => {
@@ -69,9 +83,15 @@ export default function BottomPlayer() {
       seek(latestTime)
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
+      document.removeEventListener('touchmove', onMove)
+      document.removeEventListener('touchend', onUp)
+      document.removeEventListener('touchcancel', onUp)
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
+    document.addEventListener('touchmove', onMove, { passive: true })
+    document.addEventListener('touchend', onUp)
+    document.addEventListener('touchcancel', onUp)
   }, [effectiveDuration, seek, getTargetTimeFromEvent])
 
   // --- Volume bar interaction ---
@@ -245,8 +265,8 @@ export default function BottomPlayer() {
           <span className="player-time">{formatTime(effectiveDuration > 0 ? Math.min(activeTime, effectiveDuration) : activeTime)}</span>
           <div
             className="player-seek-bar"
-            ref={seekBarRef}
             onMouseDown={handleSeekMouseDown}
+            onTouchStart={handleSeekMouseDown}
           >
             <div className={`player-seek-track ${isBuffering ? 'is-buffering' : ''}`}>
               <div
@@ -300,7 +320,7 @@ export default function BottomPlayer() {
       </div>
       </div>
       {/* Mobile Player Progress Bar */}
-      <div className="mobile-player-progress" ref={seekBarRef} onMouseDown={handleSeekMouseDown}>
+      <div className="mobile-player-progress" onMouseDown={handleSeekMouseDown} onTouchStart={handleSeekMouseDown}>
         <div className="mobile-player-progress-fill" style={{ width: `${progress}%` }} />
       </div>
     </div>
