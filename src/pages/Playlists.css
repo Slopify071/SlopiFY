@@ -124,15 +124,19 @@
 @media (max-width: 768px) {
   .playlists-header-row {
     flex-direction: column;
+    gap: var(--space-3);
   }
 
   .playlists-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-3);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .playlist-card-new-content {
-    min-height: 200px;
+    min-height: 180px;
   }
 
   .playlist-card-info {
@@ -142,11 +146,14 @@
 
 @media (max-width: 480px) {
   .playlists-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-2);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .playlist-card-new-content {
-    min-height: 160px;
+    min-height: 140px;
   }
 }

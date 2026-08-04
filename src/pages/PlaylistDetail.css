@@ -189,6 +189,9 @@
     text-align: center;
     gap: var(--space-5);
     margin-bottom: var(--space-5);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .playlist-detail-cover {
@@ -198,6 +201,7 @@
 
   .playlist-detail-name {
     font-size: var(--text-2xl);
+    word-break: break-word;
   }
 
   .playlist-detail-meta {
@@ -207,16 +211,34 @@
   .playlist-detail-actions {
     justify-content: center;
     margin-bottom: var(--space-5);
+    width: 100%;
   }
 
   .playlist-detail-info {
     align-items: center;
+    width: 100%;
   }
 
   .playlist-detail-song-row {
-    grid-template-columns: 40px 1fr 50px auto auto;
+    grid-template-columns: 40px 1fr 45px auto auto;
     padding: var(--space-2);
     min-height: 52px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .playlist-detail-song-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .playlist-detail-song-title,
+  .playlist-detail-song-artist {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .playlist-detail-song-index {

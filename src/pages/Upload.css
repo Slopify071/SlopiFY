@@ -208,9 +208,18 @@
 
 /* --- Mobile --- */
 @media (max-width: 768px) {
+  .upload-storage,
+  .upload-dropzone,
+  .upload-metadata,
+  .upload-success-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .upload-dropzone {
-    padding: var(--space-8) var(--space-4);
-    min-height: 200px;
+    padding: var(--space-6) var(--space-3);
+    min-height: 180px;
     border-radius: var(--radius-lg);
     margin-bottom: var(--space-5);
   }
@@ -230,7 +239,7 @@
   }
 
   .upload-metadata {
-    padding: var(--space-5) var(--space-4);
+    padding: var(--space-4) var(--space-3);
     border-radius: var(--radius-lg);
   }
 

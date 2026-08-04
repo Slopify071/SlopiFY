@@ -251,7 +251,7 @@ export default function Upload() {
       <Glass className="upload-storage animate-fade-in-up" radius={16} optics={glassOptics}>
         <div className="upload-storage-inner">
           <div className="upload-storage-info">
-            <span className="upload-storage-label">Firebase Storage Used</span>
+            <span className="upload-storage-label">Storage Used</span>
             <span className="upload-storage-value">
               {totalStorageUsedGB} GB / {maxStorageGB} GB
             </span>

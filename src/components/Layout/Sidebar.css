@@ -207,9 +207,10 @@
   color: #eb5757;
 }
 
-/* --- Mobile: Hide sidebar --- */
+/* --- Mobile: Hide sidebar completely --- */
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
+  .sidebar,
+  div[class*="liquid-glass"]:has(.sidebar-inner) {
+    display: none !important;
   }
 }
