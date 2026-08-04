@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
-import { Glass } from '@samasante/liquid-glass'
+import LazyGlass from '../components/Common/LazyGlass'
 import './Upload.css'
 
 export default function Upload() {
@@ -250,7 +250,7 @@ export default function Upload() {
       </div>
 
       {/* Storage Bar */}
-      <Glass className="upload-storage animate-fade-in-up" radius={18} optics={glassOptics}>
+      <LazyGlass className="upload-storage animate-fade-in-up" radius={18} optics={glassOptics}>
         <div className="upload-storage-inner">
           <div className="upload-storage-info">
             <span className="upload-storage-label">
@@ -270,7 +270,7 @@ export default function Upload() {
             />
           </div>
         </div>
-      </Glass>
+      </LazyGlass>
 
       {error && (
         <div className="upload-alert upload-alert-error animate-fade-in">
@@ -300,7 +300,7 @@ export default function Upload() {
         <>
           {/* Drop Zone */}
           <div className="upload-dropzone-wrapper">
-            <Glass
+            <LazyGlass
               className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${fileList.length > 0 ? 'has-file' : ''}`}
               radius={24} optics={glassOptics}
             >
@@ -331,7 +331,7 @@ export default function Upload() {
                   onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
                 />
               </div>
-            </Glass>
+            </LazyGlass>
           </div>
 
           {/* Queue List & Edit Details */}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Glass } from '@samasante/liquid-glass'
+import LazyGlass from '../components/Common/LazyGlass'
 import './Login.css'
 
 export default function Login() {
@@ -77,7 +77,7 @@ export default function Login() {
       <div className="login-bg-pattern" />
 
       <div className="login-card-wrapper">
-        <Glass
+        <LazyGlass
           className="login-card animate-fade-in"
           radius={24}
           optics={{
@@ -238,7 +238,7 @@ export default function Login() {
           </a>
         </p>
 
-        </Glass>
+        </LazyGlass>
       </div>
     </main>
   )
