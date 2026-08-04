@@ -20,7 +20,7 @@ try {
 }
 
 export default defineConfig({
-  plugins: [react(), cloudflare()],
+  plugins: [react(), !process.env.VERCEL && cloudflare()].filter(Boolean),
   define: {
     'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(
       process.env.VITE_FIREBASE_API_KEY || wranglerVars.VITE_FIREBASE_API_KEY || 'AIzaSyCLiKERj-DXvqA-XKYOYuqT4BvKeW6q930'
