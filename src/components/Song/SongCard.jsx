@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { subscribeToUserPlaylists, addSongToPlaylist } from '../../services/firestore'
 import { usePlayer } from '../../context/PlayerContext'
 import { Glass } from '@samasante/liquid-glass'
+import ConfirmModal from '../Common/ConfirmModal'
 import './SongCard.css'
 
 export default function SongCard({ song, index, currentUserId, onPlay, onDelete, onEnqueue }) {
   const [showMenu, setShowMenu] = useState(false)
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false)
   const [userPlaylists, setUserPlaylists] = useState([])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const { showToast } = usePlayer()
   const menuRef = useRef(null)
@@ -42,18 +44,22 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
     return () => unsubscribe()
   }, [showPlaylistMenu, currentUserId])
 
-  const handleDelete = async (e) => {
+  const handleDeleteClick = (e) => {
     e.stopPropagation()
     setShowMenu(false)
-    if (window.confirm(`Are you sure you want to delete "${song.title}"?`)) {
-      setDeleting(true)
-      try {
-        if (onDelete) await onDelete(song)
-      } catch (err) {
-        console.error('Failed to delete song:', err)
-      } finally {
-        setDeleting(false)
-      }
+    setShowDeleteConfirm(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false)
+    setDeleting(true)
+    try {
+      if (onDelete) await onDelete(song)
+    } catch (err) {
+      console.error('Failed to delete song:', err)
+      showToast('Failed to delete song')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -73,7 +79,8 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
   const isOwner = song.uploaderUid === currentUserId || song.uploaderUid === 'anonymous' || !song.uploaderUid
 
   return (
-    <div
+    <>
+      <div
       data-song-id={song.id}
       className={`library-song-row animate-fade-in-up ${deleting ? 'deleting' : ''} ${showMenu ? 'menu-open' : ''}`}
       onClick={() => onPlay && onPlay(song)}
@@ -183,7 +190,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
             </button>
 
             {isOwner && (
-              <button className="song-menu-item song-menu-item-danger" onClick={handleDelete}>
+              <button className="song-menu-item song-menu-item-danger" onClick={handleDeleteClick}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -195,5 +202,17 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
         )}
       </div>
     </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Track?"
+        message={`Are you sure you want to delete "${song.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger={true}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   )
 }

@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { usePlayer } from '../context/PlayerContext'
 import { subscribeToUserPlaylists, deletePlaylist } from '../services/firestore'
 import CreatePlaylistModal from '../components/Playlist/CreatePlaylistModal'
+import ConfirmModal from '../components/Common/ConfirmModal'
 import './Playlists.css'
 
 export default function Playlists() {
   const { currentUser } = useAuth()
+  const { showToast } = usePlayer()
   const navigate = useNavigate()
   const [playlists, setPlaylists] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [playlistToDelete, setPlaylistToDelete] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -45,16 +49,22 @@ export default function Playlists() {
     }
   }, [currentUser?.uid])
 
-  const handleDelete = async (e, playlist) => {
+  const handleDelete = (e, playlist) => {
     e.preventDefault()
     e.stopPropagation()
-    if (window.confirm(`Are you sure you want to delete "${playlist.name}"?`)) {
-      try {
-        await deletePlaylist(playlist.id)
-      } catch (err) {
-        console.error('Error deleting playlist:', err)
-        alert('Failed to delete playlist.')
-      }
+    setPlaylistToDelete(playlist)
+  }
+
+  const handleConfirmDeletePlaylist = async () => {
+    if (!playlistToDelete) return
+    const pl = playlistToDelete
+    setPlaylistToDelete(null)
+    try {
+      await deletePlaylist(pl.id)
+      showToast(`Playlist "${pl.name}" deleted`)
+    } catch (err) {
+      console.error('Error deleting playlist:', err)
+      showToast('Failed to delete playlist')
     }
   }
 
@@ -157,6 +167,17 @@ export default function Playlists() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(playlistToDelete)}
+        title="Delete Playlist?"
+        message={`Are you sure you want to delete "${playlistToDelete?.name || ''}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger={true}
+        onConfirm={handleConfirmDeletePlaylist}
+        onCancel={() => setPlaylistToDelete(null)}
+      />
 
       <CreatePlaylistModal
         isOpen={isModalOpen}

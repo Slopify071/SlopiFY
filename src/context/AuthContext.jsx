@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
@@ -83,6 +85,19 @@ export function AuthProvider({ children }) {
       setLoading(false)
     }, 2500)
 
+    // Check for redirect result if returning from redirect sign-in
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          setUser(result.user)
+          cacheUser(result.user)
+          await syncUser(result.user)
+        }
+      })
+      .catch((err) => {
+        console.error('Redirect sign-in error:', err)
+      })
+
     const unsubscribe = onAuthStateChanged(
       auth,
       async (currentUser) => {
@@ -130,11 +145,23 @@ export function AuthProvider({ children }) {
       return result.user
     } catch (err) {
       console.error('Google Sign-In failed:', err)
+      if (err.code === 'auth/popup-blocked') {
+        try {
+          await signInWithRedirect(auth, googleProvider)
+          return
+        } catch (redirectErr) {
+          console.error('Google Sign-In redirect failed:', redirectErr)
+        }
+      }
       let message = 'Failed to sign in with Google.'
-      if (err.code === 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/popup-blocked') {
+        message = 'Sign-in popup was blocked by your browser. Please allow popups for this site in your address bar.'
+      } else if (err.code === 'auth/popup-closed-by-user') {
         message = 'Sign-in popup was closed before completing.'
       } else if (err.code === 'auth/cancelled-popup-request') {
         message = 'Sign-in request was cancelled.'
+      } else if (err.code === 'auth/unauthorized-domain') {
+        message = 'This domain is not authorized in Firebase Console. Please add it to Authorized Domains.'
       } else if (err.message) {
         message = err.message
       }

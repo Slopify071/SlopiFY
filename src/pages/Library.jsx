@@ -8,7 +8,7 @@ import './Library.css'
 
 export default function Library() {
   const { user } = useAuth()
-  const { playSong, playAll, enqueue } = usePlayer()
+  const { playSong, playAll, enqueue, showToast } = usePlayer()
   const [songs, setSongs] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -144,10 +144,11 @@ export default function Library() {
 
   const handleDeleteSong = async (song) => {
     try {
-      await deleteSongFromFirestore(song.id, song.storagePath || song.r2Key, song.fileSize)
+      await deleteSongFromFirestore(song.id, song, song.fileSize)
+      showToast(`Deleted "${song.title}"`)
     } catch (err) {
       console.error('Delete error:', err)
-      alert('Failed to delete song: ' + err.message)
+      showToast('Failed to delete song: ' + err.message)
     }
   }
 

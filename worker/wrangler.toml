@@ -10,3 +10,6 @@ bucket_name = "slopify-audio"
 # Environment Variables
 [vars]
 CORS_ORIGIN = "*"
+CLOUDINARY_CLOUD_NAME = "o4qz7txk"
+CLOUDINARY_API_KEY = "962243497828134"
+CLOUDINARY_API_SECRET = "pRe6feqGtLidjfFy05GLjt5gQxo"
