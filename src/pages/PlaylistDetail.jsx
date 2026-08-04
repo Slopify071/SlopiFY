@@ -189,7 +189,7 @@ export default function PlaylistDetail() {
       <div className="playlist-detail-header animate-fade-in-up">
         <div className="playlist-detail-cover">
           {playlist.coverUrl ? (
-            <img src={playlist.coverUrl} alt={playlist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={playlist.coverUrl} alt={playlist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
           ) : (
             <div className="playlist-detail-cover-placeholder">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -295,7 +295,7 @@ export default function PlaylistDetail() {
 
               <div className="playlist-detail-song-cover">
                 {song.coverUrl ? (
-                  <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" />
+                  <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" loading="lazy" />
                 ) : (
                   <div className="library-song-cover-placeholder">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

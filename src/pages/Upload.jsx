@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import * as musicMetadata from 'music-metadata'
+// music-metadata is lazy-loaded via dynamic import() on first file parse
+// to keep it out of the main bundle (~1MB savings)
 import { Glass } from '@samasante/liquid-glass'
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
@@ -94,6 +95,7 @@ export default function Upload() {
       let pictureBlob = null
 
       try {
+        const musicMetadata = await import('music-metadata')
         const parsed = await musicMetadata.parseBlob(item.file)
         if (parsed.common.title) title = parsed.common.title
         if (parsed.common.artist) artist = parsed.common.artist
@@ -347,7 +349,7 @@ export default function Upload() {
                       onClick={() => setActiveTrackIndex(idx)}
                     >
                       {item.coverUrl ? (
-                        <img src={item.coverUrl} alt="Cover Preview" className="upload-cover-preview" />
+                        <img src={item.coverUrl} alt="Cover Preview" className="upload-cover-preview" loading="lazy" />
                       ) : (
                         <div className="upload-file-icon">
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

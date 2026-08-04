@@ -31,6 +31,7 @@ const initialState = {
   queue: [],
   history: [],
   isPlaying: false,
+  isBuffering: false,
   currentTime: 0,
   duration: 0,
   volume: 0.7,
@@ -57,6 +58,7 @@ function playerReducer(state, action) {
         ...state,
         currentSong: action.payload,
         isPlaying: true,
+        isBuffering: true,
         currentTime: 0,
         duration: action.payload?.duration || 0,
       }
@@ -64,6 +66,8 @@ function playerReducer(state, action) {
       return { ...state, isPlaying: !state.isPlaying }
     case 'SET_PLAYING':
       return { ...state, isPlaying: action.payload }
+    case 'SET_BUFFERING':
+      return { ...state, isBuffering: action.payload }
     case 'SET_CURRENT_TIME':
       return { ...state, currentTime: action.payload }
     case 'SET_DURATION':
@@ -140,6 +144,10 @@ export function PlayerProvider({ children }) {
   const playPromiseRef = useRef(null)
   const isChangingSrcRef = useRef(false)
   const isSeekingAudioRef = useRef(false)
+  // Synchronous buffering flag — set directly in audio event handlers so
+  // onTimeUpdate can gate on it with ZERO latency (no React render cycle).
+  // The React state `isBuffering` is still dispatched for UI (spinner etc).
+  const isBufferingRef = useRef(false)
   const deviceIdRef = useRef(getDeviceId())
   const isSyncingFromRemoteRef = useRef(false)
 
@@ -269,6 +277,8 @@ export function PlayerProvider({ children }) {
 
     if (srcChanged) {
       isChangingSrcRef.current = true
+      isBufferingRef.current = true
+      audioDurationResolvedRef.current = false
       try {
         audio.pause()
       } catch (e) {
@@ -338,55 +348,123 @@ export function PlayerProvider({ children }) {
 
   // Audio event listeners attached once
   const lastTimeDispatchRef = useRef(0)
+  // Tracks whether we have received the real audio.duration from the browser.
+  // Once true, we must NEVER overwrite duration with song metadata again.
+  const audioDurationResolvedRef = useRef(false)
+
   useEffect(() => {
     const audio = audioRef.current || getAudioElement()
     if (!audio) return
 
+    const getAudioDuration = () => {
+      return audio.duration && isFinite(audio.duration) && audio.duration > 0
+        ? audio.duration
+        : 0
+    }
+
     const updateDuration = () => {
-      if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
-        dispatch({ type: 'SET_DURATION', payload: audio.duration })
-      } else if (stateRef.current.currentSong?.duration) {
-        dispatch({ type: 'SET_DURATION', payload: stateRef.current.currentSong.duration })
+      const realDuration = getAudioDuration()
+      if (realDuration > 0) {
+        // Real audio duration is available — lock it in and never allow
+        // song metadata to override it again for this track.
+        audioDurationResolvedRef.current = true
+        if (realDuration !== stateRef.current.duration) {
+          dispatch({ type: 'SET_DURATION', payload: realDuration })
+        }
+      } else if (!audioDurationResolvedRef.current && stateRef.current.currentSong?.duration) {
+        // Fallback to metadata ONLY if we have never resolved real duration
+        const metaDur = stateRef.current.currentSong.duration
+        if (metaDur !== stateRef.current.duration) {
+          dispatch({ type: 'SET_DURATION', payload: metaDur })
+        }
       }
     }
 
     const onTimeUpdate = () => {
+      // CRITICAL: Gate on the synchronous ref, NOT stateRef.current.isBuffering.
+      // stateRef.current lags by one React render cycle.  If we checked it,
+      // timeupdate events could slip through the gap between dispatch() and
+      // the next render, advancing the timer while the song is still loading.
+      if (isBufferingRef.current) {
+        // Still reconcile duration even while buffering
+        updateDuration()
+        return
+      }
+
       const cur = audio.currentTime
-      const knownDuration = stateRef.current.duration
-      // Clamp currentTime to never exceed the known duration
-      const clampedTime = (knownDuration > 0 && cur > knownDuration) ? knownDuration : cur
-      if (Math.abs(clampedTime - lastTimeDispatchRef.current) >= 0.25 || clampedTime === 0 || audio.ended) {
-        lastTimeDispatchRef.current = clampedTime
-        dispatch({ type: 'SET_CURRENT_TIME', payload: clampedTime })
+
+      if (Math.abs(cur - lastTimeDispatchRef.current) >= 0.25 || cur === 0 || audio.ended) {
+        lastTimeDispatchRef.current = cur
+        dispatch({ type: 'SET_CURRENT_TIME', payload: cur })
       }
 
-      const metaDuration = stateRef.current.currentSong?.duration || 0
-      const currentDuration = stateRef.current.duration
-
-      if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
-        if (audio.duration !== currentDuration) {
-          dispatch({ type: 'SET_DURATION', payload: audio.duration })
-        }
-      } else if (metaDuration > 0 && currentDuration !== metaDuration) {
-        dispatch({ type: 'SET_DURATION', payload: metaDuration })
-      }
+      updateDuration()
     }
     const onLoadedMetadata = () => updateDuration()
     const onDurationChange = () => updateDuration()
     const onCanPlay = () => {
       updateDuration()
       isChangingSrcRef.current = false
+      // Do NOT clear isBufferingRef here — canplay fires when the browser
+      // *estimates* it can play.  Only `playing` confirms real audio output.
+    }
+
+    const onWaiting = () => {
+      isBufferingRef.current = true
+      dispatch({ type: 'SET_BUFFERING', payload: true })
+    }
+
+    const onStalled = () => {
+      isBufferingRef.current = true
+      dispatch({ type: 'SET_BUFFERING', payload: true })
+    }
+
+    const onLoadStart = () => {
+      audioDurationResolvedRef.current = false
+      isBufferingRef.current = true
+      dispatch({ type: 'SET_BUFFERING', payload: true })
     }
 
     const onSeeking = () => {
       isSeekingAudioRef.current = true
+      isBufferingRef.current = true
+      dispatch({ type: 'SET_BUFFERING', payload: true })
     }
 
     const onSeeked = () => {
       isSeekingAudioRef.current = false
+      // Snap displayed position to where the browser actually landed,
+      // but keep isBufferingRef true — let `playing` clear it once audio
+      // is actually outputting sound.
+      const cur = audio.currentTime
+      lastTimeDispatchRef.current = cur
+      dispatch({ type: 'SET_CURRENT_TIME', payload: cur })
+    }
+
+    const onPlaying = () => {
+      // `playing` fires ONLY when audio output has actually started.
+      // This is the single gate that unlocks the timer.
+      isChangingSrcRef.current = false
+      isBufferingRef.current = false
+      dispatch({ type: 'SET_BUFFERING', payload: false })
+      // Resync timer to real audio position now that output has resumed
+      const cur = audio.currentTime
+      lastTimeDispatchRef.current = cur
+      dispatch({ type: 'SET_CURRENT_TIME', payload: cur })
+      if (!stateRef.current.isPlaying) {
+        dispatch({ type: 'SET_PLAYING', payload: true })
+      }
     }
 
     const onEnded = () => {
+      isBufferingRef.current = false
+      dispatch({ type: 'SET_BUFFERING', payload: false })
+      // Snap currentTime to duration so the UI shows exactly 100%
+      const finalDuration = stateRef.current.duration
+      if (finalDuration > 0) {
+        lastTimeDispatchRef.current = finalDuration
+        dispatch({ type: 'SET_CURRENT_TIME', payload: finalDuration })
+      }
       const currentState = stateRef.current
       if (currentState.repeat === 'one') {
         audio.currentTime = 0
@@ -427,6 +505,8 @@ export function PlayerProvider({ children }) {
     }
     const onPause = () => {
       if (isChangingSrcRef.current || isSeekingAudioRef.current) return
+      isBufferingRef.current = false
+      dispatch({ type: 'SET_BUFFERING', payload: false })
       if (stateRef.current.isPlaying) {
         dispatch({ type: 'SET_PLAYING', payload: false })
       }
@@ -434,6 +514,8 @@ export function PlayerProvider({ children }) {
     const onError = (e) => {
       console.warn('Audio element error:', e)
       isChangingSrcRef.current = false
+      isBufferingRef.current = false
+      dispatch({ type: 'SET_BUFFERING', payload: false })
       dispatch({ type: 'SET_PLAYING', payload: false })
       if (stateRef.current.currentSong?.title) {
         dispatch({ type: 'SHOW_TOAST', payload: `Unable to play "${stateRef.current.currentSong.title}" (file deleted or missing)` })
@@ -444,8 +526,12 @@ export function PlayerProvider({ children }) {
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
     audio.addEventListener('durationchange', onDurationChange)
     audio.addEventListener('canplay', onCanPlay)
+    audio.addEventListener('waiting', onWaiting)
+    audio.addEventListener('stalled', onStalled)
+    audio.addEventListener('loadstart', onLoadStart)
     audio.addEventListener('seeking', onSeeking)
     audio.addEventListener('seeked', onSeeked)
+    audio.addEventListener('playing', onPlaying)
     audio.addEventListener('ended', onEnded)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
@@ -456,8 +542,12 @@ export function PlayerProvider({ children }) {
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
       audio.removeEventListener('durationchange', onDurationChange)
       audio.removeEventListener('canplay', onCanPlay)
+      audio.removeEventListener('waiting', onWaiting)
+      audio.removeEventListener('stalled', onStalled)
+      audio.removeEventListener('loadstart', onLoadStart)
       audio.removeEventListener('seeking', onSeeking)
       audio.removeEventListener('seeked', onSeeked)
+      audio.removeEventListener('playing', onPlaying)
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
@@ -510,6 +600,7 @@ export function PlayerProvider({ children }) {
     if (state.currentSong) {
       dispatch({ type: 'PUSH_HISTORY', payload: state.currentSong })
     }
+    isBufferingRef.current = true
     dispatch({ type: 'SET_SONG', payload: song })
   }, [state.currentSong])
 
@@ -522,6 +613,7 @@ export function PlayerProvider({ children }) {
     if (state.currentSong) {
       dispatch({ type: 'PUSH_HISTORY', payload: state.currentSong })
     }
+    isBufferingRef.current = true
     dispatch({ type: 'SET_SONG', payload: song })
   }, [state.currentSong])
 
@@ -569,6 +661,8 @@ export function PlayerProvider({ children }) {
     const audio = audioRef.current
     if (audio && isFinite(time)) {
       isSeekingAudioRef.current = true
+      isBufferingRef.current = true
+      dispatch({ type: 'SET_BUFFERING', payload: true })
       audio.currentTime = time
       dispatch({ type: 'SET_CURRENT_TIME', payload: time })
     }
@@ -662,6 +756,7 @@ export function usePlayer() {
       queue: [],
       history: [],
       isPlaying: false,
+      isBuffering: false,
       currentTime: 0,
       duration: 0,
       volume: 0.7,

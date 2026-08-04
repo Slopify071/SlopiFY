@@ -219,7 +219,7 @@ export default function Library() {
                       >
                         <div className="search-result-cover">
                           {song.coverUrl ? (
-                            <img src={song.coverUrl} alt={song.title} />
+                            <img src={song.coverUrl} alt={song.title} loading="lazy" />
                           ) : (
                             <div className="search-result-cover-placeholder">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

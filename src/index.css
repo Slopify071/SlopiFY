@@ -31,9 +31,9 @@
   --color-surface-secondary: rgba(0, 0, 0, 0.3);
 
   /* Text System (Crisp White & Slate High Contrast) */
-  --color-text-primary: #F8FAFC;
-  --color-text-secondary: #94A3B8;
-  --color-text-tertiary: #64748B;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #E2E8F0;
+  --color-text-tertiary: #CBD5E1;
   --color-text-inverse: #000000;
   --color-text-accent: #F59E0B;
 
@@ -154,8 +154,8 @@ body {
   font-size: var(--text-base);
   font-weight: var(--weight-regular);
   color: var(--color-text-primary);
-  background-color: #000000;
-  background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');
+  background-color: #0c0a16;
+  background-image: url('/blueberry_wallpaper.webp');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

@@ -85,7 +85,7 @@ export default function AddSongModal({ isOpen, onClose, playlistId, existingSong
                 <div key={song.id} className="add-song-row">
                   <div className="add-song-cover">
                     {song.coverUrl ? (
-                      <img src={song.coverUrl} alt={song.title} className="add-song-cover-img" />
+                      <img src={song.coverUrl} alt={song.title} className="add-song-cover-img" loading="lazy" />
                     ) : (
                       <div className="add-song-cover-placeholder">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

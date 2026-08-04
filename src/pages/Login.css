@@ -4,6 +4,7 @@
 
 .login-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -15,15 +16,16 @@
 
 /* Premium Text Selection Highlight */
 .login-page ::selection {
-  background: rgba(255, 255, 255, 0.25); /* Soft frosted white highlight */
+  background: rgba(99, 102, 241, 0.4); /* Soft blueberry/indigo highlight */
   color: #ffffff;
 }
 
-/* Premium Background Image */
+/* Dark Blueberry Background Pattern */
 .login-bg-pattern {
   position: absolute;
   inset: 0;
-  background-image: url('/login-bg.png');
+  background-color: #0c0a16;
+  background-image: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.15), transparent 70%), url('/blueberry_wallpaper.webp');
   background-size: cover;
   background-position: center;
   pointer-events: none;
@@ -189,6 +191,7 @@
 
 .input-wrapper input:focus {
   background: rgba(255, 255, 255, 0.05); /* Slight bright flash on focus */
+  border-color: rgba(99, 102, 241, 0.4);
 }
 
 /* Fix browser autofill ruining the glass transparency */
@@ -231,16 +234,16 @@
   width: 100%;
   height: 48px;
   border-radius: var(--radius-lg);
-  background: rgba(230, 130, 40, 0.5); /* Orange primary glass tint */
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(230, 130, 40, 0.2);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.45), rgba(139, 92, 246, 0.4)); /* Dark Blueberry glass tint */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
   transition: all 0.2s ease;
 }
 
 .submit-btn-glass:hover {
-  background: rgba(230, 130, 40, 0.65);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.65), rgba(139, 92, 246, 0.6));
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(230, 130, 40, 0.3);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
 }
 
 .login-submit-btn {

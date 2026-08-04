@@ -7,6 +7,7 @@ export default function BottomPlayer() {
   const {
     currentSong,
     isPlaying,
+    isBuffering,
     currentTime,
     duration,
     volume,
@@ -44,8 +45,9 @@ export default function BottomPlayer() {
 
   const effectiveDuration = duration > 0 ? duration : (currentSong?.duration || 0)
   const activeTime = isSeekingRef.current && seekTime !== null ? seekTime : currentTime
-  const displayTime = effectiveDuration > 0 ? Math.min(activeTime, effectiveDuration) : activeTime
-  const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (displayTime / effectiveDuration) * 100)) : 0
+  // Do NOT clamp activeTime against effectiveDuration — the audio element's
+  // currentTime is authoritative.  Progress naturally caps at 100% via Math.min below.
+  const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (activeTime / effectiveDuration) * 100)) : 0
   const effectiveVolume = muted ? 0 : volume
 
   // --- Seek bar interaction ---
@@ -199,11 +201,16 @@ export default function BottomPlayer() {
 
           {/* Play/Pause */}
           <button
-            className={`btn-icon player-btn-play ${isPlaying ? 'is-playing' : ''}`}
+            className={`btn-icon player-btn-play ${isPlaying ? 'is-playing' : ''} ${isBuffering ? 'is-buffering' : ''}`}
             onClick={togglePlay}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isBuffering ? 'Buffering' : isPlaying ? 'Pause' : 'Play'}
           >
-            {isPlaying ? (
+            {isBuffering ? (
+              <svg className="spinner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+              </svg>
+            ) : isPlaying ? (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
               </svg>
@@ -248,13 +255,13 @@ export default function BottomPlayer() {
 
         {/* Seek Bar */}
         <div className="player-seek">
-          <span className="player-time">{formatTime(displayTime)}</span>
+          <span className="player-time">{formatTime(effectiveDuration > 0 ? Math.min(activeTime, effectiveDuration) : activeTime)}</span>
           <div
             className="player-seek-bar"
             ref={seekBarRef}
             onMouseDown={handleSeekMouseDown}
           >
-            <div className="player-seek-track">
+            <div className={`player-seek-track ${isBuffering ? 'is-buffering' : ''}`}>
               <div
                 className="player-seek-fill"
                 style={{ width: `${progress}%` }}

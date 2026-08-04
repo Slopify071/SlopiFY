@@ -105,7 +105,7 @@ export default function QueueSidebar() {
                 <div className="queue-now-playing-card">
                   <div className="queue-song-cover">
                     {currentSong.coverUrl ? (
-                      <img src={currentSong.coverUrl} alt={currentSong.title} />
+                      <img src={currentSong.coverUrl} alt={currentSong.title} loading="lazy" />
                     ) : (
                       <div className="queue-cover-placeholder">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -171,7 +171,7 @@ export default function QueueSidebar() {
 
                       <div className="queue-song-cover" onClick={() => playSong(song)}>
                         {song.coverUrl ? (
-                          <img src={song.coverUrl} alt={song.title} />
+                          <img src={song.coverUrl} alt={song.title} loading="lazy" />
                         ) : (
                           <div className="queue-cover-placeholder">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -106,8 +106,8 @@ export default function Login() {
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
               <defs>
                 <linearGradient id="loginLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#0F172A" />
-                  <stop offset="100%" stopColor="#334155" />
+                  <stop offset="0%" stopColor="#6366F1" />
+                  <stop offset="100%" stopColor="#8B5CF6" />
                 </linearGradient>
               </defs>
               <circle cx="12" cy="12" r="10" stroke="url(#loginLogoGrad)" strokeWidth="2" fill="none" />

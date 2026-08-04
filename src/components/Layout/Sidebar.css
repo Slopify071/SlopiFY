@@ -8,6 +8,7 @@
   /* Glass background handled by liquid-glass package */
   border-radius: 20px;
   height: calc(100vh - 32px);
+  height: calc(100dvh - 32px);
   margin: 16px 0 16px 16px;
   position: sticky;
   top: 16px;
@@ -97,11 +98,11 @@
 }
 
 .sidebar-nav-item.active {
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: var(--color-text-primary);
   font-weight: var(--weight-semibold);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-nav-icon {

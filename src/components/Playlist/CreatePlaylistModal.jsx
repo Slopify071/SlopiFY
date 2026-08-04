@@ -1,19 +1,38 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { createPlaylist } from '../../services/firestore'
-import { Camera, Music, Upload, Users, Lock, Unlock, X } from 'lucide-react'
+import { uploadCoverImage } from '../../services/storage'
+import { Camera, Music, Upload, Users, Lock, Unlock, X, Plus } from 'lucide-react'
 import './CreatePlaylistModal.css'
 
 export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, currentUser }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [coverUrl, setCoverUrl] = useState('')
+  const [selectedFile, setSelectedFile] = useState(null)
   const [isCollaborative, setIsCollaborative] = useState(false)
   const [isPublic, setIsPublic] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const fileInputRef = useRef(null)
 
   if (!isOpen) return null
+
+  const handleImageFileSelect = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file.')
+      return
+    }
+    setError('')
+    setSelectedFile(file)
+    setCoverUrl(URL.createObjectURL(file))
+  }
+
+  const handleArtworkClick = () => {
+    fileInputRef.current?.click()
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -26,10 +45,18 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
     setError('')
 
     try {
+      let finalCoverUrl = coverUrl
+      if (selectedFile) {
+        const uploadedUrl = await uploadCoverImage(selectedFile, currentUser)
+        if (uploadedUrl) {
+          finalCoverUrl = uploadedUrl
+        }
+      }
+
       const playlistId = await createPlaylist({
         name,
         description,
-        coverUrl,
+        coverUrl: finalCoverUrl,
         ownerUid: currentUser?.uid || 'anonymous',
         ownerName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Friend',
         isCollaborative,
@@ -39,6 +66,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
       setName('')
       setDescription('')
       setCoverUrl('')
+      setSelectedFile(null)
       setIsCollaborative(false)
       setIsPublic(true)
       if (onSuccess) onSuccess(playlistId)
@@ -76,7 +104,18 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
           <div className="create-pl-grid">
             {/* Left: Artwork Preview */}
             <div className="create-pl-artwork-col">
-              <div className="create-pl-artwork-preview">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileSelect}
+                style={{ display: 'none' }}
+              />
+              <div
+                className="create-pl-artwork-preview"
+                onClick={handleArtworkClick}
+                title="Click to choose cover image"
+              >
                 {coverUrl ? (
                   <img
                     src={coverUrl}
@@ -84,13 +123,18 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                     onError={(e) => {
                       e.target.onerror = null
                       e.target.style.display = 'none'
-                      e.target.nextSibling.style.display = 'flex'
+                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'
                     }}
                   />
                 ) : null}
                 <div className="create-pl-artwork-placeholder" style={{ display: coverUrl ? 'none' : 'flex' }}>
-                  <Music size={40} color="var(--color-primary-subtle)" strokeWidth={1} style={{ opacity: 0.5 }} />
+                  <Music size={36} color="var(--color-primary-subtle)" strokeWidth={1} style={{ opacity: 0.5 }} />
                   <span>Artwork Preview</span>
+                </div>
+
+                {/* Clickable + Icon Badge */}
+                <div className="create-pl-artwork-add-btn" aria-label="Upload Image">
+                  <Plus size={18} strokeWidth={2.5} />
                 </div>
               </div>
             </div>
@@ -133,7 +177,10 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                   className="create-pl-input"
                   placeholder="https://images.unsplash.com/..."
                   value={coverUrl}
-                  onChange={(e) => setCoverUrl(e.target.value)}
+                  onChange={(e) => {
+                    setCoverUrl(e.target.value)
+                    setSelectedFile(null)
+                  }}
                 />
               </div>
 

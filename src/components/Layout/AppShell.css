@@ -7,6 +7,7 @@
   grid-template-columns: var(--sidebar-width) 1fr;
   grid-template-rows: 1fr;
   min-height: 100vh;
+  min-height: 100dvh;
   transition: grid-template-columns var(--duration-slow) var(--ease-out);
 }
 
@@ -16,6 +17,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   height: 100vh;
+  height: 100dvh;
   background: transparent;
 }
 
