@@ -153,7 +153,7 @@ export default function BottomPlayer() {
       <div className="player-song-info">
         <div className="player-cover-art">
           {currentSong?.coverUrl ? (
-            <img src={currentSong.coverUrl} alt="Cover" />
+            <img src={currentSong.coverUrl} alt="Cover" loading="eager" decoding="async" />
           ) : (
             <div className="player-cover-placeholder">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

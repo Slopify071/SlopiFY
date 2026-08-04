@@ -12,6 +12,8 @@
   /* Glass background handled by liquid-glass package */
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.4), inset 0 -1px 1px rgba(0, 0, 0, 0.2);
   z-index: var(--z-player);
+  will-change: transform;
+  transform: translateZ(0);
   transition: left var(--duration-slow) var(--ease-out), right var(--duration-slow) var(--ease-out);
 }
 
@@ -289,7 +291,8 @@
     position: fixed;
     left: 12px;
     right: 12px;
-    transform: none;
+    transform: translateZ(0);
+    will-change: transform;
     width: auto;
     max-width: none;
     bottom: calc(var(--mobile-nav-height) + 12px + env(safe-area-inset-bottom, 0px));

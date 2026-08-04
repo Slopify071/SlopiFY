@@ -154,8 +154,15 @@ export default function Library() {
 
   return (
     <div className="page-content">
+      {/* Search backdrop blur overlay */}
+      <div
+        className={`search-backdrop ${isSearchFocused ? 'is-active' : ''}`}
+        onClick={() => setIsSearchFocused(false)}
+        aria-hidden="true"
+      />
+
       {/* Search — pinned to top, centered */}
-      <div className="library-search-wrapper animate-fade-in-up">
+      <div className={`library-search-wrapper animate-fade-in-up ${isSearchFocused ? 'library-search-wrapper--focused' : ''}`}>
         <div className="search-container" ref={searchRef}>
           <div className={`search-bar ${isSearchFocused ? 'search-bar--focused' : ''}`}>
             <span className="search-icon">

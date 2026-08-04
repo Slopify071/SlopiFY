@@ -83,6 +83,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  contain: layout style;
 }
 
 .playlist-detail-song-row {
@@ -94,6 +95,8 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-out);
+  content-visibility: auto;
+  contain-intrinsic-size: 0 52px;
 }
 
 .playlist-detail-song-row:hover {
@@ -226,7 +229,6 @@
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    overflow: hidden;
   }
 
   .playlist-detail-song-info {
