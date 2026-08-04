@@ -29,3 +29,6 @@ SlopiFY is a modern, minimalist music streaming and uploading application.
    ```bash
    npm run build
    ```
+
+## Deployment
+Automated continuous deployment is configured via **GitHub Actions** (`.github/workflows/deploy.yml`). Any push to `main` automatically builds and deploys the application to Cloudflare Workers (`https://slopify.homiez.workers.dev`).
