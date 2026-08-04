@@ -250,6 +250,10 @@ export function PlayerProvider({ children }) {
     const url = state.currentSong.audioUrl || state.currentSong.downloadUrl || ''
     if (!url) return
 
+    // Cancellation flag — if this effect re-runs before the play promise
+    // resolves, the stale invocation is discarded.
+    let cancelled = false
+
     let srcChanged = false
     try {
       const currentSrc = audio.src ? new URL(audio.src, window.location.href).href : ''
@@ -276,35 +280,41 @@ export function PlayerProvider({ children }) {
     }
 
     if (state.isPlaying) {
-      const playPromise = audio.play()
-      playPromiseRef.current = playPromise
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            playPromiseRef.current = null
-            isChangingSrcRef.current = false
-          })
-          .catch((err) => {
-            playPromiseRef.current = null
-            if (err && err.name === 'AbortError') {
-              // A newer track load interrupted this one - keep isChangingSrcRef true so onPause doesn't flip state
-              return
-            }
-            isChangingSrcRef.current = false
-            console.warn('Autoplay or playback failed:', err)
-            dispatch({ type: 'SET_PLAYING', payload: false })
-          })
-      } else {
-        isChangingSrcRef.current = false
+      // Only call play() if not already playing the correct source
+      if (srcChanged || audio.paused) {
+        const playPromise = audio.play()
+        playPromiseRef.current = playPromise
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              if (cancelled) return
+              playPromiseRef.current = null
+              isChangingSrcRef.current = false
+            })
+            .catch((err) => {
+              if (cancelled) return
+              playPromiseRef.current = null
+              if (err && err.name === 'AbortError') {
+                return
+              }
+              isChangingSrcRef.current = false
+              console.warn('Autoplay or playback failed:', err)
+              dispatch({ type: 'SET_PLAYING', payload: false })
+            })
+        } else {
+          isChangingSrcRef.current = false
+        }
       }
     } else {
       if (playPromiseRef.current) {
         playPromiseRef.current
           .then(() => {
+            if (cancelled) return
             audio.pause()
             isChangingSrcRef.current = false
           })
           .catch(() => {
+            if (cancelled) return
             audio.pause()
             isChangingSrcRef.current = false
           })
@@ -312,6 +322,10 @@ export function PlayerProvider({ children }) {
         audio.pause()
         isChangingSrcRef.current = false
       }
+    }
+
+    return () => {
+      cancelled = true
     }
   }, [state.currentSong?.id, state.currentSong?.audioUrl, state.currentSong?.downloadUrl, state.isPlaying])
 

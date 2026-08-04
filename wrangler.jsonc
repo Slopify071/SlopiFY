@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "slopify",
+  "account_id": "81fc81f2f509dca69b1a0dd125396d1b",
   "compatibility_date": "2026-08-03",
   "observability": {
     "enabled": true

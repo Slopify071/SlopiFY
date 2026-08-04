@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { subscribeToLibrary, addSongToPlaylist } from '../../services/firestore'
 import './AddSongModal.css'
 
@@ -48,7 +49,7 @@ export default function AddSongModal({ isOpen, onClose, playlistId, existingSong
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content add-song-modal animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -119,6 +120,7 @@ export default function AddSongModal({ isOpen, onClose, playlistId, existingSong
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

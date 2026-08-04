@@ -614,6 +614,82 @@ h1, h2, h3, h4, h5, h6 {
   animation: fadeInUp var(--duration-normal) var(--ease-spring) both;
 }
 
+/* --- Base Generic Modal Layout --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  overflow: hidden;
+}
+
+.modal-content {
+  background: var(--color-bg-elevated, #0C0D12);
+  border: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-xl, 20px);
+  width: 100%;
+  max-width: 580px;
+  max-height: min(600px, calc(100vh - 32px));
+  max-height: min(600px, calc(100dvh - 32px));
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl, 0 30px 70px rgba(0, 0, 0, 0.95));
+  overflow: hidden;
+  margin: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+.modal-header h2 {
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--weight-bold, 700);
+  color: var(--color-text-primary, #F8FAFC);
+  margin: 0;
+}
+
+.modal-close-btn {
+  color: var(--color-text-secondary, #94A3B8);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast, 150ms);
+}
+
+.modal-close-btn:hover {
+  color: var(--color-text-primary, #FFFFFF);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3.5) var(--space-6);
+  border-top: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.03);
+  flex-shrink: 0;
+}
+
 /* ============================================================
    Responsive Breakpoints
    ============================================================ */

@@ -51,22 +51,26 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
     }
   }
 
-  const modalContent = (
+  return createPortal(
     <div className="create-pl-backdrop" onClick={onClose}>
-      <div className="create-pl-modal animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
+      <form
+        onSubmit={handleSubmit}
+        className="create-pl-modal animate-fade-in-scale"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="create-pl-header">
           <div>
             <span className="create-pl-badge">New Collection</span>
             <h2>Create Playlist</h2>
           </div>
-          <button className="create-pl-close" onClick={onClose}>
+          <button type="button" className="create-pl-close-btn" onClick={onClose} aria-label="Close modal">
             <X size={20} />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="create-pl-body">
+        {/* Scrollable Form Body */}
+        <div className="create-pl-body">
           {error && <div className="create-pl-error">{error}</div>}
 
           <div className="create-pl-grid">
@@ -156,27 +160,26 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Footer Actions */}
-          <div className="create-pl-footer" style={{ marginTop: 'auto' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary create-pl-submit-btn" disabled={!name.trim() || isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <div className="create-pl-spinner" />
-                  Creating...
-                </>
-              ) : (
-                'Create Playlist'
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {/* Fixed Footer Actions */}
+        <div className="create-pl-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary create-pl-submit-btn" disabled={!name.trim() || isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <div className="create-pl-spinner" />
+                Creating...
+              </>
+            ) : (
+              'Create Playlist'
+            )}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body
   )
-
-  return createPortal(modalContent, document.body)
 }

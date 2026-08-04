@@ -5,15 +5,15 @@
 .create-pl-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 2500;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .create-pl-modal {
@@ -25,6 +25,7 @@
   width: 100%;
   max-width: 580px;
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -84,7 +85,7 @@
 
 /* Form Body */
 .create-pl-body {
-  padding: 20px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -105,8 +106,8 @@
 /* Grid Layout */
 .create-pl-grid {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 20px;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
   align-items: start;
 }
 
@@ -118,8 +119,8 @@
 }
 
 .create-pl-artwork-preview {
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   border-radius: 14px;
   overflow: hidden;
   background: var(--color-primary-subtle);
@@ -190,7 +191,7 @@
 
 .create-pl-textarea {
   resize: vertical;
-  min-height: 54px;
+  min-height: 48px;
 }
 
 /* Collab Row Toggle */
@@ -263,8 +264,9 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: 10px;
+  padding: 14px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   flex-shrink: 0;
 }
 
