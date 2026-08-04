@@ -46,6 +46,13 @@
   z-index: var(--z-dropdown);
 }
 
+/* Hide search box on PC/Desktop */
+@media (min-width: 769px) {
+  .library-search-wrapper {
+    display: none !important;
+  }
+}
+
 .library-search-wrapper--focused {
   z-index: 1600;
 }
