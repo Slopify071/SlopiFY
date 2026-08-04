@@ -13,7 +13,7 @@ import {
   onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore'
-import { db, isFirebaseConfigured } from '../config/firebase'
+import { db, auth, isFirebaseConfigured } from '../config/firebase'
 import { deleteAudioFile } from './storage'
 
 /**
@@ -181,9 +181,9 @@ export async function addSongToFirestore(songData) {
 }
 
 /**
- * Delete song document from Firestore and corresponding file from Firebase Storage
+ * Delete song document from Firestore and corresponding file from Cloudinary/Storage
  */
-export async function deleteSongFromFirestore(songId, storagePath, fileSize = 0) {
+export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSize = 0) {
   if (!isFirebaseConfigured || !db || !songId) {
     return { success: true }
   }
@@ -191,9 +191,19 @@ export async function deleteSongFromFirestore(songId, storagePath, fileSize = 0)
   try {
     const { increment } = await import('firebase/firestore')
     
-    // 1. Delete audio file from Firebase Storage if storagePath exists
-    if (storagePath) {
-      await deleteAudioFile(storagePath)
+    // 1. Delete audio file from Cloudinary via server-side Worker
+    if (storagePathOrSong) {
+      // Get Firebase Auth token for Worker authentication
+      let authToken = null
+      try {
+        const currentUser = auth?.currentUser
+        if (currentUser) {
+          authToken = await currentUser.getIdToken()
+        }
+      } catch (tokenErr) {
+        console.warn('Could not get auth token for Cloudinary delete:', tokenErr)
+      }
+      await deleteAudioFile(storagePathOrSong, authToken)
     }
 
     // 2. Delete Firestore song document
@@ -201,12 +211,13 @@ export async function deleteSongFromFirestore(songId, storagePath, fileSize = 0)
     await deleteDoc(songRef)
 
     // 3. Decrement global storage metrics
+    const effectiveFileSize = typeof storagePathOrSong === 'object' ? (storagePathOrSong.fileSize || fileSize) : fileSize
     try {
       const metaRef = doc(db, 'storage_meta', 'global')
       await setDoc(
         metaRef,
         {
-          totalBytesUsed: increment(-Math.abs(fileSize || 0)),
+          totalBytesUsed: increment(-Math.abs(effectiveFileSize || 0)),
           songCount: increment(-1),
           lastUpdated: serverTimestamp(),
         },

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
 import './QueueSidebar.css'
 
@@ -11,11 +11,53 @@ export default function QueueSidebar() {
     togglePlay,
     playSong,
     queue,
+    reorderQueue,
     removeFromQueue,
     clearQueue,
   } = usePlayer()
 
   const sidebarRef = useRef(null)
+  const [draggedIndex, setDraggedIndex] = useState(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
+
+  const moveQueueItem = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= queue.length) return
+    const updated = [...queue]
+    const [moved] = updated.splice(fromIndex, 1)
+    updated.splice(toIndex, 0, moved)
+    reorderQueue(updated)
+  }
+
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.setData('text/plain', index.toString())
+    e.dataTransfer.effectAllowed = 'move'
+    setDraggedIndex(index)
+  }
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index)
+    }
+  }
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault()
+    const rawFromIndex = e.dataTransfer.getData('text/plain')
+    const fromIndex = parseInt(rawFromIndex, 10)
+
+    if (!isNaN(fromIndex) && fromIndex !== targetIndex) {
+      moveQueueItem(fromIndex, targetIndex)
+    }
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
 
   const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00'
@@ -155,7 +197,26 @@ export default function QueueSidebar() {
             {queue.length > 0 ? (
               <div className="queue-list">
                 {queue.map((song, index) => (
-                  <div key={`${song.id}-${index}`} className="queue-item">
+                  <div
+                    key={`${song.id}-${index}`}
+                    className={`queue-item ${draggedIndex === index ? 'queue-item--dragging' : ''} ${dragOverIndex === index ? 'queue-item--drag-over' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="queue-drag-handle" title="Drag to reorder">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="9" cy="6" r="1.5" />
+                        <circle cx="15" cy="6" r="1.5" />
+                        <circle cx="9" cy="12" r="1.5" />
+                        <circle cx="15" cy="12" r="1.5" />
+                        <circle cx="9" cy="18" r="1.5" />
+                        <circle cx="15" cy="18" r="1.5" />
+                      </svg>
+                    </div>
+
                     <span className="queue-item-index">{index + 1}</span>
 
                     <div className="queue-song-cover" onClick={() => playSong(song)}>
@@ -180,6 +241,38 @@ export default function QueueSidebar() {
                     <div className="queue-song-info" onClick={() => playSong(song)}>
                       <span className="queue-song-title truncate">{song.title}</span>
                       <span className="queue-song-artist truncate">{song.artist || 'Unknown Artist'}</span>
+                    </div>
+
+                    <div className="queue-reorder-controls">
+                      <button
+                        className="btn-icon btn-reorder"
+                        disabled={index === 0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          moveQueueItem(index, index - 1)
+                        }}
+                        title="Move track up"
+                        aria-label="Move track up"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="18 15 12 9 6 15" />
+                        </svg>
+                      </button>
+
+                      <button
+                        className="btn-icon btn-reorder"
+                        disabled={index === queue.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          moveQueueItem(index, index + 1)
+                        }}
+                        title="Move track down"
+                        aria-label="Move track down"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
                     </div>
 
                     <span className="queue-duration">{formatDuration(song.duration)}</span>

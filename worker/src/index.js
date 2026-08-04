@@ -250,6 +250,80 @@ export default {
         });
       }
 
+      // 6. POST /api/cloudinary-delete — Delete asset from Cloudinary (server-side signed)
+      if (pathname === '/api/cloudinary-delete' && request.method === 'POST') {
+        const user = verifyAuth(request, env);
+        if (!user) {
+          return errorResponse('Unauthorized: Invalid or missing authentication token', 401);
+        }
+
+        const cloudName = env.CLOUDINARY_CLOUD_NAME;
+        const apiKey = env.CLOUDINARY_API_KEY;
+        const apiSecret = env.CLOUDINARY_API_SECRET;
+
+        if (!cloudName || !apiKey || !apiSecret) {
+          return errorResponse('Cloudinary credentials not configured on worker', 500);
+        }
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return errorResponse('Invalid JSON body', 400);
+        }
+
+        const publicId = body.public_id;
+        const resourceType = body.resource_type || 'video'; // audio = video in Cloudinary
+
+        if (!publicId) {
+          return errorResponse('public_id is required', 400);
+        }
+
+        // Generate SHA-1 signature: public_id={id}&timestamp={ts}{secret}
+        const timestamp = Math.floor(Date.now() / 1000);
+        const toSign = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+
+        // Use Web Crypto API for SHA-1
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest('SHA-1', encoder.encode(toSign));
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const signature = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+        const destroyUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`;
+        const formData = new URLSearchParams();
+        formData.append('public_id', publicId);
+        formData.append('api_key', apiKey);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('signature', signature);
+
+        try {
+          const res = await fetch(destroyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString(),
+          });
+          const data = await res.json();
+
+          if (data.result === 'ok' || data.result === 'not found') {
+            return jsonResponse({
+              success: true,
+              public_id: publicId,
+              result: data.result,
+              deletedAt: new Date().toISOString(),
+            });
+          } else {
+            return jsonResponse({
+              success: false,
+              public_id: publicId,
+              result: data.result || 'unknown',
+              error: data.error || null,
+            }, 422);
+          }
+        } catch (fetchErr) {
+          return errorResponse(`Cloudinary API request failed: ${fetchErr.message}`, 502);
+        }
+      }
+
       return errorResponse(`Route ${request.method} ${pathname} not found`, 404);
     } catch (err) {
       console.error('Worker internal error:', err);

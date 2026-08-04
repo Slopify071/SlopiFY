@@ -347,9 +347,80 @@
   max-width: 240px;
 }
 
+.queue-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: grab;
+  padding: 4px 2px;
+  border-radius: 4px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.queue-drag-handle:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.queue-item:active .queue-drag-handle {
+  cursor: grabbing;
+}
+
+.queue-item--dragging {
+  opacity: 0.4;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px dashed var(--accent-light, #1ed760);
+}
+
+.queue-item--drag-over {
+  background: rgba(30, 215, 96, 0.15) !important;
+  border-left: 3px solid var(--accent-light, #1ed760);
+}
+
+.queue-reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.queue-item:hover .queue-reorder-controls {
+  opacity: 1;
+}
+
+.btn-reorder {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-reorder:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-reorder:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .queue-sidebar {
     width: 100vw;
     bottom: 0;
   }
+
+  .queue-reorder-controls {
+    opacity: 1;
+  }
 }
+

@@ -149,7 +149,7 @@ export default function Upload() {
       )
 
       try {
-        // 1. Upload audio file to Firebase Storage
+        // 1. Upload audio file to Cloudinary
         const result = await uploadAudioFile(item.file, user, (percent) => {
           setFileList((prev) =>
             prev.map((it, idx) =>
@@ -240,7 +240,7 @@ export default function Upload() {
       {/* Storage Bar */}
       <div className="upload-storage animate-fade-in-up">
         <div className="upload-storage-info">
-          <span className="upload-storage-label">Firebase Storage Used</span>
+          <span className="upload-storage-label">Storage Used</span>
           <span className="upload-storage-value">
             {totalStorageUsedGB} GB / {maxStorageGB} GB
           </span>

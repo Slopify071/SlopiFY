@@ -10,6 +10,7 @@ import {
   deletePlaylist,
 } from '../services/firestore'
 import AddSongModal from '../components/Playlist/AddSongModal'
+import ConfirmModal from '../components/Common/ConfirmModal'
 import './PlaylistDetail.css'
 
 export default function PlaylistDetail() {
@@ -21,6 +22,7 @@ export default function PlaylistDetail() {
   const [playlist, setPlaylist] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -127,16 +129,21 @@ export default function PlaylistDetail() {
     }
   }
 
-  const handleDeletePlaylist = async () => {
+  const handleDeletePlaylist = () => {
     if (!isOwner || !playlist) return
-    if (window.confirm(`Are you sure you want to delete "${playlist.name}"?`)) {
-      try {
-        await deletePlaylist(playlist.id)
-        showToast('Playlist deleted')
-        navigate('/playlists')
-      } catch (err) {
-        console.error('Failed to delete playlist:', err)
-      }
+    setShowDeleteConfirm(true)
+  }
+
+  const handleConfirmDeletePlaylist = async () => {
+    setShowDeleteConfirm(false)
+    if (!isOwner || !playlist) return
+    try {
+      await deletePlaylist(playlist.id)
+      showToast('Playlist deleted')
+      navigate('/playlists')
+    } catch (err) {
+      console.error('Failed to delete playlist:', err)
+      showToast('Failed to delete playlist')
     }
   }
 
@@ -349,6 +356,17 @@ export default function PlaylistDetail() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Playlist?"
+        message={`Are you sure you want to delete "${playlist?.name || ''}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger={true}
+        onConfirm={handleConfirmDeletePlaylist}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       {/* Add Song Modal */}
       <AddSongModal

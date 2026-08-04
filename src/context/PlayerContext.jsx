@@ -415,6 +415,9 @@ export function PlayerProvider({ children }) {
       console.warn('Audio element error:', e)
       isChangingSrcRef.current = false
       dispatch({ type: 'SET_PLAYING', payload: false })
+      if (stateRef.current.currentSong?.title) {
+        dispatch({ type: 'SHOW_TOAST', payload: `Unable to play "${stateRef.current.currentSong.title}" (file deleted or missing)` })
+      }
     }
 
     audio.addEventListener('timeupdate', onTimeUpdate)
@@ -573,6 +576,10 @@ export function PlayerProvider({ children }) {
     dispatch({ type: 'SHOW_TOAST', payload: msg })
   }, [])
 
+  const reorderQueue = useCallback((newQueue) => {
+    dispatch({ type: 'SET_QUEUE', payload: newQueue })
+  }, [])
+
   const removeFromQueue = useCallback((index) => {
     dispatch({ type: 'REMOVE_FROM_QUEUE', payload: index })
   }, [])
@@ -610,6 +617,7 @@ export function PlayerProvider({ children }) {
     toggleShuffle,
     cycleRepeat,
     enqueue,
+    reorderQueue,
     removeFromQueue,
     clearQueue,
     toggleQueue,
@@ -653,6 +661,7 @@ export function usePlayer() {
       toggleShuffle: () => {},
       cycleRepeat: () => {},
       enqueue: () => {},
+      reorderQueue: () => {},
       removeFromQueue: () => {},
       clearQueue: () => {},
       toggleQueue: () => {},
