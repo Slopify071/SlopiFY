@@ -13,16 +13,16 @@ import './CreatePlaylistModal.css'
 function sanitizeUrl(url) {
   if (!url || typeof url !== 'string') return ''
   const trimmed = url.trim()
-  if (trimmed === '') return ''
+  if (!/^(https?:\/\/|blob:)/i.test(trimmed)) {
+    return ''
+  }
   try {
     const parsed = new URL(trimmed)
-    const allowedProtocols = ['http:', 'https:', 'blob:']
-    if (!allowedProtocols.includes(parsed.protocol)) {
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && parsed.protocol !== 'blob:') {
       return ''
     }
-    return trimmed
+    return parsed.href
   } catch {
-    // If it can't be parsed as a URL, it's not a valid URL — reject it
     return ''
   }
 }
