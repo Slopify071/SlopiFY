@@ -5,6 +5,28 @@ import { uploadCoverImage } from '../../services/storage'
 import { Camera, Music, Upload, Users, Lock, Unlock, X, Plus } from 'lucide-react'
 import './CreatePlaylistModal.css'
 
+/**
+ * Sanitize a URL to prevent javascript: URI XSS attacks.
+ * Only allows http:, https:, and blob: protocols.
+ * Returns an empty string for any disallowed protocol.
+ */
+function sanitizeUrl(url) {
+  if (!url || typeof url !== 'string') return ''
+  const trimmed = url.trim()
+  if (trimmed === '') return ''
+  try {
+    const parsed = new URL(trimmed)
+    const allowedProtocols = ['http:', 'https:', 'blob:']
+    if (!allowedProtocols.includes(parsed.protocol)) {
+      return ''
+    }
+    return trimmed
+  } catch {
+    // If it can't be parsed as a URL, it's not a valid URL — reject it
+    return ''
+  }
+}
+
 export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, currentUser }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -17,6 +39,9 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
   const fileInputRef = useRef(null)
 
   if (!isOpen) return null
+
+  // Derive a safe URL for rendering — prevents javascript: URI injection
+  const safeCoverUrl = sanitizeUrl(coverUrl)
 
   const handleImageFileSelect = (e) => {
     const file = e.target.files?.[0]
@@ -116,9 +141,9 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                 onClick={handleArtworkClick}
                 title="Click to choose cover image"
               >
-                {coverUrl ? (
+                {safeCoverUrl ? (
                   <img
-                    src={coverUrl}
+                    src={safeCoverUrl}
                     alt="Playlist artwork preview"
                     onError={(e) => {
                       e.target.onerror = null
@@ -127,7 +152,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                     }}
                   />
                 ) : null}
-                <div className="create-pl-artwork-placeholder" style={{ display: coverUrl ? 'none' : 'flex' }}>
+                <div className="create-pl-artwork-placeholder" style={{ display: safeCoverUrl ? 'none' : 'flex' }}>
                   <Music size={36} color="var(--color-primary-subtle)" strokeWidth={1} style={{ opacity: 0.5 }} />
                   <span>Artwork Preview</span>
                 </div>
