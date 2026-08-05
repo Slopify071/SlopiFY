@@ -8,7 +8,7 @@ import ConfirmModal from '../components/Common/ConfirmModal'
 import './Playlists.css'
 
 export default function Playlists() {
-  const { currentUser } = useAuth()
+  const { user } = useAuth()
   const { showToast } = usePlayer()
   const navigate = useNavigate()
   const [playlists, setPlaylists] = useState([])
@@ -25,7 +25,7 @@ export default function Playlists() {
     }, 400)
 
     const unsubscribe = subscribeToUserPlaylists(
-      currentUser?.uid,
+      user?.uid,
       (data) => {
         if (isMounted) {
           clearTimeout(skeletonTimer)
@@ -47,7 +47,7 @@ export default function Playlists() {
       clearTimeout(skeletonTimer)
       unsubscribe()
     }
-  }, [currentUser?.uid])
+  }, [user?.uid])
 
   const handleDelete = (e, playlist) => {
     e.preventDefault()
@@ -100,7 +100,7 @@ export default function Playlists() {
       ) : (
         <div className="playlists-grid">
           {playlists.map((playlist, index) => {
-            const isOwner = playlist.ownerUid === currentUser?.uid || playlist.ownerUid === 'anonymous'
+            const isOwner = playlist.ownerUid === user?.uid || playlist.ownerUid === 'anonymous'
             const songCount = playlist.songs?.length || 0
 
             return (
@@ -183,7 +183,7 @@ export default function Playlists() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handlePlaylistCreated}
-        currentUser={currentUser}
+        currentUser={user}
       />
     </div>
   )

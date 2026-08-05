@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import './Sidebar.css'
@@ -38,6 +39,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ onLogoutRequest }) {
   const { user, logout } = useAuth()
+  const [imgError, setImgError] = useState(false)
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Friend'
   const initial = displayName.charAt(0).toUpperCase()
@@ -86,8 +88,14 @@ export default function Sidebar({ onLogoutRequest }) {
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <div className="sidebar-user-avatar">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt={displayName} className="user-avatar-img" />
+            {user?.photoURL && !imgError ? (
+              <img
+                src={user.photoURL}
+                alt=""
+                className="user-avatar-img"
+                referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
+              />
             ) : (
               <span className="user-initial">{initial}</span>
             )}

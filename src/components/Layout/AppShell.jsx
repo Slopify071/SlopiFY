@@ -1,12 +1,23 @@
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import { Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Sidebar from './Sidebar'
 import BottomPlayer from './BottomPlayer'
+import FullScreenPlayer from './FullScreenPlayer'
 import MobileNav from './MobileNav'
 import QueueSidebar from '../Queue/QueueSidebar'
 import Toast from '../Common/Toast'
 import ConfirmModal from '../Common/ConfirmModal'
 import './AppShell.css'
+
+function PageFallback() {
+  return (
+    <div className="app-loading-screen">
+      <div className="spinner" />
+      <p>Loading...</p>
+    </div>
+  )
+}
 
 export default function AppShell({ children }) {
   const { logout } = useAuth()
@@ -25,12 +36,15 @@ export default function AppShell({ children }) {
 
       <main className="main-content">
         <div className="main-content-inner">
-          {children}
+          <Suspense fallback={<PageFallback />}>
+            {children || <Outlet />}
+          </Suspense>
         </div>
       </main>
 
       <QueueSidebar />
       <BottomPlayer />
+      <FullScreenPlayer />
       <MobileNav onLogoutRequest={() => setShowLogoutModal(true)} />
       <Toast />
 

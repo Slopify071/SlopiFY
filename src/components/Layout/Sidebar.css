@@ -210,8 +210,7 @@
 
 /* --- Mobile: Hide sidebar completely --- */
 @media (max-width: 768px) {
-  .sidebar,
-  div[class*="liquid-glass"]:has(.sidebar-inner) {
+  .sidebar {
     display: none !important;
   }
 }

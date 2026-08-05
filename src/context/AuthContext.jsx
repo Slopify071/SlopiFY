@@ -255,6 +255,21 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // 5. Demo / Guest Sign In
+  const loginAsDemo = () => {
+    setAuthError(null)
+    const demoUser = {
+      uid: 'demo_guest_user',
+      displayName: 'Guest User',
+      email: 'guest@slopify.local',
+      photoURL: null,
+      isDemo: true,
+    }
+    setUser(demoUser)
+    cacheUser(demoUser)
+    return demoUser
+  }
+
   const value = {
     user,
     isAuthenticated: Boolean(user),
@@ -265,6 +280,7 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     signupWithEmail,
     loginWithEmail,
+    loginAsDemo,
     logout,
   }
 

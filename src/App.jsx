@@ -21,6 +21,25 @@ function PageFallback() {
   )
 }
 
+function PublicOnlyRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="app-loading-screen">
+        <div className="spinner" />
+        <p>Loading SlopiFY...</p>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/library" replace />
+  }
+
+  return children
+}
+
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
 
@@ -46,28 +65,29 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/library" replace /> : <Login />} />
         <Route
-          path="/"
-          element={isAuthenticated ? <Navigate to="/library" replace /> : <Login />}
-        />
-        <Route
-          path="/*"
+          path="/login"
           element={
-            <ProtectedRoute>
-              <AppShell>
-                <Suspense fallback={<PageFallback />}>
-                  <Routes>
-                    <Route path="/library" element={<Library />} />
-                    <Route path="/upload" element={<Upload />} />
-                    <Route path="/playlists" element={<Playlists />} />
-                    <Route path="/playlist/:id" element={<PlaylistDetail />} />
-                  </Routes>
-                </Suspense>
-              </AppShell>
-            </ProtectedRoute>
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
           }
         />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/library" replace />} />
+          <Route path="library" element={<Library />} />
+          <Route path="upload" element={<Upload />} />
+          <Route path="playlists" element={<Playlists />} />
+          <Route path="playlist/:id" element={<PlaylistDetail />} />
+          <Route path="*" element={<Navigate to="/library" replace />} />
+        </Route>
       </Routes>
     </Suspense>
   )

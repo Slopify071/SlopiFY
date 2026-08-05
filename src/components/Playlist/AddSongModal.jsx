@@ -43,12 +43,29 @@ export default function AddSongModal({ isOpen, onClose, playlistId, existingSong
     }
   }
 
+  const handleAddAll = async () => {
+    const unadded = filteredSongs.filter((s) => !addedIds.has(s.id))
+    if (unadded.length === 0) return
+
+    const newSet = new Set(addedIds)
+    unadded.forEach((s) => newSet.add(s.id))
+    setAddedIds(newSet)
+
+    try {
+      await Promise.all(unadded.map((song) => addSongToPlaylist(playlistId, song)))
+    } catch (err) {
+      console.error('Failed to batch add songs to playlist:', err)
+    }
+  }
+
   const formatDuration = (seconds) => {
     if (!seconds) return '0:00'
     const m = Math.floor(seconds / 60)
     const s = Math.floor(seconds % 60)
     return `${m}:${s.toString().padStart(2, '0')}`
   }
+
+  const unaddedCount = filteredSongs.filter((s) => !addedIds.has(s.id)).length
 
   return createPortal(
     <div className="add-song-backdrop" onClick={onClose}>
@@ -59,9 +76,22 @@ export default function AddSongModal({ isOpen, onClose, playlistId, existingSong
             <span className="add-song-badge">Library Selection</span>
             <h2>Add Songs to Playlist</h2>
           </div>
-          <button type="button" className="add-song-close-btn" onClick={onClose} aria-label="Close modal">
-            <X size={20} />
-          </button>
+          <div className="add-song-header-actions">
+            {unaddedCount > 0 && (
+              <button
+                type="button"
+                className="btn btn-sm btn-primary add-all-songs-btn"
+                onClick={handleAddAll}
+                title="Add all matching songs to playlist at once"
+              >
+                <Plus size={14} />
+                <span>Add All ({unaddedCount})</span>
+              </button>
+            )}
+            <button type="button" className="add-song-close-btn" onClick={onClose} aria-label="Close modal">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}

@@ -39,6 +39,7 @@ const initialState = {
   shuffle: false,
   repeat: 'off', // 'off' | 'all' | 'one'
   isQueueOpen: false,
+  isFullscreen: false,
   toast: null, // { id, message }
 }
 
@@ -98,6 +99,10 @@ function playerReducer(state, action) {
       return { ...state, isQueueOpen: !state.isQueueOpen }
     case 'SET_QUEUE_OPEN':
       return { ...state, isQueueOpen: !!action.payload }
+    case 'TOGGLE_FULLSCREEN':
+      return { ...state, isFullscreen: !state.isFullscreen }
+    case 'SET_FULLSCREEN':
+      return { ...state, isFullscreen: !!action.payload }
     case 'SHOW_TOAST':
       return { ...state, toast: { id: Date.now(), message: action.payload } }
     case 'HIDE_TOAST':
@@ -718,6 +723,14 @@ export function PlayerProvider({ children }) {
     dispatch({ type: 'SET_QUEUE_OPEN', payload: isOpen })
   }, [])
 
+  const toggleFullscreen = useCallback(() => {
+    dispatch({ type: 'TOGGLE_FULLSCREEN' })
+  }, [])
+
+  const setFullscreen = useCallback((isOpen) => {
+    dispatch({ type: 'SET_FULLSCREEN', payload: isOpen })
+  }, [])
+
   const showToast = useCallback((msg) => {
     dispatch({ type: 'SHOW_TOAST', payload: msg })
   }, [])
@@ -744,6 +757,8 @@ export function PlayerProvider({ children }) {
     clearQueue,
     toggleQueue,
     setQueueOpen,
+    toggleFullscreen,
+    setFullscreen,
     showToast,
     hideToast,
   }
@@ -772,6 +787,7 @@ export function usePlayer() {
       shuffle: false,
       repeat: 'off',
       isQueueOpen: false,
+      isFullscreen: false,
       toast: null,
       playSong: () => {},
       playAll: () => {},
@@ -789,6 +805,8 @@ export function usePlayer() {
       clearQueue: () => {},
       toggleQueue: () => {},
       setQueueOpen: () => {},
+      toggleFullscreen: () => {},
+      setFullscreen: () => {},
       showToast: () => {},
       hideToast: () => {},
     }
