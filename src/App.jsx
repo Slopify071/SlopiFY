@@ -5,7 +5,8 @@ import { PlayerProvider } from './context/PlayerContext'
 import AppShell from './components/Layout/AppShell'
 import './App.css'
 
-const Login = lazy(() => import('./pages/Login'))
+import Login from './pages/Login'
+
 const Library = lazy(() => import('./pages/Library'))
 const Upload = lazy(() => import('./pages/Upload'))
 const Playlists = lazy(() => import('./pages/Playlists'))
@@ -40,10 +41,16 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
+  const { isAuthenticated } = useAuth()
+
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/library" replace /> : <Login />} />
+        <Route
+          path="/"
+          element={isAuthenticated ? <Navigate to="/library" replace /> : <Login />}
+        />
         <Route
           path="/*"
           element={
@@ -51,7 +58,6 @@ function AppRoutes() {
               <AppShell>
                 <Suspense fallback={<PageFallback />}>
                   <Routes>
-                    <Route path="/" element={<Navigate to="/library" replace />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/upload" element={<Upload />} />
                     <Route path="/playlists" element={<Playlists />} />

@@ -59,6 +59,9 @@ export default defineConfig({
       process.env.VITE_CLOUDFLARE_WORKER_URL || wranglerVars.VITE_CLOUDFLARE_WORKER_URL || 'http://127.0.0.1:8787'
     ),
   },
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
   server: {
     port: 5173,
     strictPort: true,
@@ -69,7 +72,7 @@ export default defineConfig({
     minify: 'esbuild',
     cssMinify: true,
     cssCodeSplit: true,
-    sourcemap: true,
+    sourcemap: false,
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {

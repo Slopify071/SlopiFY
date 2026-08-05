@@ -62,9 +62,9 @@ function cacheUser(u) {
 
 export function AuthProvider({ children }) {
   const cachedUser = getCachedUser()
-  // If we have a cached user, skip the loading screen entirely
   const [user, setUser] = useState(cachedUser)
-  const [loading, setLoading] = useState(!cachedUser)
+  // Always start with loading false so unauthenticated cold start paints instantly on frame 1
+  const [loading, setLoading] = useState(false)
   const [authError, setAuthError] = useState(null)
 
   // Listen to Firebase Auth state changes
@@ -80,23 +80,25 @@ export function AuthProvider({ children }) {
       return
     }
 
-    // Safety fallback timer so loading screen never hangs infinitely
+    // Safety fallback timer capped at 300ms for unauthenticated visits so FCP/LCP paints immediately
     const fallbackTimer = setTimeout(() => {
       setLoading(false)
-    }, 2500)
+    }, 300)
 
-    // Check for redirect result if returning from redirect sign-in
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          setUser(result.user)
-          cacheUser(result.user)
-          await syncUser(result.user)
-        }
-      })
-      .catch((err) => {
-        console.error('Redirect sign-in error:', err)
-      })
+    // Only run getRedirectResult if returning from Google Auth redirect
+    if (window.location.search.includes('apiKey') || window.location.hash.includes('access_token')) {
+      getRedirectResult(auth)
+        .then(async (result) => {
+          if (result?.user) {
+            setUser(result.user)
+            cacheUser(result.user)
+            await syncUser(result.user)
+          }
+        })
+        .catch((err) => {
+          console.error('Redirect sign-in error:', err)
+        })
+    }
 
     const unsubscribe = onAuthStateChanged(
       auth,
