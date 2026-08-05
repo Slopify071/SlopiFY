@@ -36,6 +36,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
   const [isPublic, setIsPublic] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [imgError, setImgError] = useState(false)
   const fileInputRef = useRef(null)
 
   if (!isOpen) return null
@@ -52,6 +53,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
     }
     setError('')
     setSelectedFile(file)
+    setImgError(false)
     setCoverUrl(URL.createObjectURL(file))
   }
 
@@ -94,6 +96,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
       setSelectedFile(null)
       setIsCollaborative(false)
       setIsPublic(true)
+      setImgError(false)
       if (onSuccess) onSuccess(playlistId)
       onClose()
     } catch (err) {
@@ -141,21 +144,18 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                 onClick={handleArtworkClick}
                 title="Click to choose cover image"
               >
-                {safeCoverUrl ? (
+                {safeCoverUrl && !imgError ? (
                   <img
                     src={safeCoverUrl}
                     alt="Playlist artwork preview"
-                    onError={(e) => {
-                      e.target.onerror = null
-                      e.target.style.display = 'none'
-                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'
-                    }}
+                    onError={() => setImgError(true)}
                   />
-                ) : null}
-                <div className="create-pl-artwork-placeholder" style={{ display: safeCoverUrl ? 'none' : 'flex' }}>
-                  <Music size={36} color="var(--color-primary-subtle)" strokeWidth={1} style={{ opacity: 0.5 }} />
-                  <span>Artwork Preview</span>
-                </div>
+                ) : (
+                  <div className="create-pl-artwork-placeholder">
+                    <Music size={36} color="var(--color-primary-subtle)" strokeWidth={1} style={{ opacity: 0.5 }} />
+                    <span>Artwork Preview</span>
+                  </div>
+                )}
 
                 {/* Clickable + Icon Badge */}
                 <div className="create-pl-artwork-add-btn" aria-label="Upload Image">
@@ -204,6 +204,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                   value={coverUrl}
                   onChange={(e) => {
                     setCoverUrl(e.target.value)
+                    setImgError(false)
                     setSelectedFile(null)
                   }}
                 />
