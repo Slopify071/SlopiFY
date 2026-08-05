@@ -59,6 +59,22 @@
   margin: 2px 0 0 0;
 }
 
+.add-song-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-all-songs-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+}
+
 .add-song-close-btn {
   color: #94A3B8;
   cursor: pointer;

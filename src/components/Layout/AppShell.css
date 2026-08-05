@@ -48,7 +48,6 @@
   }
 
   .sidebar,
-  .app-shell > div:has(.sidebar-inner),
   .app-shell > .sidebar {
     display: none !important;
   }

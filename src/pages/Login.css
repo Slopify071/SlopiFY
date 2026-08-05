@@ -41,20 +41,64 @@
   width: 100%;
   max-width: 440px;
   z-index: 10;
-  border-radius: 24px;
-  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);
+  border-radius: 28px;
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.85);
+  position: relative;
 }
 
 .login-card {
   position: relative;
-  border-radius: 24px;
+  border-radius: 28px;
   padding: var(--space-10) var(--space-8);
   width: 100%;
   height: 100%;
   text-align: center;
+  /* Ultra-Liquid Glassmorphism with solid high-contrast fallback for Firefox */
+  background-color: #121624;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    rgba(12, 16, 28, 0.92) 100%
+  );
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 20px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
 }
 
-/* Light mode override removed to preserve liquid glass transparency */
+/* Demo Button Glass */
+.demo-btn-glass,
+.login-demo-btn {
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #a5b4fc;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.demo-btn-glass:hover,
+.login-demo-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.55);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+}
 
 
 /* Header */
@@ -231,8 +275,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.55), rgba(14, 165, 233, 0.45));
+  border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #ffffff;
@@ -247,10 +291,10 @@
 
 .submit-btn-glass:hover,
 .login-submit-btn:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.15));
-  border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.75), rgba(14, 165, 233, 0.65));
+  border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4), 0 0 30px rgba(79, 70, 229, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 .submit-btn-glass:active,
@@ -258,7 +302,7 @@
   transform: translateY(0) scale(0.98);
 }
 
-.submit-btn-glass:has(.login-submit-btn:disabled) {
+.login-submit-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;

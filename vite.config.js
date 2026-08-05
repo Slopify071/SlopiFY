@@ -19,8 +19,11 @@ try {
   console.warn('Could not parse wrangler.jsonc vars:', e)
 }
 
-export default defineConfig({
-  plugins: [react(), !process.env.VERCEL && cloudflare()].filter(Boolean),
+export default defineConfig(({ command }) => ({
+  plugins: [
+    react(),
+    command === 'build' && !process.env.VERCEL && cloudflare(),
+  ].filter(Boolean),
   define: {
     'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(
       process.env.VITE_FIREBASE_API_KEY || wranglerVars.VITE_FIREBASE_API_KEY || 'AIzaSyCLiKERj-DXvqA-XKYOYuqT4BvKeW6q930'
@@ -100,4 +103,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

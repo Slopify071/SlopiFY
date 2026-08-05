@@ -42,7 +42,8 @@
 .search-container {
   position: relative;
   flex: 1;
-  max-width: 460px;
+  width: 100%;
+  max-width: 640px;
   z-index: var(--z-dropdown);
 }
 
@@ -50,7 +51,14 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
   transition: all var(--duration-fast) var(--ease-out);
+}
+
+.search-bar .input,
+.search-bar input {
+  width: 100%;
 }
 
 .search-bar--focused {

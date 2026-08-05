@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
-import LazyGlass from '../components/Common/LazyGlass'
 import './Upload.css'
 
 export default function Upload() {
@@ -19,14 +18,7 @@ export default function Upload() {
   const [error, setError] = useState(null)
   const [storageMeta, setStorageMeta] = useState({ totalBytesUsed: 0, songCount: 0 })
 
-  const glassOptics = {
-    frost: 0.8,
-    dispersion: 0.2,
-    curvature: 0.1,
-    bend: 0.1,
-    depth: 0.5,
-    glow: 0.05
-  }
+
 
   useEffect(() => {
     const unsubscribe = subscribeToStorageMeta((meta) => {
@@ -74,6 +66,7 @@ export default function Upload() {
         title: cleanName,
         artist: '',
         album: '',
+        lyrics: '',
         duration: 0,
         coverUrl: '',
         pictureBlob: null,
@@ -198,6 +191,7 @@ export default function Upload() {
           title: item.title || 'Untitled',
           artist: item.artist || 'Unknown Artist',
           album: item.album || '',
+          lyrics: item.lyrics || '',
           duration: item.duration || 0,
           storagePath: result.storagePath,
           audioUrl: audioUrl,
@@ -250,7 +244,7 @@ export default function Upload() {
       </div>
 
       {/* Storage Bar */}
-      <LazyGlass className="upload-storage animate-fade-in-up" radius={18} optics={glassOptics}>
+      <div className="upload-storage animate-fade-in-up">
         <div className="upload-storage-inner">
           <div className="upload-storage-info">
             <span className="upload-storage-label">
@@ -270,7 +264,7 @@ export default function Upload() {
             />
           </div>
         </div>
-      </LazyGlass>
+      </div>
 
       {error && (
         <div className="upload-alert upload-alert-error animate-fade-in">
@@ -300,9 +294,8 @@ export default function Upload() {
         <>
           {/* Drop Zone */}
           <div className="upload-dropzone-wrapper">
-            <LazyGlass
+            <div
               className={`upload-dropzone animate-fade-in-up ${isDragging ? 'dragging' : ''} ${fileList.length > 0 ? 'has-file' : ''}`}
-              radius={24} optics={glassOptics}
             >
               <div
                 className="upload-dropzone-inner"
@@ -331,7 +324,7 @@ export default function Upload() {
                   onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
                 />
               </div>
-            </LazyGlass>
+            </div>
           </div>
 
           {/* Queue List & Edit Details */}
@@ -435,6 +428,19 @@ export default function Upload() {
                         placeholder="Album name (optional)"
                         value={activeTrack.album}
                         onChange={(e) => handleMetadataChange(activeTrack.id, 'album', e.target.value)}
+                        disabled={uploading}
+                      />
+                    </div>
+
+                    <div className="upload-form-group">
+                      <label htmlFor="upload-lyrics" className="upload-label">Lyrics (LRC or Plain Text)</label>
+                      <textarea
+                        id="upload-lyrics"
+                        className="input"
+                        style={{ height: '90px', resize: 'vertical', fontFamily: 'inherit', paddingTop: '8px' }}
+                        placeholder="Optional LRC lyrics [00:12.30] or line-by-line lyrics..."
+                        value={activeTrack.lyrics || ''}
+                        onChange={(e) => handleMetadataChange(activeTrack.id, 'lyrics', e.target.value)}
                         disabled={uploading}
                       />
                     </div>

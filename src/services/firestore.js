@@ -144,6 +144,7 @@ export async function addSongToFirestore(songData) {
     r2Key: songData.storagePath || songData.r2Key || '',
     audioUrl: songData.audioUrl || songData.downloadUrl || '',
     coverUrl: songData.coverUrl || '',
+    lyrics: songData.lyrics || '',
     fileSize: songData.fileSize || 0,
     uploaderUid: songData.uploaderUid || 'anonymous',
     uploaderName: songData.uploaderName || 'Friend',
@@ -315,9 +316,16 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
           ...docSnap.data(),
         }))
 
-        // Filter playlists owned by user or shared/collaborative
+        // Filter playlists owned by user, anonymous/unowned, public or collaborative playlists
         const userPlaylists = playlists.filter(
-          (p) => p.ownerUid === userUid || p.isCollaborative || p.collaborators?.includes(userUid)
+          (p) =>
+            !userUid ||
+            p.ownerUid === userUid ||
+            p.ownerUid === 'anonymous' ||
+            !p.ownerUid ||
+            p.isCollaborative ||
+            p.isPublic !== false ||
+            p.collaborators?.includes(userUid)
         )
 
         userPlaylists.sort((a, b) => {
@@ -424,6 +432,24 @@ export async function deletePlaylist(playlistId) {
     await deleteDoc(docRef)
   } catch (err) {
     console.error('Error deleting playlist:', err)
+    throw err
+  }
+}
+
+/**
+ * Update playlist cover image URL in Firestore
+ */
+export async function updatePlaylistCover(playlistId, coverUrl) {
+  if (!isFirebaseConfigured || !db || !playlistId) return
+
+  try {
+    const playlistRef = doc(db, 'playlists', playlistId)
+    await updateDoc(playlistRef, {
+      coverUrl: coverUrl || '',
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error updating playlist cover:', err)
     throw err
   }
 }
