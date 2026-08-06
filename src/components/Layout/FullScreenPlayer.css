@@ -40,32 +40,146 @@
   background: radial-gradient(circle at 35% 45%, rgba(120, 40, 140, 0.45), rgba(10, 8, 20, 0.92) 75%);
 }
 
-/* --- Floating Close Button --- */
-.fullscreen-close-btn {
+/* --- Dynamic Ambient Mesh Canvas --- */
+.fullscreen-mesh-canvas {
+  position: absolute;
+  inset: -100px;
+  z-index: 2;
+  pointer-events: none;
+  filter: blur(110px) saturate(1.8);
+  opacity: 0.75;
+}
+
+.mesh-blob {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+.mesh-blob-1 {
+  top: 15%;
+  left: 20%;
+  width: 55vw;
+  height: 55vw;
+  animation: floatMesh1 22s ease-in-out infinite alternate;
+}
+
+.mesh-blob-2 {
+  bottom: 10%;
+  right: 15%;
+  width: 60vw;
+  height: 60vw;
+  animation: floatMesh2 26s ease-in-out infinite alternate;
+}
+
+.mesh-blob-3 {
+  top: 40%;
+  right: 35%;
+  width: 45vw;
+  height: 45vw;
+  animation: floatMesh3 20s ease-in-out infinite alternate;
+}
+
+@keyframes floatMesh1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(12%, 8%) scale(1.15); }
+  100% { transform: translate(-8%, 15%) scale(0.92); }
+}
+
+@keyframes floatMesh2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-15%, -10%) scale(1.18); }
+  100% { transform: translate(10%, -5%) scale(0.95); }
+}
+
+@keyframes floatMesh3 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-8%, 12%) scale(1.22); }
+  100% { transform: translate(14%, -12%) scale(0.88); }
+}
+
+/* --- Top Header Actions (View Toggle & Close) --- */
+.fullscreen-header-actions {
   position: absolute;
   top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  width: 44px;
-  height: 44px;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  pointer-events: none;
+}
+
+.fullscreen-header-actions > * {
+  pointer-events: auto;
+}
+
+.fullscreen-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+.view-toggle-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.view-toggle-btn.is-active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.fullscreen-close-btn {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .fullscreen-close-btn:hover {
   background: rgba(255, 255, 255, 0.25);
-  transform: translateX(-50%) scale(1.08);
+  transform: scale(1.08);
 }
 
 /* --- Main Grid Layout --- */
@@ -82,6 +196,35 @@
   padding: 0 40px;
   box-sizing: border-box;
   align-items: center;
+  transition: grid-template-columns 0.4s ease;
+}
+
+/* Immersive View Mode Layout (Pure Lyrics Focus - Matching how it should be.mp4) */
+.fullscreen-content-grid.view-mode-immersive {
+  grid-template-columns: 1fr;
+  max-width: 1200px;
+  padding-left: 80px;
+}
+
+.fullscreen-content-grid.view-mode-immersive .fullscreen-left-panel {
+  display: none;
+}
+
+.fullscreen-content-grid.view-mode-immersive .fullscreen-right-panel {
+  padding-right: 0;
+}
+
+.fullscreen-content-grid.view-mode-immersive .fullscreen-lyric-line {
+  text-align: left;
+  transform-origin: left center;
+}
+
+.fullscreen-content-grid.view-mode-immersive .fullscreen-lyric-line.is-active {
+  font-size: 3.2rem;
+}
+
+.fullscreen-content-grid.view-mode-immersive .fullscreen-lyric-dots-wrapper {
+  justify-content: flex-start;
 }
 
 /* --- Left Panel (Artwork, Meta, Controls) --- */
@@ -269,36 +412,79 @@
   background: #f0f0f0;
 }
 
+/* --- Dynamic Ambient Background --- */
+.fullscreen-bg {
+  position: absolute;
+  inset: -60px;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fullscreen-bg-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(85px) brightness(0.5) saturate(1.75);
+  transform: scale(1.15);
+  transition: background-image 0.8s ease;
+  animation: ambientPulse 14s ease-in-out infinite alternate;
+}
+
+@keyframes ambientPulse {
+  0% {
+    transform: scale(1.12) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.22) rotate(1.5deg);
+  }
+  100% {
+    transform: scale(1.15) rotate(-1deg);
+  }
+}
+
+.fullscreen-bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 35% 45%, rgba(120, 40, 140, 0.45), rgba(10, 8, 20, 0.92) 75%);
+}
+
 /* --- Right Panel (Lyrics Scroll Area) --- */
 .fullscreen-right-panel {
+  position: relative;
   width: 100%;
   height: 100%;
   min-width: 0;
   display: flex;
   align-items: center;
-  overflow: visible;
-  padding-right: 40px;
-  box-sizing: border-box;
 }
 
 .fullscreen-lyrics-scroll-area {
   width: 100%;
   height: 100%;
-  max-height: 82vh;
-  overflow-y: auto;
+  max-height: 85vh;
+  overflow-y: hidden;
   overflow-x: visible;
-  scroll-behavior: smooth;
-  padding: 40vh 0;
+  padding: 50vh 0;
   box-sizing: border-box;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+  scroll-behavior: auto;
+}
+
+/* GPU Hardware-Accelerated Transform Scroll Container (Spicetify secret for silky-smooth 60Hz/144Hz motion) */
+.fullscreen-lyrics-list-transform {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+  gap: 1.85rem;
+  will-change: transform;
+  transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
 }
 
 .fullscreen-lyrics-scroll-area::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .fullscreen-lyrics-scroll-area::-webkit-scrollbar-thumb {
@@ -306,41 +492,123 @@
   border-radius: 999px;
 }
 
+/* Base Lyric Line with Spicetify / Apple Music Smooth Easing */
 .fullscreen-lyric-line {
-  font-size: 2.35rem;
+  font-size: 2.75rem;
   font-weight: 700;
-  color: rgba(240, 225, 255, 0.35);
+  color: rgba(240, 230, 255, 0.35);
   cursor: pointer;
   margin: 0;
-  line-height: 1.38;
-  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  line-height: 1.45;
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: left center;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.022em;
   user-select: none;
   word-break: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
+  will-change: transform, opacity, filter;
 }
 
 .fullscreen-lyric-line:hover {
-  color: rgba(255, 255, 255, 0.75);
+  opacity: 0.95 !important;
+  filter: blur(0px) !important;
+  transform: scale(1.02) translateX(4px) !important;
+  color: rgba(255, 255, 255, 0.88);
 }
 
+/* Active Line Spotlight */
 .fullscreen-lyric-line.is-active {
-  font-size: 2.65rem;
+  font-size: 3.2rem;
   font-weight: 800;
-  transform: scale(1.02);
-  background: linear-gradient(
-    to right,
-    #ffffff 0%,
-    #ffffff var(--line-progress, 0%),
-    rgba(240, 225, 255, 0.35) calc(var(--line-progress, 0%) + 10%),
-    rgba(240, 225, 255, 0.35) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.65)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.35));
-  transition: transform 0.3s ease, filter 0.3s ease;
+  transform: scale(1.04);
+  opacity: 1 !important;
+  filter: blur(0px) !important;
+}
+
+/* Word-by-Word Karaoke Lighting Engine (matching Spicetify beautiful-lyrics physics) */
+.lyric-word {
+  display: inline-block;
+  white-space: pre;
+  transition: color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, color, opacity, filter;
+}
+
+.lyric-word.is-spoken {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.45);
+}
+
+.lyric-word.is-active-word {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  transform: scale(1.08) translateY(-1px);
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.65));
+}
+
+.lyric-word.is-upcoming-word {
+  color: rgba(240, 225, 255, 0.35);
+  opacity: 0.35;
+}
+
+/* Past lines — already spoken, fully lit white */
+.fullscreen-lyric-line.is-past {
+  color: rgba(255, 255, 255, 0.45);
+  opacity: 0.35;
+}
+
+/* Spicetify / Apple Music Distance Depth Blurring */
+.fullscreen-lyric-line.distance-1 {
+  opacity: 0.55;
+  filter: blur(0px);
+  transform: scale(0.98);
+}
+
+.fullscreen-lyric-line.distance-2 {
+  opacity: 0.35;
+  filter: blur(0.8px);
+  transform: scale(0.96);
+}
+
+.fullscreen-lyric-line.distance-far {
+  opacity: 0.2;
+  filter: blur(1.8px);
+  transform: scale(0.94);
+}
+
+/* Floating Sync to Current Button */
+.fullscreen-sync-lyrics-btn {
+  position: absolute;
+  bottom: 24px;
+  right: 48px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  transition: all 0.22s ease;
+}
+
+.fullscreen-sync-lyrics-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
 }
 
 /* --- Lead-In Dots (•••) Video Matching Layout --- */
