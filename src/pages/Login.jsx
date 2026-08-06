@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import LazyGlass from '../components/Common/LazyGlass'
 import './Login.css'
 
 export default function Login() {
@@ -82,18 +81,7 @@ export default function Login() {
       <div className="login-bg-pattern" />
 
       <div className="login-card-wrapper">
-        <LazyGlass
-          className="login-card animate-fade-in"
-          radius={24}
-          optics={{
-            frost: 0.55,
-            dispersion: 0.35,
-            curvature: 0.2,
-            bend: 0.15,
-            depth: 0.3,
-            glow: 0.25
-          }}
-        >
+        <div className="login-card animate-fade-in">
         {/* Header */}
         <div className="login-header">
           <div className="login-logo-icon">
@@ -253,7 +241,7 @@ export default function Login() {
           </a>
         </p>
 
-        </LazyGlass>
+        </div>
       </div>
     </main>
   )
