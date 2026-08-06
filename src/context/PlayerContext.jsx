@@ -793,6 +793,7 @@ export function PlayerProvider({ children }) {
 
   const value = {
     ...state,
+    audioRef,
     playSong,
     playAll,
     togglePlay,
