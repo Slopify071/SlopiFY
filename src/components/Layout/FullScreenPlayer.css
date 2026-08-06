@@ -28,7 +28,7 @@
 /* --- Dynamic Ambient Background --- */
 .fullscreen-bg {
   position: absolute;
-  inset: -100px;
+  inset: -150px;
   z-index: 1;
   overflow: hidden;
   pointer-events: none;
@@ -40,21 +40,32 @@
   height: 100%;
   background-size: cover;
   background-position: center;
-  transform: translate3d(0, 0, 0) scale(1.4);
-  filter: blur(90px) saturate(250%) brightness(0.6);
-  transition: background-image 0.8s ease;
+  transform: translate3d(0, 0, 0) scale(2.5);
+  filter: blur(80px) saturate(400%);
+  opacity: 0.55;
+  transition: background-image 1.2s ease-out;
   will-change: transform, background-image;
+}
+
+.fullscreen-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 120%);
+  pointer-events: none;
 }
 
 .fullscreen-bg::after {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 2;
-  opacity: 0.35;
-  mix-blend-mode: overlay;
+  z-index: 3;
+  opacity: 0.25;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 150px 150px;
 }
 
 <<<<<<< HEAD
