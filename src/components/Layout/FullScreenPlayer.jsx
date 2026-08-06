@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
+import { uploadCoverImage } from '../../services/storage'
+import { updateSongInFirestore } from '../../services/firestore'
 import './FullScreenPlayer.css'
 
 function parseLrc(lrcText) {
@@ -29,6 +31,7 @@ function parseLrc(lrcText) {
   return sorted
 }
 
+<<<<<<< HEAD
 function parseTrackTitleAndArtist(rawTitle = '', rawArtist = '') {
   let cleaned = (rawTitle || '')
     .replace(/\((audio|official video|official audio|lyric video|lyrics|audio video|hd|hq|remastered|\d{4} remaster)[^)]*\)/gi, '')
@@ -61,30 +64,16 @@ function generateDefaultLyrics(song, totalDuration) {
 
   const fullSearchStr = `${title} ${artist}`.toLowerCase()
   const isLessIKnow = fullSearchStr.includes('less i know') || fullSearchStr.includes('tame impala')
+=======
 
-  if (isLessIKnow) {
-    return [
-      { time: 0, text: '•••', isInstrumental: true },
-      { time: 26.0, text: "Someone said they left together" },
-      { time: 30.0, text: "I ran out the door to get her" },
-      { time: 34.0, text: "She was holding hands with Trevor" },
-      { time: 38.0, text: "Not the greatest feeling ever" },
-      { time: 42.0, text: "Said, \"Pull yourself together" },
-      { time: 46.0, text: "You should try your luck with Heather\"" },
-      { time: 50.0, text: "Then I heard they slept together" },
-      { time: 54.0, text: "Oh, the less I know the better" },
-      { time: 58.0, text: "The less I know the better" },
-      { time: 88.5, text: "Oh, my love" },
-      { time: 92.5, text: "Can't you see yourself by my side?" },
-      { time: 97.0, text: "No more running around" },
-      { time: 101.2, text: "It was working 'til I saw you with him" },
-      { time: 105.5, text: "In the middle of the night" },
-      { time: 109.8, text: "Oh, the less I know the better" },
-      { time: 114.0, text: "Hold on, let me take a breather" },
-      { time: 118.2, text: "I was fine before I met her" }
-    ]
-  }
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 
+const MarqueeText = ({ text, className }) => {
+  const containerRef = useRef(null)
+  const textRef = useRef(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+
+<<<<<<< HEAD
   const baseLines = [
     `Listen to "${title}"`,
     `By ${artist}`,
@@ -159,9 +148,37 @@ function extractColorsFromImage(imgUrl, callback) {
       callback({ darkGrad, primary, secondary, r1, g1, b1, r2, g2, b2 })
     } catch (err) {
       console.warn('Canvas color extraction warning:', err)
+=======
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const textWidth = textRef.current.getBoundingClientRect().width
+        const containerWidth = containerRef.current.getBoundingClientRect().width
+        const overflow = textWidth > containerWidth + 2
+        console.log('Marquee check:', { textWidth, containerWidth, overflow })
+        setIsOverflowing(overflow)
+      }
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
     }
-  }
-  img.src = imgUrl
+    checkOverflow()
+    const timeout = setTimeout(checkOverflow, 200)
+    const observer = new ResizeObserver(checkOverflow)
+    if (containerRef.current) observer.observe(containerRef.current)
+    if (textRef.current) observer.observe(textRef.current)
+    return () => { 
+      clearTimeout(timeout)
+      observer.disconnect()
+    }
+  }, [text])
+
+  return (
+    <div className={`marquee-container ${className}`} ref={containerRef}>
+      <div className={`marquee-content ${isOverflowing ? 'is-marquee' : ''}`}>
+        <span ref={textRef} className="marquee-text">{text}</span>
+        {isOverflowing && <span className="marquee-text">{text}</span>}
+      </div>
+    </div>
+  )
 }
 
 export default function FullScreenPlayer() {
@@ -181,7 +198,14 @@ export default function FullScreenPlayer() {
     seek,
     toggleShuffle,
     cycleRepeat,
+<<<<<<< HEAD
     audioRef,
+=======
+    queue,
+    playSong,
+    removeFromQueue,
+    updateCurrentSong,
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   } = usePlayer()
 
   const lyricsContainerRef = useRef(null)
@@ -189,22 +213,47 @@ export default function FullScreenPlayer() {
   const coverInputRef = useRef(null)
   const isSeekingRef = useRef(false)
   const [seekTime, setSeekTime] = useState(null)
+<<<<<<< HEAD
   const [dynamicBg, setDynamicBg] = useState(null)
   const [meshColors, setMeshColors] = useState(null)
   const [viewMode, setViewMode] = useState('immersive') // 'immersive' | 'split'
   const [translateYOffset, setTranslateYOffset] = useState(0)
+=======
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   const [fetchedLyrics, setFetchedLyrics] = useState(null)
+  const [activeRightView, setActiveRightView] = useState('lyrics') // 'lyrics' or 'queue'
+  const [localCoverUrl, setLocalCoverUrl] = useState(null)
 
-  const handleCoverImageChange = (e) => {
+  useEffect(() => {
+    setLocalCoverUrl(null)
+  }, [currentSong?.id])
+
+  const handleCoverImageChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file || !currentSong) return
     const newCoverUrl = URL.createObjectURL(file)
+<<<<<<< HEAD
     currentSong.coverUrl = newCoverUrl
     extractColorsFromImage(newCoverUrl, (res) => {
       setDynamicBg(res.darkGrad)
       setMeshColors(res)
     })
+=======
+    setLocalCoverUrl(newCoverUrl)
+
+    try {
+      const uploadedUrl = await uploadCoverImage(file)
+      if (uploadedUrl) {
+        updateCurrentSong({ coverUrl: uploadedUrl })
+        await updateSongInFirestore(currentSong.id, { coverUrl: uploadedUrl })
+      }
+    } catch (err) {
+      console.error('Failed to upload and save cover image:', err)
+    }
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   }
+
+  const displayCoverUrl = localCoverUrl || currentSong?.coverUrl
 
   const effectiveDuration = duration > 0 ? duration : (currentSong?.duration || 0)
 
@@ -212,7 +261,20 @@ export default function FullScreenPlayer() {
   const [smoothTime, setSmoothTime] = useState(currentTime)
 
   useEffect(() => {
+<<<<<<< HEAD
     if (!isFullscreen) return
+=======
+    lastTimeRef.current = currentTime
+    setSmoothTime(currentTime)
+  }, [currentTime])
+
+  useEffect(() => {
+    if (!isPlaying || !isFullscreen) {
+      setSmoothTime(currentTime)
+      lastFrameRef.current = null
+      return
+    }
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 
     let animId
     const sampleTime = () => {
@@ -228,7 +290,11 @@ export default function FullScreenPlayer() {
     return () => {
       if (animId) cancelAnimationFrame(animId)
     }
+<<<<<<< HEAD
   }, [isFullscreen, isPlaying, currentTime, audioRef])
+=======
+  }, [isPlaying, currentTime, isFullscreen])
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 
   const activeTime = isSeekingRef.current && seekTime !== null ? seekTime : smoothTime
   const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (activeTime / effectiveDuration) * 100)) : 0
@@ -240,6 +306,7 @@ export default function FullScreenPlayer() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
+<<<<<<< HEAD
   // Dynamic color extraction from artwork
   useEffect(() => {
     if (currentSong?.coverUrl) {
@@ -254,6 +321,9 @@ export default function FullScreenPlayer() {
   }, [currentSong?.coverUrl])
 
   // Fetch real synced lyrics from LRCLIB API with search fallback and state reset
+=======
+  // Fetch real synced lyrics from LRCLIB API if track has no custom lyrics
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   useEffect(() => {
     // ALWAYS reset stale lyrics from previous song immediately
     setFetchedLyrics(null)
@@ -339,7 +409,7 @@ export default function FullScreenPlayer() {
     if (fetchedLyrics && fetchedLyrics.length > 0) {
       return fetchedLyrics
     }
-    return generateDefaultLyrics(currentSong, effectiveDuration)
+    return []
   }, [currentSong, effectiveDuration, fetchedLyrics])
 
   // Determine active lyric index based on activeTime
@@ -541,18 +611,22 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
     document.addEventListener('touchcancel', onUp)
   }, [effectiveDuration, seek, getTargetTimeFromEvent])
 
-  if (!isFullscreen) return null
-
   return (
+<<<<<<< HEAD
     <div className={`fullscreen-overlay animated-fade-in ${viewMode === 'immersive' ? 'is-immersive-mode' : ''}`}>
       {/* Dynamic Ambient Mesh Canvas Background */}
+=======
+    <div className={`fullscreen-overlay ${isFullscreen ? 'is-active' : ''}`}>
+      {/* Dynamic Ambient Background */}
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
       <div className="fullscreen-bg">
-        {currentSong?.coverUrl && (
+        {displayCoverUrl && (
           <div
             className="fullscreen-bg-image"
-            style={{ backgroundImage: `url(${currentSong.coverUrl})` }}
+            style={{ backgroundImage: `url(${displayCoverUrl})` }}
           />
         )}
+<<<<<<< HEAD
         <div
           className="fullscreen-bg-gradient"
           style={dynamicBg ? { background: dynamicBg } : undefined}
@@ -616,13 +690,29 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
           </svg>
         </button>
       </div>
+=======
+      </div>
+
+      {/* Top Right Close Button */}
+      <button
+        className="fullscreen-close-btn"
+        onClick={() => setFullscreen(false)}
+        aria-label="Close full screen player"
+        title="Close (Esc)"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 
       {/* Main Content Layout */}
       <div className={`fullscreen-content-grid ${viewMode === 'immersive' ? 'view-mode-immersive' : ''}`}>
         {/* Left Side: Artwork, Info & Player Controls */}
         <div className="fullscreen-left-panel">
-          <div
-            className="fullscreen-cover-art-wrapper"
+          <div className="fullscreen-top-section">
+            <div
+              className="fullscreen-cover-art-wrapper"
             onClick={() => coverInputRef.current?.click()}
             title="Click to change cover image"
           >
@@ -633,9 +723,9 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
               style={{ display: 'none' }}
               onChange={handleCoverImageChange}
             />
-            {currentSong?.coverUrl ? (
+            {displayCoverUrl ? (
               <img
-                src={currentSong.coverUrl}
+                src={displayCoverUrl}
                 alt={currentSong?.title || 'Cover'}
                 className="fullscreen-cover-art"
               />
@@ -659,14 +749,17 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
 
           {/* Song Metadata */}
           <div className="fullscreen-meta">
-            <h1 className="fullscreen-song-title truncate">
-              {currentSong?.title || 'No Song Playing'}
-            </h1>
+            <MarqueeText 
+              text={currentSong?.title || 'No Song Playing'} 
+              className="fullscreen-song-title" 
+            />
             <h2 className="fullscreen-song-artist truncate">
               {currentSong?.artist || 'Unknown Artist'}
             </h2>
           </div>
+          </div>
 
+          <div className="fullscreen-bottom-section">
           {/* Interactive Seek Bar */}
           <div className="fullscreen-seek-container">
             <div
@@ -767,118 +860,167 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
               )}
             </button>
           </div>
+          </div>
         </div>
 
-        {/* Right Side: Karaoke Synchronized Lyrics */}
+        {/* Right Side: Lyrics or Queue */}
         <div className="fullscreen-right-panel">
-          <div
-            className="fullscreen-lyrics-scroll-area"
-            ref={lyricsContainerRef}
-            onScroll={handleContainerScroll}
-          >
+          {activeRightView === 'lyrics' ? (
             <div
-              className="fullscreen-lyrics-list-transform"
-              style={{ transform: `translate3d(0, -${translateYOffset}px, 0)` }}
+              className="fullscreen-lyrics-scroll-area"
+              ref={lyricsContainerRef}
+              onScroll={handleContainerScroll}
             >
-              {lyricsList.length > 0 ? (
-                lyricsList.map((item, index) => {
-                  const isActive = index === activeLineIndex
-                  const isPast = index < activeLineIndex
-                  const distance = Math.abs(index - activeLineIndex)
-                  const isDots = item.isInstrumental || item.text === '•••'
-                  
-                  let dot1Lit = false
-                  let dot2Lit = false
-                  let dot3Lit = false
+              <div
+                className="fullscreen-lyrics-list-transform"
+                style={{ transform: `translate3d(0, -${translateYOffset}px, 0)` }}
+              >
+                {lyricsList.length > 0 ? (
+                  lyricsList.map((item, index) => {
+                    const isActive = index === activeLineIndex
+                    const isPast = index < activeLineIndex
+                    const distance = Math.abs(index - activeLineIndex)
+                    const isDots = item.isInstrumental || item.text === '•••'
+                    
+                    let dot1Lit = false
+                    let dot2Lit = false
+                    let dot3Lit = false
 
-                  if (isDots && isActive) {
+                    if (isDots && isActive) {
+                      const nextItem = lyricsList[index + 1]
+                      const nextTime = nextItem ? nextItem.time : 26.0
+                      const remaining = nextTime - activeTime
+                      // Lead-in countdown matching video (12.5s window before vocals)
+                      if (remaining <= 12.5 && remaining > 0) dot1Lit = true
+                      if (remaining <= 8.5 && remaining > 0) dot2Lit = true
+                      if (remaining <= 4.5 && remaining > 0) dot3Lit = true
+                    }
+
+                    if (isDots) {
+                      return (
+                        <div
+                          key={index}
+                          ref={isActive ? activeLineRef : null}
+                          className={`fullscreen-lyric-dots-wrapper ${isActive ? 'is-active' : ''} ${isPast ? 'is-past' : ''}`}
+                        >
+                          <span className="fullscreen-lyric-dots">
+                            <span className={`dot dot-1 ${dot1Lit ? 'is-lit' : ''}`}>•</span>
+                            <span className={`dot dot-2 ${dot2Lit ? 'is-lit' : ''}`}>•</span>
+                            <span className={`dot dot-3 ${dot3Lit ? 'is-lit' : ''}`}>•</span>
+                          </span>
+                        </div>
+                      )
+                    }
+
+                    // Distance class calculation for Apple Music / Spicetify focal depth blur
+                    let distClass = 'distance-far'
+                    if (isActive) distClass = 'distance-0'
+                    else if (distance === 1) distClass = 'distance-1'
+                    else if (distance === 2) distClass = 'distance-2'
+
                     const nextItem = lyricsList[index + 1]
-                    const nextTime = nextItem ? nextItem.time : 26.0
-                    const remaining = nextTime - activeTime
-                    // Lead-in countdown matching video (12.5s window before vocals)
-                    if (remaining <= 12.5 && remaining > 0) dot1Lit = true
-                    if (remaining <= 8.5 && remaining > 0) dot2Lit = true
-                    if (remaining <= 4.5 && remaining > 0) dot3Lit = true
-                  }
+                    const lineStartTime = item.time
+                    const lineEndTime = nextItem ? nextItem.time : (effectiveDuration || lineStartTime + 4)
+                    const isUpcoming = index > activeLineIndex
 
-                  let lineProgress = 0
-                  if (isActive && !isDots) {
-                    const nextItem = lyricsList[index + 1]
-                    const startTime = item.time
-                    const endTime = nextItem ? nextItem.time : (effectiveDuration || startTime + 4)
-                    const lineDur = Math.max(0.5, endTime - startTime)
-                    const elapsed = Math.max(0, activeTime - startTime)
-                    lineProgress = Math.min(100, Math.max(0, (elapsed / lineDur) * 100))
-                  }
-
-                  if (isDots) {
                     return (
-                      <div
+                      <p
                         key={index}
                         ref={isActive ? activeLineRef : null}
-                        className={`fullscreen-lyric-dots-wrapper ${isActive ? 'is-active' : ''} ${isPast ? 'is-past' : ''}`}
+                        className={`fullscreen-lyric-line ${isActive ? 'is-active' : ''} ${isPast ? 'is-past' : 'is-upcoming'} ${distClass}`}
+                        onClick={() => {
+                          seek(item.time)
+                          setIsUserScrolling(false)
+                        }}
+                        title={`Jump to ${formatTime(item.time)}`}
                       >
-                        <span className="fullscreen-lyric-dots">
-                          <span className={`dot dot-1 ${dot1Lit ? 'is-lit' : ''}`}>•</span>
-                          <span className={`dot dot-2 ${dot2Lit ? 'is-lit' : ''}`}>•</span>
-                          <span className={`dot dot-3 ${dot3Lit ? 'is-lit' : ''}`}>•</span>
-                        </span>
-                      </div>
+                        {renderWordByWord(item.text, lineStartTime, lineEndTime, activeTime, isPast, isUpcoming)}
+                      </p>
                     )
-                  }
-
-                  // Distance class calculation for Apple Music / Spicetify focal depth blur
-                  let distClass = 'distance-far'
-                  if (isActive) distClass = 'distance-0'
-                  else if (distance === 1) distClass = 'distance-1'
-                  else if (distance === 2) distClass = 'distance-2'
-
-                  const nextItem = lyricsList[index + 1]
-                  const lineStartTime = item.time
-                  const lineEndTime = nextItem ? nextItem.time : (effectiveDuration || lineStartTime + 4)
-                  const isUpcoming = index > activeLineIndex
-
-                  return (
-                    <p
-                      key={index}
-                      ref={isActive ? activeLineRef : null}
-                      className={`fullscreen-lyric-line ${isActive ? 'is-active' : ''} ${isPast ? 'is-past' : 'is-upcoming'} ${distClass}`}
-                      onClick={() => {
-                        seek(item.time)
-                        setIsUserScrolling(false)
-                      }}
-                      title={`Jump to ${formatTime(item.time)}`}
-                    >
-                      {renderWordByWord(item.text, lineStartTime, lineEndTime, activeTime, isPast, isUpcoming)}
-                    </p>
-                  )
-                })
-              ) : (
-                <div className="fullscreen-lyrics-empty">
-                  <p>No lyrics available for this song.</p>
-                </div>
-              )}
+                  })
+                ) : (
+                  <div className="fullscreen-lyrics-empty">
+                    <p>No lyrics available for this song.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
-          {/* Floating Sync to Current Playing Line Button */}
-          {isUserScrolling && activeLineIndex !== -1 && (
-            <button
-              className="fullscreen-sync-lyrics-btn animated-fade-in"
-              onClick={() => {
-                setIsUserScrolling(false)
-                scrollToActiveLine(true)
-              }}
-              title="Recenter lyrics to current time"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="1 4 1 10 7 10" />
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-              </svg>
-              <span>Sync to Current</span>
-            </button>
+          ) : (
+            <div className="fullscreen-queue-area">
+              <h3 className="fullscreen-queue-title">Playing Next</h3>
+              <div className="fullscreen-queue-list">
+                {queue.length > 0 ? (
+                  queue.map((track, idx) => (
+                    <div key={`${track.id}-${idx}`} className="fullscreen-queue-item" onClick={() => playSong(track)}>
+                      <div className="fullscreen-queue-cover-container">
+                        {track.coverUrl ? (
+                          <img 
+                            src={track.coverUrl} 
+                            alt={track.title} 
+                            className="fullscreen-queue-cover"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                          />
+                        ) : null}
+                        <div className="fullscreen-queue-cover fallback" style={{ display: track.coverUrl ? 'none' : 'flex' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="fullscreen-queue-info">
+                        <div className="fullscreen-queue-track-title truncate">{track.title}</div>
+                        <div className="fullscreen-queue-track-artist truncate">{track.artist}</div>
+                      </div>
+                      <button className="fullscreen-queue-remove" onClick={(e) => { e.stopPropagation(); removeFromQueue(idx); }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="fullscreen-queue-empty">
+                    <p>Queue is empty</p>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
+      </div>
+
+      {/* Bottom Right Toggles */}
+      <div className="fullscreen-view-toggles">
+        <button
+          className={`fullscreen-view-toggle-btn ${activeRightView === 'lyrics' ? 'is-active' : ''}`}
+          onClick={() => setActiveRightView('lyrics')}
+          aria-label="Lyrics"
+          title="Lyrics"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <line x1="9" y1="10" x2="15" y2="10"></line>
+            <line x1="9" y1="14" x2="15" y2="14"></line>
+          </svg>
+        </button>
+        <button
+          className={`fullscreen-view-toggle-btn ${activeRightView === 'queue' ? 'is-active' : ''}`}
+          onClick={() => setActiveRightView('queue')}
+          aria-label="Queue"
+          title="Queue"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+        </button>
       </div>
     </div>
   )

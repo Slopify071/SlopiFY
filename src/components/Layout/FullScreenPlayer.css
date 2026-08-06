@@ -13,15 +13,26 @@
   background: #09060c;
   display: flex;
   flex-direction: column;
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s;
+}
+
+.fullscreen-overlay.is-active {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* --- Dynamic Ambient Background --- */
 .fullscreen-bg {
   position: absolute;
-  inset: -60px;
+  inset: -100px;
   z-index: 1;
   overflow: hidden;
   pointer-events: none;
+  background: #09060c;
 }
 
 .fullscreen-bg-image {
@@ -29,17 +40,24 @@
   height: 100%;
   background-size: cover;
   background-position: center;
-  filter: blur(80px) brightness(0.55) saturate(1.6);
-  transform: scale(1.15);
+  transform: translate3d(0, 0, 0) scale(1.4);
+  filter: blur(90px) saturate(250%) brightness(0.6);
   transition: background-image 0.8s ease;
+  will-change: transform, background-image;
 }
 
-.fullscreen-bg-gradient {
+.fullscreen-bg::after {
+  content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 35% 45%, rgba(120, 40, 140, 0.45), rgba(10, 8, 20, 0.92) 75%);
+  z-index: 2;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
+<<<<<<< HEAD
 /* --- Dynamic Ambient Mesh Canvas --- */
 .fullscreen-mesh-canvas {
   position: absolute;
@@ -169,17 +187,39 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.16);
   color: #ffffff;
+=======
+/* --- Top Right Close Button --- */
+.fullscreen-close-btn {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+<<<<<<< HEAD
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .fullscreen-close-btn:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(1.08);
+=======
+}
+
+.fullscreen-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 }
 
 /* --- Main Grid Layout --- */
@@ -234,6 +274,7 @@
   justify-content: center;
   gap: 1.5rem;
   width: 100%;
+  min-width: 0;
 }
 
 .fullscreen-cover-art-wrapper {
@@ -295,6 +336,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .fullscreen-song-title {
@@ -319,6 +362,8 @@
   flex-direction: column;
   gap: 0.4rem;
   margin-top: 0.5rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .fullscreen-seek-bar {
@@ -462,6 +507,8 @@
 
 .fullscreen-lyrics-scroll-area {
   width: 100%;
+  max-width: 480px;
+  margin-left: auto;
   height: 100%;
   max-height: 85vh;
   overflow-y: hidden;
@@ -609,6 +656,20 @@
   background: rgba(255, 255, 255, 0.32);
   transform: translateY(-2px) scale(1.04);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+=======
+  transform: scale(1.02);
+  filter: none;
+  background: linear-gradient(
+    to right,
+    #ffffff 0%,
+    #ffffff var(--line-progress, 0%),
+    rgba(255, 255, 255, 0.4) calc(var(--line-progress, 0%) + 10%),
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+>>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 }
 
 /* --- Lead-In Dots (•••) Video Matching Layout --- */
@@ -638,7 +699,7 @@
   color: #ffffff;
   opacity: 1;
   transform: scale(1.35) translateY(-6px);
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 36px rgba(255, 255, 255, 0.6));
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes appleDotWave {
@@ -665,26 +726,301 @@
   font-size: 1.2rem;
 }
 
-/* --- Responsive Media Queries --- */
+/* --- Marquee Animation --- */
+.marquee-container {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  /* Removed mask to prevent cutting off the first letter */
+}
+
+.marquee-content {
+  display: inline-flex;
+  white-space: nowrap;
+  width: max-content;
+}
+
+.marquee-content.is-marquee {
+  animation: marquee-scroll 10s linear infinite;
+}
+
+.marquee-text {
+  padding-right: 48px; /* gap between loops */
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+
+/* --- Queue / History View --- */
+.fullscreen-queue-area {
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  height: 100%;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  padding: 10vh 0;
+  box-sizing: border-box;
+}
+
+.fullscreen-queue-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.01em;
+  padding-left: 4px;
+}
+
+.fullscreen-queue-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 12px;
+}
+
+.fullscreen-queue-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fullscreen-queue-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+.fullscreen-queue-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.fullscreen-queue-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-queue-item:hover .fullscreen-queue-remove {
+  opacity: 1;
+}
+
+.fullscreen-queue-cover-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-queue-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fullscreen-queue-cover.fallback {
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.fullscreen-queue-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fullscreen-queue-track-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fullscreen-queue-track-artist {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fullscreen-queue-remove {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.fullscreen-queue-remove:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fullscreen-queue-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* --- Bottom Right View Toggles --- */
+.fullscreen-view-toggles {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.fullscreen-view-toggle-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.fullscreen-view-toggle-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-view-toggle-btn.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* --- Responsive Media Queries (Mobile Apple-like Layout) --- */
 @media (max-width: 960px) {
   .fullscreen-content-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    gap: 2rem;
-    height: auto;
-    max-height: calc(100vh - 70px);
-    margin-top: 60px;
-    padding: 0 24px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-height: 100vh;
+    margin-top: 0;
+    padding: max(60px, env(safe-area-inset-top, 60px)) 24px max(20px, env(safe-area-inset-bottom, 20px)) 24px;
+    overflow: hidden;
+    gap: 0;
   }
 
   .fullscreen-left-panel {
+    display: contents; /* Unwraps the left panel to allow reordering its children */
+  }
+
+  /* 1. Header (Cover + Meta) */
+  .fullscreen-top-section {
+    order: 1;
+    display: flex;
     align-items: center;
-    text-align: center;
+    gap: 16px;
+    height: 64px;
+    flex-shrink: 0;
+    margin-bottom: 24px;
+    width: 100%; /* CRITICAL: Prevents it from growing infinitely and spilling off screen */
+    overflow: hidden; /* Prevent child text from breaking the layout */
   }
 
   .fullscreen-cover-art-wrapper {
-    max-width: 240px;
+    /* Mobile Header Cover Art */
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0; /* Prevent shrinking to 0 width */
+    border-radius: 8px;
+    margin: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    aspect-ratio: auto; /* reset aspect ratio for mobile header */
+  }
+
+  .fullscreen-meta {
+    flex: 1;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .fullscreen-song-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .fullscreen-song-artist {
+    font-size: 0.95rem;
+    font-weight: 400;
+  }
+
+  /* 2. Middle Content (Lyrics / Queue) */
+  .fullscreen-right-panel {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    padding-right: 0;
+    overflow: hidden; /* container itself is hidden, children scroll */
+    margin-bottom: 24px;
+  }
+
+  /* Allow lyrics and queue to fill the middle space perfectly */
+  .fullscreen-lyrics-scroll-area {
+    height: 100%;
+    max-height: 100%;
+    padding: 16px 0 0 0;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+  }
+  
+  .fullscreen-queue-area {
+    height: 100%;
+    max-height: 100%;
+    padding: 16px 0 0 0;
+    /* Removed top fade for queue so title doesn't disappear */
+    mask-image: linear-gradient(to bottom, black 0%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 95%, transparent 100%);
+  }
+  
+  .fullscreen-queue-list {
+    padding-bottom: 24px; /* Ensure space at bottom of queue */
   }
 
   .fullscreen-lyric-line {
@@ -693,5 +1029,58 @@
 
   .fullscreen-lyric-line.is-active {
     font-size: 1.8rem;
+  }
+
+  /* 3. Bottom Controls (Seek + Buttons) */
+  .fullscreen-bottom-section {
+    order: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+    padding-bottom: 60px; /* space for view toggles */
+    width: 100%; /* Ensure seek bar is centered and full width */
+  }
+
+  .fullscreen-seek-container {
+    margin-top: 0;
+  }
+
+  .fullscreen-controls {
+    margin-top: 0;
+    justify-content: space-around;
+  }
+
+  /* Close Button & Toggles adjustments */
+  .fullscreen-close-btn {
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+  }
+
+  .fullscreen-view-toggles {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    right: 20px;
+    /* Reverted to right-aligned */
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .fullscreen-view-toggle-btn {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  
+  .fullscreen-view-toggle-btn.is-active {
+    background: rgba(255, 255, 255, 0.2);
   }
 }

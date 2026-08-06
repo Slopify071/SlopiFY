@@ -26,6 +26,25 @@ function getDeviceId() {
   }
 }
 
+const loadLocalState = () => {
+  try {
+    const saved = localStorage.getItem('slopify_player_state')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      return {
+        ...parsed,
+        isPlaying: false, // Don't auto-play on refresh
+        isBuffering: false,
+        isFullscreen: parsed.isFullscreen || false,
+        toast: null,
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load local player state:', err)
+  }
+  return null
+}
+
 const initialState = {
   currentSong: null,
   queue: [],
@@ -41,6 +60,11 @@ const initialState = {
   isQueueOpen: false,
   isFullscreen: false,
   toast: null, // { id, message }
+}
+
+const initialHydratedState = {
+  ...initialState,
+  ...(loadLocalState() || {})
 }
 
 function playerReducer(state, action) {
@@ -62,6 +86,11 @@ function playerReducer(state, action) {
         isBuffering: true,
         currentTime: 0,
         duration: action.payload?.duration || 0,
+      }
+    case 'UPDATE_CURRENT_SONG':
+      return {
+        ...state,
+        currentSong: state.currentSong ? { ...state.currentSong, ...action.payload } : state.currentSong,
       }
     case 'TOGGLE_PLAY':
       return { ...state, isPlaying: !state.isPlaying }
@@ -142,7 +171,7 @@ function playerReducer(state, action) {
 
 export function PlayerProvider({ children }) {
   const { user } = useAuth()
-  const [state, dispatch] = useReducer(playerReducer, initialState)
+  const [state, dispatch] = useReducer(playerReducer, initialHydratedState)
   const audioRef = useRef(getAudioElement())
   const allSongsRef = useRef([])
   const stateRef = useRef(state)
@@ -158,6 +187,23 @@ export function PlayerProvider({ children }) {
 
   useEffect(() => {
     stateRef.current = state
+    try {
+      localStorage.setItem('slopify_player_state', JSON.stringify({
+        currentSong: state.currentSong,
+        queue: state.queue,
+        history: state.history,
+        currentTime: state.currentTime,
+        duration: state.duration,
+        volume: state.volume,
+        muted: state.muted,
+        shuffle: state.shuffle,
+        repeat: state.repeat,
+        isQueueOpen: state.isQueueOpen,
+        isFullscreen: state.isFullscreen,
+      }))
+    } catch (e) {
+      // ignore
+    }
   }, [state])
 
   // 1. Listen for cross-device playback session changes from Firestore
@@ -289,7 +335,7 @@ export function PlayerProvider({ children }) {
       } catch (e) {
         // ignore pause errors
       }
-      audio.currentTime = 0
+      audio.currentTime = state.currentTime || 0
       audio.src = url
       audio.load()
     }
@@ -410,8 +456,10 @@ export function PlayerProvider({ children }) {
     const onCanPlay = () => {
       updateDuration()
       isChangingSrcRef.current = false
-      // Do NOT clear isBufferingRef here — canplay fires when the browser
-      // *estimates* it can play.  Only `playing` confirms real audio output.
+      if (!stateRef.current.isPlaying) {
+        isBufferingRef.current = false
+        dispatch({ type: 'SET_BUFFERING', payload: false })
+      }
     }
 
     const onWaiting = () => {
@@ -739,6 +787,10 @@ export function PlayerProvider({ children }) {
     dispatch({ type: 'HIDE_TOAST' })
   }, [])
 
+  const updateCurrentSong = useCallback((updates) => {
+    dispatch({ type: 'UPDATE_CURRENT_SONG', payload: updates })
+  }, [])
+
   const value = {
     ...state,
     audioRef,
@@ -762,6 +814,7 @@ export function PlayerProvider({ children }) {
     setFullscreen,
     showToast,
     hideToast,
+    updateCurrentSong,
   }
 
   return (
@@ -810,6 +863,7 @@ export function usePlayer() {
       setFullscreen: () => {},
       showToast: () => {},
       hideToast: () => {},
+      updateCurrentSong: () => {},
     }
   }
   return context

@@ -1,6 +1,51 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
 import './BottomPlayer.css'
+
+const MarqueeText = ({ text, className }) => {
+  const containerRef = useRef(null)
+  const textRef = useRef(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const textWidth = textRef.current.scrollWidth
+        const containerWidth = containerRef.current.clientWidth
+        setIsOverflowing(textWidth > containerWidth + 2)
+      }
+    }
+    
+    checkOverflow()
+    const observer = new ResizeObserver(checkOverflow)
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+    return () => observer.disconnect()
+  }, [text])
+
+  return (
+    <div 
+      className={`marquee-container ${className || ''}`} 
+      ref={containerRef}
+      style={{ overflow: 'hidden', whiteSpace: 'nowrap', width: '100%' }}
+    >
+      <div 
+        className={`marquee-content ${isOverflowing ? 'is-marquee' : ''}`}
+        style={{ display: 'inline-flex', width: 'max-content' }}
+      >
+        <span ref={textRef} className="marquee-text" style={{ paddingRight: isOverflowing ? '48px' : '0' }}>
+          {text}
+        </span>
+        {isOverflowing && (
+          <span className="marquee-text-clone" aria-hidden="true" style={{ paddingRight: '48px' }}>
+            {text}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function BottomPlayer() {
   const {
@@ -156,9 +201,11 @@ export default function BottomPlayer() {
   return (
     <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
       <div className="bottom-player-inner">
-      {/* Song Info */}
       <div className="player-song-info">
-        <div className="player-cover-art">
+        <div 
+          className="player-cover-art"
+          onClick={() => toggleFullscreen()}
+        >
           {currentSong?.coverUrl ? (
             <img src={currentSong.coverUrl} alt="Cover" loading="eager" decoding="async" />
           ) : (
@@ -170,11 +217,24 @@ export default function BottomPlayer() {
               </svg>
             </div>
           )}
+          <div className="fullscreen-hover-overlay">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+          </div>
         </div>
-        <div className="player-song-text">
-          <span className="player-song-title truncate">
-            {currentSong?.title || 'No song playing'}
-          </span>
+        <div className="player-song-text" onClick={() => {
+          if (window.matchMedia('(max-width: 768px)').matches) {
+            toggleFullscreen()
+          }
+        }}>
+          <MarqueeText 
+            text={currentSong?.title || 'No song playing'} 
+            className="player-song-title" 
+          />
           <span className="player-song-artist truncate">
             {currentSong?.artist || 'Select a song to start'}
             {hasSong && (
@@ -191,7 +251,7 @@ export default function BottomPlayer() {
         <div className="player-buttons">
           {/* Shuffle */}
           <button
-            className={`btn-icon player-btn-secondary ${shuffle ? 'player-btn-active' : ''}`}
+            className={`btn-icon player-btn-secondary player-btn-shuffle ${shuffle ? 'player-btn-active' : ''}`}
             onClick={toggleShuffle}
             aria-label="Shuffle"
           >
@@ -205,7 +265,7 @@ export default function BottomPlayer() {
           </button>
 
           {/* Previous */}
-          <button className="btn-icon player-btn-secondary" onClick={playPrevious} aria-label="Previous">
+          <button className="btn-icon player-btn-secondary player-btn-prev" onClick={playPrevious} aria-label="Previous">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
@@ -234,7 +294,7 @@ export default function BottomPlayer() {
           </button>
 
           {/* Next */}
-          <button className="btn-icon player-btn-secondary" onClick={playNext} aria-label="Next">
+          <button className="btn-icon player-btn-secondary player-btn-next" onClick={playNext} aria-label="Next">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>
@@ -242,7 +302,7 @@ export default function BottomPlayer() {
 
           {/* Repeat */}
           <button
-            className={`btn-icon player-btn-secondary ${repeat !== 'off' ? 'player-btn-active' : ''}`}
+            className={`btn-icon player-btn-secondary player-btn-repeat ${repeat !== 'off' ? 'player-btn-active' : ''}`}
             onClick={cycleRepeat}
             aria-label={`Repeat: ${repeat}`}
           >
@@ -322,18 +382,6 @@ export default function BottomPlayer() {
             </div>
           </div>
         </div>
-
-        {/* Fullscreen Lyrics button */}
-        <button
-          className={`btn-icon player-btn-secondary player-btn-fullscreen ${isFullscreen ? 'player-btn-active' : ''}`}
-          onClick={toggleFullscreen}
-          aria-label="Full screen"
-          title="Full screen lyrics"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-          </svg>
-        </button>
       </div>
       </div>
       {/* Mobile Player Progress Bar */}

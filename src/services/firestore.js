@@ -236,6 +236,21 @@ export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSiz
 }
 
 /**
+ * Update an existing song in Firestore
+ */
+export async function updateSongInFirestore(songId, updates) {
+  if (!isFirebaseConfigured || !db || !songId) return
+
+  try {
+    const songRef = doc(db, 'songs', songId)
+    await updateDoc(songRef, updates)
+  } catch (err) {
+    console.error('Error updating song in Firestore:', err)
+    throw err
+  }
+}
+
+/**
  * Save active user playback session for cross-device sync
  * Writes to `users/{uid}/session/current`
  */

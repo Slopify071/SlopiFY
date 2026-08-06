@@ -5,6 +5,28 @@ import { uploadCoverImage } from '../../services/storage'
 import { Camera, Music, Upload, Users, Lock, Unlock, X, Plus } from 'lucide-react'
 import './CreatePlaylistModal.css'
 
+/**
+ * Sanitize a URL to prevent javascript: URI XSS attacks.
+ * Only allows http:, https:, and blob: protocols.
+ * Returns an empty string for any disallowed protocol.
+ */
+function sanitizeUrl(url) {
+  if (!url || typeof url !== 'string') return ''
+  const trimmed = url.trim()
+  if (!/^(https?:\/\/|blob:)/i.test(trimmed)) {
+    return ''
+  }
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && parsed.protocol !== 'blob:') {
+      return ''
+    }
+    return parsed.href
+  } catch {
+    return ''
+  }
+}
+
 export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, currentUser }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -14,9 +36,13 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
   const [isPublic, setIsPublic] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [imgError, setImgError] = useState(false)
   const fileInputRef = useRef(null)
 
   if (!isOpen) return null
+
+  // Derive a safe URL for rendering — prevents javascript: URI injection
+  const safeCoverUrl = sanitizeUrl(coverUrl)
 
   const handleImageFileSelect = (e) => {
     const file = e.target.files?.[0]
@@ -27,6 +53,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
     }
     setError('')
     setSelectedFile(file)
+    setImgError(false)
     setCoverUrl(URL.createObjectURL(file))
   }
 
@@ -69,6 +96,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
       setSelectedFile(null)
       setIsCollaborative(false)
       setIsPublic(true)
+      setImgError(false)
       if (onSuccess) onSuccess(playlistId)
       onClose()
     } catch (err) {
@@ -116,21 +144,18 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                 onClick={handleArtworkClick}
                 title="Click to choose cover image"
               >
-                {coverUrl ? (
+                {safeCoverUrl && !imgError ? (
                   <img
-                    src={coverUrl}
+                    src={safeCoverUrl}
                     alt="Playlist artwork preview"
-                    onError={(e) => {
-                      e.target.onerror = null
-                      e.target.style.display = 'none'
-                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'
-                    }}
+                    onError={() => setImgError(true)}
                   />
-                ) : null}
-                <div className="create-pl-artwork-placeholder" style={{ display: coverUrl ? 'none' : 'flex' }}>
-                  <Music size={36} color="var(--color-primary-subtle)" strokeWidth={1} style={{ opacity: 0.5 }} />
-                  <span>Artwork Preview</span>
-                </div>
+                ) : (
+                  <div className="create-pl-artwork-placeholder">
+                    <Music size={36} color="var(--color-primary-subtle)" strokeWidth={1} style={{ opacity: 0.5 }} />
+                    <span>Artwork Preview</span>
+                  </div>
+                )}
 
                 {/* Clickable + Icon Badge */}
                 <div className="create-pl-artwork-add-btn" aria-label="Upload Image">
@@ -179,6 +204,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, onSuccess, curren
                   value={coverUrl}
                   onChange={(e) => {
                     setCoverUrl(e.target.value)
+                    setImgError(false)
                     setSelectedFile(null)
                   }}
                 />
