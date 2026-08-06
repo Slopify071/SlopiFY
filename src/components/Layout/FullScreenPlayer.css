@@ -81,6 +81,7 @@
   justify-content: center;
   gap: 1.5rem;
   width: 100%;
+  min-width: 0;
 }
 
 .fullscreen-cover-art-wrapper {
@@ -142,6 +143,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .fullscreen-song-title {
@@ -166,6 +169,8 @@
   flex-direction: column;
   gap: 0.4rem;
   margin-top: 0.5rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .fullscreen-seek-bar {
@@ -273,6 +278,8 @@
 
 .fullscreen-lyrics-scroll-area {
   width: 100%;
+  max-width: 480px;
+  margin-left: auto;
   height: 100%;
   max-height: 82vh;
   overflow-y: auto;
@@ -407,6 +414,7 @@
     align-items: center;
     text-align: center;
     gap: 1rem;
+    min-width: 0;
   }
 
   .fullscreen-cover-art-wrapper {
@@ -447,6 +455,7 @@
   .fullscreen-queue-area {
     padding: 0;
     max-width: 100%;
+    margin-left: 0;
     height: auto;
     max-height: none;
     min-height: 400px;
@@ -454,6 +463,8 @@
 
   .fullscreen-lyrics-scroll-area {
     padding: 40px 0 120px 0;
+    max-width: 100%;
+    margin-left: 0;
     height: auto;
     max-height: none;
     min-height: 400px;
