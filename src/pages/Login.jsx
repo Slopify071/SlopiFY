@@ -81,7 +81,7 @@ export default function Login() {
       <div className="login-bg-pattern" />
 
       <div className="login-card-wrapper">
-        <div className="login-card animate-fade-in">
+        <div className="login-card">
         {/* Header */}
         <div className="login-header">
           <div className="login-logo-icon">

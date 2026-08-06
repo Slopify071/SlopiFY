@@ -40,11 +40,10 @@
   height: 100%;
   background-size: cover;
   background-position: center;
-  transform: translate3d(0, 0, 0) scale(2.5);
-  filter: blur(80px) saturate(400%);
-  opacity: 0.55;
-  transition: background-image 1.2s ease-out;
-  will-change: transform, background-image;
+  filter: blur(85px) brightness(0.5) saturate(1.75);
+  transform: scale(1.15);
+  transition: background-image 0.8s ease;
+  animation: ambientPulse 14s ease-in-out infinite alternate;
 }
 
 .fullscreen-bg::before {
@@ -68,7 +67,6 @@
   background-size: 150px 150px;
 }
 
-<<<<<<< HEAD
 /* --- Dynamic Ambient Mesh Canvas --- */
 .fullscreen-mesh-canvas {
   position: absolute;
@@ -444,15 +442,6 @@
 .fullscreen-play-btn:hover {
   transform: scale(1.06);
   background: #f0f0f0;
-}
-
-/* --- Dynamic Ambient Background --- */
-.fullscreen-bg {
-  position: absolute;
-  inset: -60px;
-  z-index: 1;
-  overflow: hidden;
-  pointer-events: none;
 }
 
 .fullscreen-bg-image {
@@ -908,7 +897,33 @@
   color: #ffffff;
 }
 
-/* --- Responsive Media Queries (Mobile Apple-like Layout) --- */
+/* --- Mobile GPU Performance Overrides --- */
+/* Heavy blur filters and continuous animations destroy frame rate on mobile GPUs */
+@media (max-width: 768px) {
+  .fullscreen-bg-image {
+    filter: blur(40px) brightness(0.45) saturate(1.4);
+    animation: none;
+  }
+
+  .fullscreen-mesh-canvas {
+    display: none;
+  }
+
+  .fullscreen-lyrics-list-transform {
+    transition-duration: 0.3s;
+    will-change: auto;
+  }
+
+  .fullscreen-lyric-line {
+    will-change: auto;
+    transition-duration: 0.3s;
+  }
+
+  .lyric-word {
+    will-change: auto;
+    transition-duration: 0.2s;
+  }
+}
 @media (max-width: 960px) {
   .fullscreen-content-grid {
     display: flex;
