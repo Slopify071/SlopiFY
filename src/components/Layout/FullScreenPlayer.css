@@ -29,43 +29,33 @@
   height: 100%;
   background-size: cover;
   background-position: center;
-  filter: blur(80px) brightness(0.55) saturate(1.6);
-  transform: scale(1.15);
+  filter: blur(100px) saturate(250%) brightness(0.6);
+  transform: scale(1.2);
   transition: background-image 0.8s ease;
 }
 
-.fullscreen-bg-gradient {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 35% 45%, rgba(120, 40, 140, 0.45), rgba(10, 8, 20, 0.92) 75%);
-}
-
-/* --- Floating Close Button --- */
+/* --- Top Right Close Button --- */
 .fullscreen-close-btn {
   position: absolute;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 40px;
+  right: 40px;
   z-index: 10;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .fullscreen-close-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateX(-50%) scale(1.08);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* --- Main Grid Layout --- */
@@ -309,12 +299,14 @@
 .fullscreen-lyric-line {
   font-size: 2.35rem;
   font-weight: 700;
-  color: rgba(240, 225, 255, 0.35);
+  color: rgba(255, 255, 255, 0.4);
   cursor: pointer;
   margin: 0;
   line-height: 1.38;
-  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   transform-origin: left center;
+  transform: scale(0.95);
+  filter: blur(0.5px);
   letter-spacing: -0.018em;
   user-select: none;
   word-break: break-word;
@@ -330,17 +322,17 @@
   font-size: 2.65rem;
   font-weight: 800;
   transform: scale(1.02);
+  filter: none;
   background: linear-gradient(
     to right,
     #ffffff 0%,
     #ffffff var(--line-progress, 0%),
-    rgba(240, 225, 255, 0.35) calc(var(--line-progress, 0%) + 10%),
-    rgba(240, 225, 255, 0.35) 100%
+    rgba(255, 255, 255, 0.4) calc(var(--line-progress, 0%) + 10%),
+    rgba(255, 255, 255, 0.4) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.65)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.35));
-  transition: transform 0.3s ease, filter 0.3s ease;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* --- Lead-In Dots (•••) Video Matching Layout --- */
@@ -370,7 +362,7 @@
   color: #ffffff;
   opacity: 1;
   transform: scale(1.35) translateY(-6px);
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 36px rgba(255, 255, 255, 0.6));
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes appleDotWave {
@@ -426,4 +418,182 @@
   .fullscreen-lyric-line.is-active {
     font-size: 1.8rem;
   }
+}
+
+/* --- Queue / History View --- */
+.fullscreen-queue-area {
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  height: 100%;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  padding: 10vh 0;
+  box-sizing: border-box;
+}
+
+.fullscreen-queue-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.01em;
+  padding-left: 4px;
+}
+
+.fullscreen-queue-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 12px;
+}
+
+.fullscreen-queue-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fullscreen-queue-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+.fullscreen-queue-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.fullscreen-queue-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-queue-item:hover .fullscreen-queue-remove {
+  opacity: 1;
+}
+
+.fullscreen-queue-cover-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-queue-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fullscreen-queue-cover.fallback {
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.fullscreen-queue-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fullscreen-queue-track-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fullscreen-queue-track-artist {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fullscreen-queue-remove {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.fullscreen-queue-remove:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fullscreen-queue-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* --- Bottom Right View Toggles --- */
+.fullscreen-view-toggles {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.fullscreen-view-toggle-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.fullscreen-view-toggle-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-view-toggle-btn.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }

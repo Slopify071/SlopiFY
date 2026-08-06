@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
+import { uploadCoverImage } from '../../services/storage'
+import { updateSongInFirestore } from '../../services/firestore'
 import './FullScreenPlayer.css'
 
 function parseLrc(lrcText) {
@@ -29,96 +31,7 @@ function parseLrc(lrcText) {
   return sorted
 }
 
-function generateDefaultLyrics(song, totalDuration) {
-  const dur = totalDuration > 0 ? totalDuration : 180
-  const title = song?.title || 'Unknown Track'
-  const artist = song?.artist || 'Unknown Artist'
 
-  const isLessIKnow = title.toLowerCase().includes('less i know') || title.toLowerCase().includes('tame impala')
-
-  if (isLessIKnow) {
-    return [
-      { time: 0, text: '•••', isInstrumental: true },
-      { time: 26.0, text: "Someone said they left together" },
-      { time: 30.0, text: "I ran out the door to get her" },
-      { time: 34.0, text: "She was holding hands with Trevor" },
-      { time: 38.0, text: "Not the greatest feeling ever" },
-      { time: 42.0, text: "Said, \"Pull yourself together" },
-      { time: 46.0, text: "You should try your luck with Heather\"" },
-      { time: 50.0, text: "Then I heard they slept together" },
-      { time: 54.0, text: "Oh, the less I know the better" },
-      { time: 58.0, text: "The less I know the better" },
-      { time: 88.5, text: "Oh, my love" },
-      { time: 92.5, text: "Can't you see yourself by my side?" },
-      { time: 97.0, text: "No more running around" },
-      { time: 101.2, text: "It was working 'til I saw you with him" },
-      { time: 105.5, text: "In the middle of the night" },
-      { time: 109.8, text: "Oh, the less I know the better" },
-      { time: 114.0, text: "Hold on, let me take a breather" },
-      { time: 118.2, text: "I was fine before I met her" }
-    ]
-  }
-
-  const baseLines = [
-    `Listen to the rhythm of ${title}`,
-    `Brought to life by ${artist}`,
-    "Feel the baseline moving through the dark",
-    "Every beat a brand new spark",
-    "Lost inside the melody tonight",
-    "Everything is glowing in the light",
-    "Taking steps into the unknown wave",
-    "Echoes floating down the corridor",
-    "Hold on to this feeling once again",
-    "Where the quiet shadows turn to gold",
-    "Spinning around in endless sound",
-    "Nothing else matters right now",
-    "Let the music carry us away",
-    "Until the morning breaks today",
-    `Forever in tune with ${title}`
-  ]
-
-  const startTime = 12
-  const endTime = Math.max(startTime + 15, dur - 6)
-  const step = (endTime - startTime) / Math.max(1, baseLines.length - 1)
-
-  const items = baseLines.map((text, idx) => ({
-    time: Math.round((startTime + idx * step) * 10) / 10,
-    text
-  }))
-
-  return [{ time: 0, text: '•••', isInstrumental: true }, ...items]
-}
-
-function extractColorsFromImage(imgUrl, callback) {
-  if (!imgUrl) return
-  const img = new Image()
-  img.crossOrigin = 'Anonymous'
-  img.onload = () => {
-    try {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      canvas.width = 40
-      canvas.height = 40
-      ctx.drawImage(img, 0, 0, 40, 40)
-      const imageData = ctx.getImageData(0, 0, 40, 40).data
-      let r = 0, g = 0, b = 0, count = 0
-      for (let i = 0; i < imageData.length; i += 16) {
-        r += imageData[i]
-        g += imageData[i + 1]
-        b += imageData[i + 2]
-        count++
-      }
-      r = Math.floor(r / count)
-      g = Math.floor(g / count)
-      b = Math.floor(b / count)
-      const darkGrad = `radial-gradient(circle at 35% 45%, rgba(${r}, ${g}, ${b}, 0.65), rgba(8, 6, 16, 0.95) 75%)`
-      callback(darkGrad)
-    } catch (err) {
-      console.warn('Canvas color extraction warning:', err)
-    }
-  }
-  img.src = imgUrl
-}
 
 export default function FullScreenPlayer() {
   const {
@@ -137,6 +50,10 @@ export default function FullScreenPlayer() {
     seek,
     toggleShuffle,
     cycleRepeat,
+    queue,
+    playSong,
+    removeFromQueue,
+    updateCurrentSong,
   } = usePlayer()
 
   const lyricsContainerRef = useRef(null)
@@ -144,18 +61,32 @@ export default function FullScreenPlayer() {
   const coverInputRef = useRef(null)
   const isSeekingRef = useRef(false)
   const [seekTime, setSeekTime] = useState(null)
-  const [dynamicBg, setDynamicBg] = useState(null)
   const [fetchedLyrics, setFetchedLyrics] = useState(null)
+  const [activeRightView, setActiveRightView] = useState('lyrics') // 'lyrics' or 'queue'
+  const [localCoverUrl, setLocalCoverUrl] = useState(null)
 
-  const handleCoverImageChange = (e) => {
+  useEffect(() => {
+    setLocalCoverUrl(null)
+  }, [currentSong?.id])
+
+  const handleCoverImageChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file || !currentSong) return
     const newCoverUrl = URL.createObjectURL(file)
-    currentSong.coverUrl = newCoverUrl
-    extractColorsFromImage(newCoverUrl, (grad) => {
-      setDynamicBg(grad)
-    })
+    setLocalCoverUrl(newCoverUrl)
+
+    try {
+      const uploadedUrl = await uploadCoverImage(file)
+      if (uploadedUrl) {
+        updateCurrentSong({ coverUrl: uploadedUrl })
+        await updateSongInFirestore(currentSong.id, { coverUrl: uploadedUrl })
+      }
+    } catch (err) {
+      console.error('Failed to upload and save cover image:', err)
+    }
   }
+
+  const displayCoverUrl = localCoverUrl || currentSong?.coverUrl
 
   const effectiveDuration = duration > 0 ? duration : (currentSong?.duration || 0)
 
@@ -208,17 +139,6 @@ export default function FullScreenPlayer() {
     const s = Math.floor(seconds % 60)
     return `${m}:${s.toString().padStart(2, '0')}`
   }
-
-  // Dynamic color extraction from artwork
-  useEffect(() => {
-    if (currentSong?.coverUrl) {
-      extractColorsFromImage(currentSong.coverUrl, (grad) => {
-        setDynamicBg(grad)
-      })
-    } else {
-      setDynamicBg(null)
-    }
-  }, [currentSong?.coverUrl])
 
   // Fetch real synced lyrics from LRCLIB API if track has no custom lyrics
   useEffect(() => {
@@ -274,7 +194,7 @@ export default function FullScreenPlayer() {
     if (fetchedLyrics && fetchedLyrics.length > 0) {
       return fetchedLyrics
     }
-    return generateDefaultLyrics(currentSong, effectiveDuration)
+    return []
   }, [currentSong, effectiveDuration, fetchedLyrics])
 
   // Determine active lyric index based on activeTime
@@ -373,28 +293,23 @@ export default function FullScreenPlayer() {
     <div className="fullscreen-overlay animated-fade-in">
       {/* Dynamic Ambient Background */}
       <div className="fullscreen-bg">
-        {currentSong?.coverUrl && (
+        {displayCoverUrl && (
           <div
             className="fullscreen-bg-image"
-            style={{ backgroundImage: `url(${currentSong.coverUrl})` }}
+            style={{ backgroundImage: `url(${displayCoverUrl})` }}
           />
         )}
-        <div
-          className="fullscreen-bg-gradient"
-          style={dynamicBg ? { background: dynamicBg } : undefined}
-        />
       </div>
 
-      {/* Floating Top Close Button */}
+      {/* Top Right Close Button */}
       <button
         className="fullscreen-close-btn"
         onClick={() => setFullscreen(false)}
-        aria-label="Close full screen lyrics"
+        aria-label="Close full screen player"
         title="Close (Esc)"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
 
@@ -414,9 +329,9 @@ export default function FullScreenPlayer() {
               style={{ display: 'none' }}
               onChange={handleCoverImageChange}
             />
-            {currentSong?.coverUrl ? (
+            {displayCoverUrl ? (
               <img
-                src={currentSong.coverUrl}
+                src={displayCoverUrl}
                 alt={currentSong?.title || 'Cover'}
                 className="fullscreen-cover-art"
               />
@@ -550,10 +465,11 @@ export default function FullScreenPlayer() {
           </div>
         </div>
 
-        {/* Right Side: Karaoke Synchronized Lyrics */}
+        {/* Right Side: Lyrics or Queue */}
         <div className="fullscreen-right-panel">
-          <div className="fullscreen-lyrics-scroll-area" ref={lyricsContainerRef}>
-            {lyricsList.length > 0 ? (
+          {activeRightView === 'lyrics' ? (
+            <div className="fullscreen-lyrics-scroll-area" ref={lyricsContainerRef}>
+              {lyricsList.length > 0 ? (
               lyricsList.map((item, index) => {
                 const isActive = index === activeLineIndex
                 const isDots = item.isInstrumental || item.text === '•••'
@@ -621,7 +537,82 @@ export default function FullScreenPlayer() {
               </div>
             )}
           </div>
+          ) : (
+            <div className="fullscreen-queue-area">
+              <h3 className="fullscreen-queue-title">Playing Next</h3>
+              <div className="fullscreen-queue-list">
+                {queue.length > 0 ? (
+                  queue.map((track, idx) => (
+                    <div key={`${track.id}-${idx}`} className="fullscreen-queue-item" onClick={() => playSong(track)}>
+                      <div className="fullscreen-queue-cover-container">
+                        {track.coverUrl ? (
+                          <img 
+                            src={track.coverUrl} 
+                            alt={track.title} 
+                            className="fullscreen-queue-cover"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                          />
+                        ) : null}
+                        <div className="fullscreen-queue-cover fallback" style={{ display: track.coverUrl ? 'none' : 'flex' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="fullscreen-queue-info">
+                        <div className="fullscreen-queue-track-title truncate">{track.title}</div>
+                        <div className="fullscreen-queue-track-artist truncate">{track.artist}</div>
+                      </div>
+                      <button className="fullscreen-queue-remove" onClick={(e) => { e.stopPropagation(); removeFromQueue(idx); }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="fullscreen-queue-empty">
+                    <p>Queue is empty</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Bottom Right Toggles */}
+      <div className="fullscreen-view-toggles">
+        <button
+          className={`fullscreen-view-toggle-btn ${activeRightView === 'lyrics' ? 'is-active' : ''}`}
+          onClick={() => setActiveRightView('lyrics')}
+          aria-label="Lyrics"
+          title="Lyrics"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <line x1="9" y1="10" x2="15" y2="10"></line>
+            <line x1="9" y1="14" x2="15" y2="14"></line>
+          </svg>
+        </button>
+        <button
+          className={`fullscreen-view-toggle-btn ${activeRightView === 'queue' ? 'is-active' : ''}`}
+          onClick={() => setActiveRightView('queue')}
+          aria-label="Queue"
+          title="Queue"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+        </button>
       </div>
     </div>
   )
