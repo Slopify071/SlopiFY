@@ -35,7 +35,7 @@ const loadLocalState = () => {
         ...parsed,
         isPlaying: false, // Don't auto-play on refresh
         isBuffering: false,
-        isFullscreen: false,
+        isFullscreen: parsed.isFullscreen || false,
         toast: null,
       }
     }
@@ -199,6 +199,7 @@ export function PlayerProvider({ children }) {
         shuffle: state.shuffle,
         repeat: state.repeat,
         isQueueOpen: state.isQueueOpen,
+        isFullscreen: state.isFullscreen,
       }))
     } catch (e) {
       // ignore
@@ -334,7 +335,7 @@ export function PlayerProvider({ children }) {
       } catch (e) {
         // ignore pause errors
       }
-      audio.currentTime = 0
+      audio.currentTime = state.currentTime || 0
       audio.src = url
       audio.load()
     }
@@ -455,8 +456,10 @@ export function PlayerProvider({ children }) {
     const onCanPlay = () => {
       updateDuration()
       isChangingSrcRef.current = false
-      // Do NOT clear isBufferingRef here — canplay fires when the browser
-      // *estimates* it can play.  Only `playing` confirms real audio output.
+      if (!stateRef.current.isPlaying) {
+        isBufferingRef.current = false
+        dispatch({ type: 'SET_BUFFERING', payload: false })
+      }
     }
 
     const onWaiting = () => {
