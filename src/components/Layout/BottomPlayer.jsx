@@ -1,6 +1,51 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
 import './BottomPlayer.css'
+
+const MarqueeText = ({ text, className }) => {
+  const containerRef = useRef(null)
+  const textRef = useRef(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const textWidth = textRef.current.scrollWidth
+        const containerWidth = containerRef.current.clientWidth
+        setIsOverflowing(textWidth > containerWidth + 2)
+      }
+    }
+    
+    checkOverflow()
+    const observer = new ResizeObserver(checkOverflow)
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+    return () => observer.disconnect()
+  }, [text])
+
+  return (
+    <div 
+      className={`marquee-container ${className || ''}`} 
+      ref={containerRef}
+      style={{ overflow: 'hidden', whiteSpace: 'nowrap', width: '100%' }}
+    >
+      <div 
+        className={`marquee-content ${isOverflowing ? 'is-marquee' : ''}`}
+        style={{ display: 'inline-flex', width: 'max-content' }}
+      >
+        <span ref={textRef} className="marquee-text" style={{ paddingRight: isOverflowing ? '48px' : '0' }}>
+          {text}
+        </span>
+        {isOverflowing && (
+          <span className="marquee-text-clone" aria-hidden="true" style={{ paddingRight: '48px' }}>
+            {text}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function BottomPlayer() {
   const {
@@ -156,10 +201,9 @@ export default function BottomPlayer() {
   return (
     <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
       <div className="bottom-player-inner">
-      {/* Song Info */}
       <div 
         className="player-song-info" 
-        onClick={() => { if (window.innerWidth <= 768) toggleFullscreen() }}
+        onClick={() => toggleFullscreen()}
         style={{ cursor: 'pointer' }}
       >
         <div className="player-cover-art">
@@ -176,9 +220,10 @@ export default function BottomPlayer() {
           )}
         </div>
         <div className="player-song-text">
-          <span className="player-song-title truncate">
-            {currentSong?.title || 'No song playing'}
-          </span>
+          <MarqueeText 
+            text={currentSong?.title || 'No song playing'} 
+            className="player-song-title" 
+          />
           <span className="player-song-artist truncate">
             {currentSong?.artist || 'Select a song to start'}
             {hasSong && (
@@ -326,18 +371,6 @@ export default function BottomPlayer() {
             </div>
           </div>
         </div>
-
-        {/* Fullscreen Lyrics button */}
-        <button
-          className={`btn-icon player-btn-secondary player-btn-fullscreen ${isFullscreen ? 'player-btn-active' : ''}`}
-          onClick={toggleFullscreen}
-          aria-label="Full screen"
-          title="Full screen lyrics"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-          </svg>
-        </button>
       </div>
       </div>
       {/* Mobile Player Progress Bar */}

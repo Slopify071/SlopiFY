@@ -396,80 +396,34 @@
   font-size: 1.2rem;
 }
 
-/* --- Responsive Media Queries --- */
-@media (max-width: 960px) {
-  .fullscreen-content-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    gap: 1.5rem;
-    height: 100vh;
-    max-height: 100vh;
-    margin-top: 0;
-    padding: max(60px, env(safe-area-inset-top, 60px)) 24px max(20px, env(safe-area-inset-bottom, 20px)) 24px;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  .fullscreen-left-panel {
-    align-items: center;
-    text-align: center;
-    gap: 1rem;
-    min-width: 0;
-  }
-
-  .fullscreen-cover-art-wrapper {
-    max-width: 280px;
-    width: 100%;
-  }
-
-  .fullscreen-lyric-line {
-    font-size: 1.6rem;
-  }
-
-  .fullscreen-lyric-line.is-active {
-    font-size: 1.8rem;
-  }
-
-  .fullscreen-close-btn {
-    top: 20px;
-    right: 20px;
-    width: 36px;
-    height: 36px;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: #ffffff;
-  }
-
-  .fullscreen-view-toggles {
-    position: fixed;
-    bottom: max(20px, env(safe-area-inset-bottom, 20px));
-    right: 20px;
-  }
-
-  .fullscreen-right-panel {
-    padding-right: 0;
-    padding-bottom: 20px;
-  }
-
-  .fullscreen-queue-area {
-    padding: 0;
-    max-width: 100%;
-    margin-left: 0;
-    height: auto;
-    max-height: none;
-    min-height: 400px;
-  }
-
-  .fullscreen-lyrics-scroll-area {
-    padding: 40px 0 120px 0;
-    max-width: 100%;
-    margin-left: 0;
-    height: auto;
-    max-height: none;
-    min-height: 400px;
-  }
+/* --- Marquee Animation --- */
+.marquee-container {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  /* Removed mask to prevent cutting off the first letter */
 }
+
+.marquee-content {
+  display: inline-flex;
+  white-space: nowrap;
+  width: max-content;
+}
+
+.marquee-content.is-marquee {
+  animation: marquee-scroll 10s linear infinite;
+}
+
+.marquee-text {
+  padding-right: 48px; /* gap between loops */
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 
 /* --- Queue / History View --- */
 .fullscreen-queue-area {
@@ -647,4 +601,156 @@
 .fullscreen-view-toggle-btn.is-active {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
+}
+
+/* --- Responsive Media Queries (Mobile Apple-like Layout) --- */
+@media (max-width: 960px) {
+  .fullscreen-content-grid {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-height: 100vh;
+    margin-top: 0;
+    padding: max(60px, env(safe-area-inset-top, 60px)) 24px max(20px, env(safe-area-inset-bottom, 20px)) 24px;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  .fullscreen-left-panel {
+    display: contents; /* Unwraps the left panel to allow reordering its children */
+  }
+
+  /* 1. Header (Cover + Meta) */
+  .fullscreen-top-section {
+    order: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 64px;
+    flex-shrink: 0;
+    margin-bottom: 24px;
+    width: 100%; /* CRITICAL: Prevents it from growing infinitely and spilling off screen */
+    overflow: hidden; /* Prevent child text from breaking the layout */
+  }
+
+  .fullscreen-cover-art-wrapper {
+    /* Mobile Header Cover Art */
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0; /* Prevent shrinking to 0 width */
+    border-radius: 8px;
+    margin: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    aspect-ratio: auto; /* reset aspect ratio for mobile header */
+  }
+
+  .fullscreen-meta {
+    flex: 1;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .fullscreen-song-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .fullscreen-song-artist {
+    font-size: 0.95rem;
+    font-weight: 400;
+  }
+
+  /* 2. Middle Content (Lyrics / Queue) */
+  .fullscreen-right-panel {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    padding-right: 0;
+    overflow: hidden; /* container itself is hidden, children scroll */
+    margin-bottom: 24px;
+  }
+
+  /* Allow lyrics and queue to fill the middle space perfectly */
+  .fullscreen-lyrics-scroll-area {
+    height: 100%;
+    max-height: 100%;
+    padding: 16px 0 0 0;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+  }
+  
+  .fullscreen-queue-area {
+    height: 100%;
+    max-height: 100%;
+    padding: 16px 0 0 0;
+    /* Removed top fade for queue so title doesn't disappear */
+    mask-image: linear-gradient(to bottom, black 0%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 95%, transparent 100%);
+  }
+  
+  .fullscreen-queue-list {
+    padding-bottom: 24px; /* Ensure space at bottom of queue */
+  }
+
+  .fullscreen-lyric-line {
+    font-size: 1.6rem;
+  }
+
+  .fullscreen-lyric-line.is-active {
+    font-size: 1.8rem;
+  }
+
+  /* 3. Bottom Controls (Seek + Buttons) */
+  .fullscreen-bottom-section {
+    order: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+    padding-bottom: 60px; /* space for view toggles */
+    width: 100%; /* Ensure seek bar is centered and full width */
+  }
+
+  .fullscreen-seek-container {
+    margin-top: 0;
+  }
+
+  .fullscreen-controls {
+    margin-top: 0;
+    justify-content: space-around;
+  }
+
+  /* Close Button & Toggles adjustments */
+  .fullscreen-close-btn {
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+  }
+
+  .fullscreen-view-toggles {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    right: 20px;
+    /* Reverted to right-aligned */
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .fullscreen-view-toggle-btn {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  
+  .fullscreen-view-toggle-btn.is-active {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }

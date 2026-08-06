@@ -33,6 +33,42 @@ function parseLrc(lrcText) {
 
 
 
+const MarqueeText = ({ text, className }) => {
+  const containerRef = useRef(null)
+  const textRef = useRef(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const textWidth = textRef.current.getBoundingClientRect().width
+        const containerWidth = containerRef.current.getBoundingClientRect().width
+        const overflow = textWidth > containerWidth + 2
+        console.log('Marquee check:', { textWidth, containerWidth, overflow })
+        setIsOverflowing(overflow)
+      }
+    }
+    checkOverflow()
+    const timeout = setTimeout(checkOverflow, 200)
+    const observer = new ResizeObserver(checkOverflow)
+    if (containerRef.current) observer.observe(containerRef.current)
+    if (textRef.current) observer.observe(textRef.current)
+    return () => { 
+      clearTimeout(timeout)
+      observer.disconnect()
+    }
+  }, [text])
+
+  return (
+    <div className={`marquee-container ${className}`} ref={containerRef}>
+      <div className={`marquee-content ${isOverflowing ? 'is-marquee' : ''}`}>
+        <span ref={textRef} className="marquee-text">{text}</span>
+        {isOverflowing && <span className="marquee-text">{text}</span>}
+      </div>
+    </div>
+  )
+}
+
 export default function FullScreenPlayer() {
   const {
     currentSong,
@@ -317,8 +353,9 @@ export default function FullScreenPlayer() {
       <div className="fullscreen-content-grid">
         {/* Left Side: Artwork, Info & Player Controls */}
         <div className="fullscreen-left-panel">
-          <div
-            className="fullscreen-cover-art-wrapper"
+          <div className="fullscreen-top-section">
+            <div
+              className="fullscreen-cover-art-wrapper"
             onClick={() => coverInputRef.current?.click()}
             title="Click to change cover image"
           >
@@ -355,14 +392,17 @@ export default function FullScreenPlayer() {
 
           {/* Song Metadata */}
           <div className="fullscreen-meta">
-            <h1 className="fullscreen-song-title truncate">
-              {currentSong?.title || 'No Song Playing'}
-            </h1>
+            <MarqueeText 
+              text={currentSong?.title || 'No Song Playing'} 
+              className="fullscreen-song-title" 
+            />
             <h2 className="fullscreen-song-artist truncate">
               {currentSong?.artist || 'Unknown Artist'}
             </h2>
           </div>
+          </div>
 
+          <div className="fullscreen-bottom-section">
           {/* Interactive Seek Bar */}
           <div className="fullscreen-seek-container">
             <div
@@ -462,6 +502,7 @@ export default function FullScreenPlayer() {
                 </svg>
               )}
             </button>
+          </div>
           </div>
         </div>
 
