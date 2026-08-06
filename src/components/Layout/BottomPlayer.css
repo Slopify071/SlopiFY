@@ -342,26 +342,11 @@
 
   .player-seek,
   .player-volume,
-  .player-buttons > .player-btn-secondary:not(.player-btn-play) {
-    display: none;
-  }
-
+  .player-btn-shuffle,
+  .player-btn-prev,
+  .player-btn-repeat,
   .player-extras {
-    display: flex;
-    align-items: center;
-  }
-
-  .player-extras .player-volume {
     display: none;
-  }
-
-  .player-btn-queue {
-    display: flex !important;
-    width: 36px;
-    height: 36px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
   }
 
   .player-cover-art {

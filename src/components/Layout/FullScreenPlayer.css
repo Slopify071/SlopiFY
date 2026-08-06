@@ -394,21 +394,24 @@
   .fullscreen-content-grid {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
-    gap: 2rem;
-    height: auto;
-    max-height: calc(100vh - 70px);
-    margin-top: 60px;
-    padding: 0 24px;
+    gap: 1.5rem;
+    height: 100vh;
+    max-height: 100vh;
+    margin-top: 0;
+    padding: max(60px, env(safe-area-inset-top, 60px)) 24px max(20px, env(safe-area-inset-bottom, 20px)) 24px;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .fullscreen-left-panel {
     align-items: center;
     text-align: center;
+    gap: 1rem;
   }
 
   .fullscreen-cover-art-wrapper {
-    max-width: 240px;
+    max-width: 280px;
+    width: 100%;
   }
 
   .fullscreen-lyric-line {
@@ -417,6 +420,43 @@
 
   .fullscreen-lyric-line.is-active {
     font-size: 1.8rem;
+  }
+
+  .fullscreen-close-btn {
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+  }
+
+  .fullscreen-view-toggles {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    right: 20px;
+  }
+
+  .fullscreen-right-panel {
+    padding-right: 0;
+    padding-bottom: 20px;
+  }
+
+  .fullscreen-queue-area {
+    padding: 0;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 400px;
+  }
+
+  .fullscreen-lyrics-scroll-area {
+    padding: 40px 0 120px 0;
+    height: auto;
+    max-height: none;
+    min-height: 400px;
   }
 }
 

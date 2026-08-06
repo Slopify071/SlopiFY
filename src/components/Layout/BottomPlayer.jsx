@@ -157,7 +157,11 @@ export default function BottomPlayer() {
     <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
       <div className="bottom-player-inner">
       {/* Song Info */}
-      <div className="player-song-info">
+      <div 
+        className="player-song-info" 
+        onClick={() => { if (window.innerWidth <= 768) toggleFullscreen() }}
+        style={{ cursor: 'pointer' }}
+      >
         <div className="player-cover-art">
           {currentSong?.coverUrl ? (
             <img src={currentSong.coverUrl} alt="Cover" loading="eager" decoding="async" />
@@ -191,7 +195,7 @@ export default function BottomPlayer() {
         <div className="player-buttons">
           {/* Shuffle */}
           <button
-            className={`btn-icon player-btn-secondary ${shuffle ? 'player-btn-active' : ''}`}
+            className={`btn-icon player-btn-secondary player-btn-shuffle ${shuffle ? 'player-btn-active' : ''}`}
             onClick={toggleShuffle}
             aria-label="Shuffle"
           >
@@ -205,7 +209,7 @@ export default function BottomPlayer() {
           </button>
 
           {/* Previous */}
-          <button className="btn-icon player-btn-secondary" onClick={playPrevious} aria-label="Previous">
+          <button className="btn-icon player-btn-secondary player-btn-prev" onClick={playPrevious} aria-label="Previous">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
@@ -234,7 +238,7 @@ export default function BottomPlayer() {
           </button>
 
           {/* Next */}
-          <button className="btn-icon player-btn-secondary" onClick={playNext} aria-label="Next">
+          <button className="btn-icon player-btn-secondary player-btn-next" onClick={playNext} aria-label="Next">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>
@@ -242,7 +246,7 @@ export default function BottomPlayer() {
 
           {/* Repeat */}
           <button
-            className={`btn-icon player-btn-secondary ${repeat !== 'off' ? 'player-btn-active' : ''}`}
+            className={`btn-icon player-btn-secondary player-btn-repeat ${repeat !== 'off' ? 'player-btn-active' : ''}`}
             onClick={cycleRepeat}
             aria-label={`Repeat: ${repeat}`}
           >
