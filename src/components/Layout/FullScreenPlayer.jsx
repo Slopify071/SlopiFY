@@ -31,7 +31,6 @@ function parseLrc(lrcText) {
   return sorted
 }
 
-<<<<<<< HEAD
 function parseTrackTitleAndArtist(rawTitle = '', rawArtist = '') {
   let cleaned = (rawTitle || '')
     .replace(/\((audio|official video|official audio|lyric video|lyrics|audio video|hd|hq|remastered|\d{4} remaster)[^)]*\)/gi, '')
@@ -64,16 +63,30 @@ function generateDefaultLyrics(song, totalDuration) {
 
   const fullSearchStr = `${title} ${artist}`.toLowerCase()
   const isLessIKnow = fullSearchStr.includes('less i know') || fullSearchStr.includes('tame impala')
-=======
 
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
+  if (isLessIKnow) {
+    return [
+      { time: 0, text: '•••', isInstrumental: true },
+      { time: 26.0, text: "Someone said they left together" },
+      { time: 30.0, text: "I ran out the door to get her" },
+      { time: 34.0, text: "She was holding hands with Trevor" },
+      { time: 38.0, text: "Not the greatest feeling ever" },
+      { time: 42.0, text: "Said, \"Pull yourself together" },
+      { time: 46.0, text: "You should try your luck with Heather\"" },
+      { time: 50.0, text: "Then I heard they slept together" },
+      { time: 54.0, text: "Oh, the less I know the better" },
+      { time: 58.0, text: "The less I know the better" },
+      { time: 88.5, text: "Oh, my love" },
+      { time: 92.5, text: "Can't you see yourself by my side?" },
+      { time: 97.0, text: "No more running around" },
+      { time: 101.2, text: "It was working 'til I saw you with him" },
+      { time: 105.5, text: "In the middle of the night" },
+      { time: 109.8, text: "Oh, the less I know the better" },
+      { time: 114.0, text: "Hold on, let me take a breather" },
+      { time: 118.2, text: "I was fine before I met her" }
+    ]
+  }
 
-const MarqueeText = ({ text, className }) => {
-  const containerRef = useRef(null)
-  const textRef = useRef(null)
-  const [isOverflowing, setIsOverflowing] = useState(false)
-
-<<<<<<< HEAD
   const baseLines = [
     `Listen to "${title}"`,
     `By ${artist}`,
@@ -148,17 +161,24 @@ function extractColorsFromImage(imgUrl, callback) {
       callback({ darkGrad, primary, secondary, r1, g1, b1, r2, g2, b2 })
     } catch (err) {
       console.warn('Canvas color extraction warning:', err)
-=======
+    }
+  }
+  img.src = imgUrl
+}
+
+const MarqueeText = ({ text, className }) => {
+  const containerRef = useRef(null)
+  const textRef = useRef(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+
   useEffect(() => {
     const checkOverflow = () => {
       if (containerRef.current && textRef.current) {
         const textWidth = textRef.current.getBoundingClientRect().width
         const containerWidth = containerRef.current.getBoundingClientRect().width
         const overflow = textWidth > containerWidth + 2
-        console.log('Marquee check:', { textWidth, containerWidth, overflow })
         setIsOverflowing(overflow)
       }
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
     }
     checkOverflow()
     const timeout = setTimeout(checkOverflow, 200)
@@ -198,14 +218,11 @@ export default function FullScreenPlayer() {
     seek,
     toggleShuffle,
     cycleRepeat,
-<<<<<<< HEAD
     audioRef,
-=======
     queue,
     playSong,
     removeFromQueue,
     updateCurrentSong,
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   } = usePlayer()
 
   const lyricsContainerRef = useRef(null)
@@ -213,13 +230,10 @@ export default function FullScreenPlayer() {
   const coverInputRef = useRef(null)
   const isSeekingRef = useRef(false)
   const [seekTime, setSeekTime] = useState(null)
-<<<<<<< HEAD
   const [dynamicBg, setDynamicBg] = useState(null)
   const [meshColors, setMeshColors] = useState(null)
   const [viewMode, setViewMode] = useState('immersive') // 'immersive' | 'split'
   const [translateYOffset, setTranslateYOffset] = useState(0)
-=======
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   const [fetchedLyrics, setFetchedLyrics] = useState(null)
   const [activeRightView, setActiveRightView] = useState('lyrics') // 'lyrics' or 'queue'
   const [localCoverUrl, setLocalCoverUrl] = useState(null)
@@ -232,14 +246,12 @@ export default function FullScreenPlayer() {
     const file = e.target.files?.[0]
     if (!file || !currentSong) return
     const newCoverUrl = URL.createObjectURL(file)
-<<<<<<< HEAD
+    setLocalCoverUrl(newCoverUrl)
     currentSong.coverUrl = newCoverUrl
     extractColorsFromImage(newCoverUrl, (res) => {
       setDynamicBg(res.darkGrad)
       setMeshColors(res)
     })
-=======
-    setLocalCoverUrl(newCoverUrl)
 
     try {
       const uploadedUrl = await uploadCoverImage(file)
@@ -250,7 +262,6 @@ export default function FullScreenPlayer() {
     } catch (err) {
       console.error('Failed to upload and save cover image:', err)
     }
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   }
 
   const displayCoverUrl = localCoverUrl || currentSong?.coverUrl
@@ -261,20 +272,7 @@ export default function FullScreenPlayer() {
   const [smoothTime, setSmoothTime] = useState(currentTime)
 
   useEffect(() => {
-<<<<<<< HEAD
     if (!isFullscreen) return
-=======
-    lastTimeRef.current = currentTime
-    setSmoothTime(currentTime)
-  }, [currentTime])
-
-  useEffect(() => {
-    if (!isPlaying || !isFullscreen) {
-      setSmoothTime(currentTime)
-      lastFrameRef.current = null
-      return
-    }
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 
     let animId
     const sampleTime = () => {
@@ -290,11 +288,7 @@ export default function FullScreenPlayer() {
     return () => {
       if (animId) cancelAnimationFrame(animId)
     }
-<<<<<<< HEAD
   }, [isFullscreen, isPlaying, currentTime, audioRef])
-=======
-  }, [isPlaying, currentTime, isFullscreen])
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 
   const activeTime = isSeekingRef.current && seekTime !== null ? seekTime : smoothTime
   const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (activeTime / effectiveDuration) * 100)) : 0
@@ -306,7 +300,6 @@ export default function FullScreenPlayer() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-<<<<<<< HEAD
   // Dynamic color extraction from artwork
   useEffect(() => {
     if (currentSong?.coverUrl) {
@@ -321,9 +314,6 @@ export default function FullScreenPlayer() {
   }, [currentSong?.coverUrl])
 
   // Fetch real synced lyrics from LRCLIB API with search fallback and state reset
-=======
-  // Fetch real synced lyrics from LRCLIB API if track has no custom lyrics
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   useEffect(() => {
     // ALWAYS reset stale lyrics from previous song immediately
     setFetchedLyrics(null)
@@ -612,13 +602,8 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
   }, [effectiveDuration, seek, getTargetTimeFromEvent])
 
   return (
-<<<<<<< HEAD
-    <div className={`fullscreen-overlay animated-fade-in ${viewMode === 'immersive' ? 'is-immersive-mode' : ''}`}>
+    <div className={`fullscreen-overlay animated-fade-in ${isFullscreen ? 'is-active' : ''} ${viewMode === 'immersive' ? 'is-immersive-mode' : ''}`}>
       {/* Dynamic Ambient Mesh Canvas Background */}
-=======
-    <div className={`fullscreen-overlay ${isFullscreen ? 'is-active' : ''}`}>
-      {/* Dynamic Ambient Background */}
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
       <div className="fullscreen-bg">
         {displayCoverUrl && (
           <div
@@ -626,7 +611,6 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
             style={{ backgroundImage: `url(${displayCoverUrl})` }}
           />
         )}
-<<<<<<< HEAD
         <div
           className="fullscreen-bg-gradient"
           style={dynamicBg ? { background: dynamicBg } : undefined}
@@ -690,21 +674,6 @@ function renderWordByWord(itemText, lineStartTime, lineEndTime, activeTime, isPa
           </svg>
         </button>
       </div>
-=======
-      </div>
-
-      {/* Top Right Close Button */}
-      <button
-        className="fullscreen-close-btn"
-        onClick={() => setFullscreen(false)}
-        aria-label="Close full screen player"
-        title="Close (Esc)"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 
       {/* Main Content Layout */}
       <div className={`fullscreen-content-grid ${viewMode === 'immersive' ? 'view-mode-immersive' : ''}`}>

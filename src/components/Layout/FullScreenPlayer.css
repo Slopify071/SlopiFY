@@ -187,39 +187,17 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.16);
   color: #ffffff;
-=======
-/* --- Top Right Close Button --- */
-.fullscreen-close-btn {
-  position: absolute;
-  top: 40px;
-  right: 40px;
-  z-index: 10;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-<<<<<<< HEAD
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .fullscreen-close-btn:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(1.08);
-=======
-}
-
-.fullscreen-close-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 }
 
 /* --- Main Grid Layout --- */
@@ -656,20 +634,6 @@
   background: rgba(255, 255, 255, 0.32);
   transform: translateY(-2px) scale(1.04);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
-=======
-  transform: scale(1.02);
-  filter: none;
-  background: linear-gradient(
-    to right,
-    #ffffff 0%,
-    #ffffff var(--line-progress, 0%),
-    rgba(255, 255, 255, 0.4) calc(var(--line-progress, 0%) + 10%),
-    rgba(255, 255, 255, 0.4) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
->>>>>>> 804993118cfc64774a7d29fdb75ad2f7537cc576
 }
 
 /* --- Lead-In Dots (•••) Video Matching Layout --- */
