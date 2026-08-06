@@ -137,7 +137,7 @@ export default function FullScreenPlayer() {
   }, [currentTime])
 
   useEffect(() => {
-    if (!isPlaying) {
+    if (!isPlaying || !isFullscreen) {
       setSmoothTime(currentTime)
       lastFrameRef.current = null
       return
@@ -164,7 +164,7 @@ export default function FullScreenPlayer() {
     return () => {
       if (animId) cancelAnimationFrame(animId)
     }
-  }, [isPlaying, currentTime])
+  }, [isPlaying, currentTime, isFullscreen])
 
   const activeTime = isSeekingRef.current && seekTime !== null ? seekTime : (isPlaying ? smoothTime : currentTime)
   const progress = effectiveDuration > 0 ? Math.min(100, Math.max(0, (activeTime / effectiveDuration) * 100)) : 0
@@ -323,10 +323,8 @@ export default function FullScreenPlayer() {
     document.addEventListener('touchcancel', onUp)
   }, [effectiveDuration, seek, getTargetTimeFromEvent])
 
-  if (!isFullscreen) return null
-
   return (
-    <div className="fullscreen-overlay animated-fade-in">
+    <div className={`fullscreen-overlay ${isFullscreen ? 'is-active' : ''}`}>
       {/* Dynamic Ambient Background */}
       <div className="fullscreen-bg">
         {displayCoverUrl && (

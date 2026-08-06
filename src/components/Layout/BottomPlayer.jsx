@@ -201,12 +201,11 @@ export default function BottomPlayer() {
   return (
     <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
       <div className="bottom-player-inner">
-      <div 
-        className="player-song-info" 
-        onClick={() => toggleFullscreen()}
-        style={{ cursor: 'pointer' }}
-      >
-        <div className="player-cover-art">
+      <div className="player-song-info">
+        <div 
+          className="player-cover-art"
+          onClick={() => toggleFullscreen()}
+        >
           {currentSong?.coverUrl ? (
             <img src={currentSong.coverUrl} alt="Cover" loading="eager" decoding="async" />
           ) : (
@@ -218,8 +217,20 @@ export default function BottomPlayer() {
               </svg>
             </div>
           )}
+          <div className="fullscreen-hover-overlay">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+          </div>
         </div>
-        <div className="player-song-text">
+        <div className="player-song-text" onClick={() => {
+          if (window.matchMedia('(max-width: 768px)').matches) {
+            toggleFullscreen()
+          }
+        }}>
           <MarqueeText 
             text={currentSong?.title || 'No song playing'} 
             className="player-song-title" 
