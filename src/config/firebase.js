@@ -1,7 +1,4 @@
-import { initializeApp, getApps } from 'firebase/app'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
-
+// Firebase configuration — values are compile-time constants from Vite define
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCLiKERj-DXvqA-XKYOYuqT4BvKeW6q930',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'slopify-a4cda.firebaseapp.com',
@@ -12,7 +9,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-BCE6S5W6QX',
 }
 
-// Check if valid credentials are provided
+// Check if valid credentials are provided (synchronous, no SDK needed)
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey &&
   firebaseConfig.apiKey !== 'your_api_key_here' &&
@@ -20,24 +17,48 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.projectId !== 'your_project_id'
 )
 
-let app = null
+// Lazy singletons — populated on first call to initFirebase()
 let auth = null
 let db = null
-
 let googleProvider = null
+let _initPromise = null
 
-if (isFirebaseConfigured) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-    auth = getAuth(app)
-    db = getFirestore(app)
+/**
+ * Lazily initialise Firebase. The heavy SDK modules are loaded via dynamic
+ * import() so they are NOT in the initial JS bundle that blocks first paint.
+ * Returns { auth, db, googleProvider } or null if Firebase is not configured.
+ */
+export async function initFirebase() {
+  if (!isFirebaseConfigured) return null
+  if (auth) return { auth, db, googleProvider }
 
-    googleProvider = new GoogleAuthProvider()
-    googleProvider.setCustomParameters({ prompt: 'select_account' })
-  } catch (error) {
-    console.error('Failed to initialize Firebase:', error)
+  if (!_initPromise) {
+    _initPromise = (async () => {
+      try {
+        const [{ initializeApp, getApps }, { getAuth, GoogleAuthProvider }, { getFirestore }] =
+          await Promise.all([
+            import('firebase/app'),
+            import('firebase/auth'),
+            import('firebase/firestore'),
+          ])
+
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+        auth = getAuth(app)
+        db = getFirestore(app)
+        googleProvider = new GoogleAuthProvider()
+        googleProvider.setCustomParameters({ prompt: 'select_account' })
+        return { auth, db, googleProvider }
+      } catch (error) {
+        console.error('Failed to initialize Firebase:', error)
+        _initPromise = null
+        return null
+      }
+    })()
   }
+
+  return _initPromise
 }
 
+// Re-export the lazy singletons — after initFirebase() resolves, these hold
+// live references. Before that they are null (guards like `!db` still work).
 export { auth, db, googleProvider }
-

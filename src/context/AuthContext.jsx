@@ -1,15 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import {
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-} from 'firebase/auth'
-import { auth, googleProvider, isFirebaseConfigured } from '../config/firebase'
+import { isFirebaseConfigured, initFirebase } from '../config/firebase'
 import { syncUser } from '../services/firestore'
 
 const AuthContext = createContext(null)
@@ -69,7 +59,7 @@ export function AuthProvider({ children }) {
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
+    if (!isFirebaseConfigured) {
       setUser(null)
       cacheUser(null)
       try {
@@ -85,46 +75,60 @@ export function AuthProvider({ children }) {
       setLoading(false)
     }, 300)
 
-    // Only run getRedirectResult if returning from Google Auth redirect
-    if (window.location.search.includes('apiKey') || window.location.hash.includes('access_token')) {
-      getRedirectResult(auth)
-        .then(async (result) => {
-          if (result?.user) {
-            setUser(result.user)
-            cacheUser(result.user)
-            await syncUser(result.user)
-          }
-        })
-        .catch((err) => {
-          console.error('Redirect sign-in error:', err)
-        })
-    }
+    let unsubscribe = () => {}
 
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (currentUser) => {
-        clearTimeout(fallbackTimer)
-        try {
-          if (currentUser) {
-            setUser(currentUser)
-            cacheUser(currentUser)
-            await syncUser(currentUser)
-          } else {
-            setUser(null)
-            cacheUser(null)
-          }
-        } catch (err) {
-          console.error('Auth state change error:', err)
-        } finally {
-          setLoading(false)
-        }
-      },
-      (error) => {
-        console.error('Firebase Auth state error:', error)
+    // Lazily initialise Firebase SDK — this keeps the heavy modules out of the
+    // critical rendering path and off the main-thread parse budget.
+    initFirebase().then(async (fb) => {
+      if (!fb) {
         clearTimeout(fallbackTimer)
         setLoading(false)
+        return
       }
-    )
+
+      const { onAuthStateChanged, getRedirectResult } = await import('firebase/auth')
+
+      // Only run getRedirectResult if returning from Google Auth redirect
+      if (window.location.search.includes('apiKey') || window.location.hash.includes('access_token')) {
+        getRedirectResult(fb.auth)
+          .then(async (result) => {
+            if (result?.user) {
+              setUser(result.user)
+              cacheUser(result.user)
+              await syncUser(result.user)
+            }
+          })
+          .catch((err) => {
+            console.error('Redirect sign-in error:', err)
+          })
+      }
+
+      unsubscribe = onAuthStateChanged(
+        fb.auth,
+        async (currentUser) => {
+          clearTimeout(fallbackTimer)
+          try {
+            if (currentUser) {
+              setUser(currentUser)
+              cacheUser(currentUser)
+              await syncUser(currentUser)
+            } else {
+              setUser(null)
+              cacheUser(null)
+            }
+          } catch (err) {
+            console.error('Auth state change error:', err)
+          } finally {
+            setLoading(false)
+          }
+        },
+        (error) => {
+          console.error('Firebase Auth state error:', error)
+          clearTimeout(fallbackTimer)
+          setLoading(false)
+        }
+      )
+    })
 
     return () => {
       clearTimeout(fallbackTimer)
@@ -135,26 +139,35 @@ export function AuthProvider({ children }) {
   // 1. Google Sign-In
   const loginWithGoogle = async () => {
     setAuthError(null)
-    if (!isFirebaseConfigured || !auth) {
+    if (!isFirebaseConfigured) {
       const message = 'Firebase is not configured. Please set environment variables.'
       setAuthError(message)
       throw new Error(message)
     }
 
     try {
-      const result = await signInWithPopup(auth, googleProvider)
-      await syncUser(result.user)
-      return result.user
+      const fb = await initFirebase()
+      if (!fb) throw new Error('Firebase failed to initialise')
+
+      const { signInWithPopup, signInWithRedirect } = await import('firebase/auth')
+
+      try {
+        const result = await signInWithPopup(fb.auth, fb.googleProvider)
+        await syncUser(result.user)
+        return result.user
+      } catch (err) {
+        if (err.code === 'auth/popup-blocked') {
+          try {
+            await signInWithRedirect(fb.auth, fb.googleProvider)
+            return
+          } catch (redirectErr) {
+            console.error('Google Sign-In redirect failed:', redirectErr)
+          }
+        }
+        throw err
+      }
     } catch (err) {
       console.error('Google Sign-In failed:', err)
-      if (err.code === 'auth/popup-blocked') {
-        try {
-          await signInWithRedirect(auth, googleProvider)
-          return
-        } catch (redirectErr) {
-          console.error('Google Sign-In redirect failed:', redirectErr)
-        }
-      }
       let message = 'Failed to sign in with Google.'
       if (err.code === 'auth/popup-blocked') {
         message = 'Sign-in popup was blocked by your browser. Please allow popups for this site in your address bar.'
@@ -175,14 +188,19 @@ export function AuthProvider({ children }) {
   // 2. Email / Password Sign Up
   const signupWithEmail = async (email, password, displayName) => {
     setAuthError(null)
-    if (!isFirebaseConfigured || !auth) {
+    if (!isFirebaseConfigured) {
       const message = 'Firebase is not configured. Please set environment variables.'
       setAuthError(message)
       throw new Error(message)
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const fb = await initFirebase()
+      if (!fb) throw new Error('Firebase failed to initialise')
+
+      const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth')
+
+      const userCredential = await createUserWithEmailAndPassword(fb.auth, email, password)
       if (displayName) {
         await updateProfile(userCredential.user, { displayName })
       }
@@ -212,14 +230,19 @@ export function AuthProvider({ children }) {
   // 3. Email / Password Sign In
   const loginWithEmail = async (email, password) => {
     setAuthError(null)
-    if (!isFirebaseConfigured || !auth) {
+    if (!isFirebaseConfigured) {
       const message = 'Firebase is not configured. Please set environment variables.'
       setAuthError(message)
       throw new Error(message)
     }
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const fb = await initFirebase()
+      if (!fb) throw new Error('Firebase failed to initialise')
+
+      const { signInWithEmailAndPassword } = await import('firebase/auth')
+
+      const userCredential = await signInWithEmailAndPassword(fb.auth, email, password)
       await syncUser(userCredential.user)
       return userCredential.user
     } catch (err) {
@@ -245,9 +268,13 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     setAuthError(null)
     cacheUser(null)
-    if (isFirebaseConfigured && auth) {
+    if (isFirebaseConfigured) {
       try {
-        await firebaseSignOut(auth)
+        const fb = await initFirebase()
+        if (fb) {
+          const { signOut } = await import('firebase/auth')
+          await signOut(fb.auth)
+        }
       } catch (err) {
         console.error('Sign-out failed:', err)
       }

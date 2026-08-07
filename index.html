@@ -23,24 +23,11 @@
     <meta name="twitter:description" content="Private music streaming web app for friends. Upload, share, and listen together in real-time." />
     <meta name="twitter:image" content="https://slopify-nu.vercel.app/blueberry_wallpaper.webp" />
 
-    <!-- Performance Preconnects -->
+    <!-- Performance Preconnects (max 4 — only origins needed on first load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://res.cloudinary.com" />
-    <link rel="preconnect" href="https://firestore.googleapis.com" />
-    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
-
-    <!-- Speculation Rules for Instant SPA Navigations -->
-    <script type="speculationrules">
-    {
-      "prerender": [
-        {
-          "where": { "href_matches": "/*" },
-          "eagerness": "moderate"
-        }
-      ]
-    }
-    </script>
+    <link rel="preconnect" href="https://slopify-a4cda.firebaseapp.com" />
+    <link rel="preconnect" href="https://apis.google.com" />
 
     <!-- Fast Google Fonts (only essential weights + swap display) -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
@@ -57,26 +44,8 @@
       .app-loading-screen .app-title{font-size:2.25rem;font-weight:800;color:#fff;letter-spacing:-0.04em;margin:0 0 .25rem;line-height:1;font-family:'Outfit',system-ui,sans-serif}
       @keyframes spin{to{transform:rotate(360deg)}}
     </style>
-
-    <!-- Preload hero background image (matches login-bg.png used in CSS) -->
-    <link rel="preload" href="/login-bg.png" as="image" fetchpriority="high" />
   </head>
   <body>
-    <!--
-      LCP anchor: same image already preloaded above, now as a real <img> so
-      Lighthouse can identify it as the Largest Contentful Paint element.
-      position:fixed / z-index:-1 keeps it purely decorative behind all content;
-      pointer-events:none + aria-hidden prevent any interaction / a11y noise.
-    -->
-    <img
-      src="/login-bg.png"
-      alt=""
-      fetchpriority="high"
-      loading="eager"
-      decoding="async"
-      aria-hidden="true"
-      style="position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;"
-    />
 
     <!--
       Pre-rendered loading shell — visible on frame 0 before React boots.
