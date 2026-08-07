@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
-import LazyGlass from '../Common/LazyGlass'
 import './QueueSidebar.css'
 
 export default function QueueSidebar() {
@@ -49,18 +48,7 @@ export default function QueueSidebar() {
         className={`queue-sidebar ${isQueueOpen ? 'is-open' : ''}`}
         aria-label="Play Queue Sidebar"
       >
-        <LazyGlass
-          className="queue-sidebar-glass"
-          radius={0}
-          optics={{
-            frost: 0.65,
-            dispersion: 0.35,
-            curvature: 0.1,
-            bend: 0.1,
-            depth: 0.2,
-            glow: 0.25
-          }}
-        >
+        <div className="queue-sidebar-glass">
         <div className="queue-sidebar-inner">
           {/* Sidebar Header */}
           <div className="queue-header">
@@ -234,7 +222,7 @@ export default function QueueSidebar() {
             </div>
           </div>
         </div>
-        </LazyGlass>
+        </div>
       </aside>
     </>
   )

@@ -23,24 +23,11 @@
     <meta name="twitter:description" content="Private music streaming web app for friends. Upload, share, and listen together in real-time." />
     <meta name="twitter:image" content="https://slopify-nu.vercel.app/blueberry_wallpaper.webp" />
 
-    <!-- Performance Preconnects -->
+    <!-- Performance Preconnects (max 4 — only origins needed on first load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://res.cloudinary.com" />
-    <link rel="preconnect" href="https://firestore.googleapis.com" />
-    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
-
-    <!-- Speculation Rules for Instant SPA Navigations -->
-    <script type="speculationrules">
-    {
-      "prerender": [
-        {
-          "where": { "href_matches": "/*" },
-          "eagerness": "moderate"
-        }
-      ]
-    }
-    </script>
+    <link rel="preconnect" href="https://slopify-a4cda.firebaseapp.com" />
+    <link rel="preconnect" href="https://apis.google.com" />
 
     <!-- Fast Google Fonts (only essential weights + swap display) -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
@@ -50,16 +37,28 @@
     <style>
       body{margin:0;background:#0c0a16;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter',sans-serif;font-display:swap}
       #root{min-height:100vh;min-height:100dvh}
-      .app-loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#94A3B8;font-size:.8125rem}
+      /* Loading shell — matches App.css .app-loading-screen so hydration is seamless */
+      .app-loading-screen{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#94A3B8;font-size:.8125rem}
       .app-loading-screen .spinner{width:36px;height:36px;border:3px solid #1F1F1F;border-top-color:#F8FAFC;border-radius:50%;animation:spin .8s linear infinite}
+      /* app-title is the LCP text candidate — large, white, visible on frame 0 */
+      .app-loading-screen .app-title{font-size:2.25rem;font-weight:800;color:#fff;letter-spacing:-0.04em;margin:0 0 .25rem;line-height:1;font-family:'Outfit',system-ui,sans-serif}
       @keyframes spin{to{transform:rotate(360deg)}}
     </style>
-
-    <!-- Preload hero background image -->
-    <link rel="preload" href="/blueberry_wallpaper.webp" as="image" type="image/webp" fetchpriority="high" />
   </head>
   <body>
-    <div id="root"></div>
+
+    <!--
+      Pre-rendered loading shell — visible on frame 0 before React boots.
+      React replaces this once it hydrates, so there is no flash.
+      The .app-title text is the LCP text fallback if the image is slow.
+    -->
+    <div id="root">
+      <div class="app-loading-screen">
+        <p class="app-title">SlopiFY</p>
+        <div class="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

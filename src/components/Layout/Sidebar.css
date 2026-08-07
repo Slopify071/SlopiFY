@@ -5,7 +5,8 @@
 .sidebar {
   grid-column: 1;
   grid-row: 1;
-  /* Glass background handled by liquid-glass package */
+  /* background + backdrop handled by LazyGlass / Glass component */
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   height: calc(100vh - 32px);
   height: calc(100dvh - 32px);

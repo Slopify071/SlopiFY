@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import LazyGlass from '../Common/LazyGlass'
 import './Sidebar.css'
 
 const NAV_ITEMS = [
@@ -46,7 +47,11 @@ export default function Sidebar({ onLogoutRequest }) {
   const handleLogout = onLogoutRequest || logout
 
   return (
-    <aside className="sidebar">
+    <LazyGlass
+      className="sidebar"
+      radius={20}
+      optics={{ frost: 0.3, dispersion: 0.2, curvature: 0.3, bend: 0.1, depth: 0.4, glow: 0.1 }}
+    >
       <div className="sidebar-inner">
       {/* Logo / Header */}
       <div className="sidebar-logo">
@@ -119,6 +124,6 @@ export default function Sidebar({ onLogoutRequest }) {
         </div>
       </div>
       </div>
-    </aside>
+    </LazyGlass>
   )
 }

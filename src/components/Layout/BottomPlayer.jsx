@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
+import LazyGlass from '../Common/LazyGlass'
 import './BottomPlayer.css'
 
 const MarqueeText = ({ text, className }) => {
@@ -199,7 +200,11 @@ export default function BottomPlayer() {
   const hasSong = !!currentSong
 
   return (
-    <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
+    <LazyGlass
+      className={`bottom-player ${hasSong ? 'has-song' : ''}`}
+      radius={16}
+      optics={{ frost: 0.3, dispersion: 0.2, curvature: 0.1, bend: 0.1, depth: 0.2, glow: 0.1 }}
+    >
       <div className="bottom-player-inner">
       <div className="player-song-info">
         <div 
@@ -388,6 +393,6 @@ export default function BottomPlayer() {
       <div className="mobile-player-progress" onMouseDown={handleSeekStart} onTouchStart={handleSeekStart}>
         <div className="mobile-player-progress-fill" style={{ width: `${progress}%` }} />
       </div>
-    </div>
+    </LazyGlass>
   )
 }
