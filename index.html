@@ -10,6 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="preload" as="image" href="/login-bg.png" />
     <meta name="theme-color" content="#0c0a16">
     <title>SlopiFY — Music for the homies</title>
 
@@ -18,13 +19,13 @@
     <meta property="og:url" content="https://slopify-nu.vercel.app/" />
     <meta property="og:title" content="SlopiFY — Music for the homies" />
     <meta property="og:description" content="Private music streaming web app for friends. Upload, share, and listen together in real-time." />
-    <meta property="og:image" content="https://slopify-nu.vercel.app/blueberry_wallpaper.webp" />
+    <meta property="og:image" content="https://slopify-nu.vercel.app/login-bg.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="SlopiFY — Music for the homies" />
     <meta name="twitter:description" content="Private music streaming web app for friends. Upload, share, and listen together in real-time." />
-    <meta name="twitter:image" content="https://slopify-nu.vercel.app/blueberry_wallpaper.webp" />
+    <meta name="twitter:image" content="https://slopify-nu.vercel.app/login-bg.png" />
 
     <!-- Performance Preconnects (max 4 — only origins needed on first load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -38,14 +39,8 @@
 
     <!-- Critical inline CSS for instant zero-delay first paint -->
     <style>
-      body{margin:0;background:#0c0a16;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter',sans-serif;font-display:swap}
+      body{margin:0;background:#484F56;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter',sans-serif;font-display:swap}
       #root{min-height:100vh;min-height:100dvh}
-      /* Loading shell — matches App.css .app-loading-screen so hydration is seamless */
-      .app-loading-screen{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#94A3B8;font-size:.8125rem}
-      .app-loading-screen .spinner{width:36px;height:36px;border:3px solid #1F1F1F;border-top-color:#F8FAFC;border-radius:50%;animation:spin .8s linear infinite}
-      /* app-title is the LCP text candidate — large, white, visible on frame 0 */
-      .app-loading-screen .app-title{font-size:2.25rem;font-weight:800;color:#fff;letter-spacing:-0.04em;margin:0 0 .25rem;line-height:1;font-family:'Outfit',system-ui,sans-serif}
-      @keyframes spin{to{transform:rotate(360deg)}}
     </style>
   </head>
   <body>
@@ -55,13 +50,7 @@
       React replaces this once it hydrates, so there is no flash.
       The .app-title text is the LCP text fallback if the image is slow.
     -->
-    <div id="root">
-      <div class="app-loading-screen">
-        <p class="app-title">SlopiFY</p>
-        <div class="spinner"></div>
-        <p>Loading...</p>
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

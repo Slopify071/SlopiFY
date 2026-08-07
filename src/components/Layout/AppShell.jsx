@@ -11,12 +11,7 @@ import ConfirmModal from '../Common/ConfirmModal'
 import './AppShell.css'
 
 function PageFallback() {
-  return (
-    <div className="app-loading-screen">
-      <div className="spinner" />
-      <p>Loading...</p>
-    </div>
-  )
+  return null
 }
 
 export default function AppShell({ children }) {

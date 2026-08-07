@@ -154,7 +154,7 @@ body {
   font-size: var(--text-base);
   font-weight: var(--weight-regular);
   color: var(--color-text-primary);
-  background-color: #0c0a16;
+  background-color: #484F56;
   background-image: url('/login-bg.png');
   background-size: cover;
   background-position: center;
