@@ -31,4 +31,4 @@ SlopiFY is a modern, minimalist music streaming and uploading application.
    ```
 
 ## Deployment
-Automated continuous deployment is configured via **GitHub Actions** (`.github/workflows/deploy.yml`). Any push to `main` automatically builds and deploys the application to Cloudflare Workers (`https://slopify.homiez.workers.dev`).
+Automated continuous deployment is configured via **Vercel**. Any push to `main` automatically builds and deploys the application to [`https://slopify-nu.vercel.app`](https://slopify-nu.vercel.app).

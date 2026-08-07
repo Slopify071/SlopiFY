@@ -1,16 +1,16 @@
 # SlopiFY
 
-> SlopiFY is a private communal music streaming web application built with React, Vite, Cloudflare Workers, and Firebase.
+> SlopiFY is a private communal music streaming web application built with React, Vite, Vercel, and Firebase.
 
 SlopiFY allows users to stream high-quality audio tracks, upload multi-format music (MP3, WAV, FLAC, M4A, OGG), manage communal playlists, and interact with a modern dark blueberry themed interface.
 
 ## Key Features & Pages
 
-- [Library](https://slopify.homiez.workers.dev/library): Stream communal music tracks, perform instant client-side filtering, and manage saved music collections.
-- [Upload](https://slopify.homiez.workers.dev/upload): Drag-and-drop audio uploader featuring client-side metadata parsing (ID3/FLAC tags) and automatic album art extraction.
-- [Playlists](https://slopify.homiez.workers.dev/playlists): Manage custom audio playlists, add/remove songs, and stream custom queues.
+- [Library](https://slopify-nu.vercel.app/library): Stream communal music tracks, perform instant client-side filtering, and manage saved music collections.
+- [Upload](https://slopify-nu.vercel.app/upload): Drag-and-drop audio uploader featuring client-side metadata parsing (ID3/FLAC tags) and automatic album art extraction.
+- [Playlists](https://slopify-nu.vercel.app/playlists): Manage custom audio playlists, add/remove songs, and stream custom queues.
 
 ## Architecture & Source Code
 
 - [GitHub Repository](https://github.com/Slopify071/SlopiFY): Source code repository containing React components, custom hooks, and deployment configurations.
-- [Live Web App](https://slopify.homiez.workers.dev): Deployed application hosted on Cloudflare Workers.
+- [Live Web App](https://slopify-nu.vercel.app): Deployed application hosted on Vercel.
