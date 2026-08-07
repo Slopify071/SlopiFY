@@ -57,16 +57,10 @@ export default function Sidebar({ onLogoutRequest }) {
       <div className="sidebar-logo">
         <Link to="/library" className="sidebar-logo-link" title="SlopiFY Home">
           <div className="sidebar-logo-icon">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-              <defs>
-                <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#6C5CE7" />
-                  <stop offset="100%" stopColor="#A29BFE" />
-                </linearGradient>
-              </defs>
-              <circle cx="12" cy="12" r="10" stroke="url(#logoGrad2)" strokeWidth="2" fill="none" />
-              <circle cx="12" cy="12" r="3" fill="url(#logoGrad2)" />
-              <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#logoGrad2)" strokeWidth="2" strokeLinecap="round" />
+            <svg width="34" height="34" viewBox="0 0 512 512" fill="none">
+              <rect width="512" height="512" rx="120" fill="#000000" />
+              <path d="M 224 128 L 320 128 A 64 64 0 0 1 384 192 L 384 288 L 288 288 L 288 224 L 224 224 Z" fill="#FFFFFF" />
+              <path d="M 128 224 L 224 224 L 224 288 L 288 288 L 288 384 L 192 384 A 64 64 0 0 1 128 320 Z" fill="#FFFFFF" />
             </svg>
           </div>
           <span className="sidebar-logo-text">SlopiFY</span>
