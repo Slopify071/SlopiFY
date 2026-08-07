@@ -24,7 +24,7 @@
 .login-bg-pattern {
   position: absolute;
   inset: 0;
-  background-color: #0c0a16;
+  background-color: #12141d;
   background-image: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.05), transparent 70%), url('/login-bg.png');
   background-size: cover;
   background-position: center;
