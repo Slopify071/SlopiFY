@@ -13,7 +13,7 @@ import {
   onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore'
-import { db, auth, isFirebaseConfigured } from '../config/firebase'
+import { db, auth, isFirebaseConfigured, initFirebase } from '../config/firebase'
 import { deleteAudioFile } from './storage'
 
 /**
@@ -53,48 +53,71 @@ export async function syncUser(user) {
 }
 
 /**
- * Subscribe to communal songs library in real-time directly from Firestore
+ * Subscribe to communal songs library in real-time directly from Firestore.
+ * Awaits Firebase initialisation so the listener is never skipped due to a
+ * race between lazy SDK init and component mount.
  */
 export function subscribeToLibrary(onNext, onError) {
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured) {
     onNext([])
     return () => {}
   }
 
-  try {
-    const songsRef = collection(db, 'songs')
-    return onSnapshot(
-      songsRef,
-      (snapshot) => {
-        const songs = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }))
+  let cancelled = false
+  let unsubSnapshot = null
 
-        const parseTime = (val) => {
-          if (!val) return 0
-          if (typeof val.toMillis === 'function') return val.toMillis()
-          if (typeof val === 'number') return val
-          if (val.seconds) return val.seconds * 1000
-          const d = new Date(val)
-          return isNaN(d.getTime()) ? 0 : d.getTime()
+  initFirebase().then((fb) => {
+    if (cancelled) return
+    const fireDb = fb?.db || db
+    if (!fireDb) {
+      onNext([])
+      return
+    }
+
+    try {
+      const songsRef = collection(fireDb, 'songs')
+      unsubSnapshot = onSnapshot(
+        songsRef,
+        (snapshot) => {
+          if (cancelled) return
+          const songs = snapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          }))
+
+          const parseTime = (val) => {
+            if (!val) return 0
+            if (typeof val.toMillis === 'function') return val.toMillis()
+            if (typeof val === 'number') return val
+            if (val.seconds) return val.seconds * 1000
+            const d = new Date(val)
+            return isNaN(d.getTime()) ? 0 : d.getTime()
+          }
+
+          const sortedSongs = [...songs].sort(
+            (a, b) => parseTime(b.uploadedAt) - parseTime(a.uploadedAt)
+          )
+          onNext(sortedSongs)
+        },
+        (err) => {
+          console.error('Error listening to songs collection:', err)
+          onNext([])
+          if (onError) onError(err)
         }
+      )
+    } catch (err) {
+      console.error('Failed to attach library listener:', err)
+      onNext([])
+    }
+  }).catch((err) => {
+    console.error('Firebase init failed for library subscription:', err)
+    if (!cancelled) onNext([])
+  })
 
-        const sortedSongs = [...songs].sort(
-          (a, b) => parseTime(b.uploadedAt) - parseTime(a.uploadedAt)
-        )
-        onNext(sortedSongs)
-      },
-      (err) => {
-        console.error('Error listening to songs collection:', err)
-        onNext([])
-        if (onError) onError(err)
-      }
-    )
-  } catch (err) {
-    console.error('Failed to attach library listener:', err)
-    onNext([])
-    return () => {}
+  // Return cleanup function
+  return () => {
+    cancelled = true
+    if (unsubSnapshot) unsubSnapshot()
   }
 }
 
@@ -102,31 +125,51 @@ export function subscribeToLibrary(onNext, onError) {
  * Subscribe to global storage metadata (e.g. storage size tracking)
  */
 export function subscribeToStorageMeta(onNext, onError) {
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured) {
     onNext({ totalBytesUsed: 0, songCount: 0 })
     return () => {}
   }
 
-  try {
-    const metaRef = doc(db, 'storage_meta', 'global')
-    return onSnapshot(
-      metaRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          onNext(docSnap.data())
-        } else {
-          onNext({ totalBytesUsed: 0, songCount: 0 })
+  let cancelled = false
+  let unsubSnapshot = null
+
+  initFirebase().then((fb) => {
+    if (cancelled) return
+    const fireDb = fb?.db || db
+    if (!fireDb) {
+      onNext({ totalBytesUsed: 0, songCount: 0 })
+      return
+    }
+
+    try {
+      const metaRef = doc(fireDb, 'storage_meta', 'global')
+      unsubSnapshot = onSnapshot(
+        metaRef,
+        (docSnap) => {
+          if (cancelled) return
+          if (docSnap.exists()) {
+            onNext(docSnap.data())
+          } else {
+            onNext({ totalBytesUsed: 0, songCount: 0 })
+          }
+        },
+        (err) => {
+          console.error('Error listening to storage_meta:', err)
+          if (onError) onError(err)
         }
-      },
-      (err) => {
-        console.error('Error listening to storage_meta:', err)
-        if (onError) onError(err)
-      }
-    )
-  } catch (err) {
-    console.error('Failed to attach storage meta listener:', err)
-    onNext({ totalBytesUsed: 0, songCount: 0 })
-    return () => {}
+      )
+    } catch (err) {
+      console.error('Failed to attach storage meta listener:', err)
+      onNext({ totalBytesUsed: 0, songCount: 0 })
+    }
+  }).catch((err) => {
+    console.error('Firebase init failed for storage meta subscription:', err)
+    if (!cancelled) onNext({ totalBytesUsed: 0, songCount: 0 })
+  })
+
+  return () => {
+    cancelled = true
+    if (unsubSnapshot) unsubSnapshot()
   }
 }
 
@@ -276,27 +319,43 @@ export async function saveUserSession(uid, sessionData) {
  * Subscribe to real-time user playback session changes across devices
  */
 export function subscribeToUserSession(uid, onNext, onError) {
-  if (!isFirebaseConfigured || !db || !uid) {
+  if (!isFirebaseConfigured || !uid) {
     return () => {}
   }
 
-  try {
-    const sessionRef = doc(db, 'users', uid, 'session', 'current')
-    return onSnapshot(
-      sessionRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          onNext(docSnap.data())
+  let cancelled = false
+  let unsubSnapshot = null
+
+  initFirebase().then((fb) => {
+    if (cancelled) return
+    const fireDb = fb?.db || db
+    if (!fireDb) return
+
+    try {
+      const sessionRef = doc(fireDb, 'users', uid, 'session', 'current')
+      unsubSnapshot = onSnapshot(
+        sessionRef,
+        (docSnap) => {
+          if (cancelled) return
+          if (docSnap.exists()) {
+            onNext(docSnap.data())
+          }
+        },
+        (err) => {
+          console.error('Error listening to user playback session:', err)
+          if (onError) onError(err)
         }
-      },
-      (err) => {
-        console.error('Error listening to user playback session:', err)
-        if (onError) onError(err)
-      }
-    )
-  } catch (err) {
-    console.error('Failed to attach user playback session listener:', err)
-    return () => {}
+      )
+    } catch (err) {
+      console.error('Failed to attach user playback session listener:', err)
+    }
+  }).catch((err) => {
+    console.error('Firebase init failed for session subscription:', err)
+  })
+
+  return () => {
+    cancelled = true
+    if (unsubSnapshot) unsubSnapshot()
   }
 }
 
@@ -316,51 +375,71 @@ function generateShareCode() {
  * Subscribe to playlists for current user directly from Firestore
  */
 export function subscribeToUserPlaylists(userUid, onNext, onError) {
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured) {
     onNext([])
     return () => {}
   }
 
-  try {
-    const playlistsRef = collection(db, 'playlists')
-    return onSnapshot(
-      playlistsRef,
-      (snapshot) => {
-        const playlists = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }))
+  let cancelled = false
+  let unsubSnapshot = null
 
-        // Filter playlists owned by user, anonymous/unowned, public or collaborative playlists
-        const userPlaylists = playlists.filter(
-          (p) =>
-            !userUid ||
-            p.ownerUid === userUid ||
-            p.ownerUid === 'anonymous' ||
-            !p.ownerUid ||
-            p.isCollaborative ||
-            p.isPublic !== false ||
-            p.collaborators?.includes(userUid)
-        )
+  initFirebase().then((fb) => {
+    if (cancelled) return
+    const fireDb = fb?.db || db
+    if (!fireDb) {
+      onNext([])
+      return
+    }
 
-        userPlaylists.sort((a, b) => {
-          const tA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0
-          const tB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0
-          return tB - tA
-        })
+    try {
+      const playlistsRef = collection(fireDb, 'playlists')
+      unsubSnapshot = onSnapshot(
+        playlistsRef,
+        (snapshot) => {
+          if (cancelled) return
+          const playlists = snapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          }))
 
-        onNext(userPlaylists)
-      },
-      (err) => {
-        console.error('Error subscribing to playlists:', err)
-        onNext([])
-        if (onError) onError(err)
-      }
-    )
-  } catch (err) {
-    console.error('Failed to attach playlists listener:', err)
-    onNext([])
-    return () => {}
+          // Filter playlists owned by user, anonymous/unowned, public or collaborative playlists
+          const userPlaylists = playlists.filter(
+            (p) =>
+              !userUid ||
+              p.ownerUid === userUid ||
+              p.ownerUid === 'anonymous' ||
+              !p.ownerUid ||
+              p.isCollaborative ||
+              p.isPublic !== false ||
+              p.collaborators?.includes(userUid)
+          )
+
+          userPlaylists.sort((a, b) => {
+            const tA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0
+            const tB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0
+            return tB - tA
+          })
+
+          onNext(userPlaylists)
+        },
+        (err) => {
+          console.error('Error subscribing to playlists:', err)
+          onNext([])
+          if (onError) onError(err)
+        }
+      )
+    } catch (err) {
+      console.error('Failed to attach playlists listener:', err)
+      onNext([])
+    }
+  }).catch((err) => {
+    console.error('Firebase init failed for playlists subscription:', err)
+    if (!cancelled) onNext([])
+  })
+
+  return () => {
+    cancelled = true
+    if (unsubSnapshot) unsubSnapshot()
   }
 }
 
@@ -368,45 +447,65 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
  * Subscribe to single playlist detail by ID or shareCode directly from Firestore
  */
 export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
-  if (!isFirebaseConfigured || !db || !idOrShareCode) {
+  if (!isFirebaseConfigured || !idOrShareCode) {
     onNext(null)
     return () => {}
   }
 
-  try {
-    const docRef = doc(db, 'playlists', idOrShareCode)
+  let cancelled = false
+  let unsubSnapshot = null
 
-    return onSnapshot(
-      docRef,
-      async (docSnap) => {
-        if (docSnap.exists()) {
-          onNext({ id: docSnap.id, ...docSnap.data() })
-        } else {
-          // If not found by direct ID, search by shareCode
-          try {
-            const q = query(collection(db, 'playlists'), where('shareCode', '==', idOrShareCode))
-            const querySnap = await getDocs(q)
-            if (!querySnap.empty) {
-              const matchedDoc = querySnap.docs[0]
-              onNext({ id: matchedDoc.id, ...matchedDoc.data() })
-            } else {
+  initFirebase().then((fb) => {
+    if (cancelled) return
+    const fireDb = fb?.db || db
+    if (!fireDb) {
+      onNext(null)
+      return
+    }
+
+    try {
+      const docRefLocal = doc(fireDb, 'playlists', idOrShareCode)
+
+      unsubSnapshot = onSnapshot(
+        docRefLocal,
+        async (docSnap) => {
+          if (cancelled) return
+          if (docSnap.exists()) {
+            onNext({ id: docSnap.id, ...docSnap.data() })
+          } else {
+            // If not found by direct ID, search by shareCode
+            try {
+              const q = query(collection(fireDb, 'playlists'), where('shareCode', '==', idOrShareCode))
+              const querySnap = await getDocs(q)
+              if (!querySnap.empty) {
+                const matchedDoc = querySnap.docs[0]
+                onNext({ id: matchedDoc.id, ...matchedDoc.data() })
+              } else {
+                onNext(null)
+              }
+            } catch (e) {
+              console.error('Error querying playlist by shareCode:', e)
               onNext(null)
             }
-          } catch (e) {
-            console.error('Error querying playlist by shareCode:', e)
-            onNext(null)
           }
+        },
+        (err) => {
+          console.error('Error subscribing to playlist detail:', err)
+          if (onError) onError(err)
         }
-      },
-      (err) => {
-        console.error('Error subscribing to playlist detail:', err)
-        if (onError) onError(err)
-      }
-    )
-  } catch (err) {
-    console.error('Failed to attach playlist detail listener:', err)
-    onNext(null)
-    return () => {}
+      )
+    } catch (err) {
+      console.error('Failed to attach playlist detail listener:', err)
+      onNext(null)
+    }
+  }).catch((err) => {
+    console.error('Firebase init failed for playlist detail subscription:', err)
+    if (!cancelled) onNext(null)
+  })
+
+  return () => {
+    cancelled = true
+    if (unsubSnapshot) unsubSnapshot()
   }
 }
 

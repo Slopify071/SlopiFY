@@ -164,6 +164,10 @@ function playerReducer(state, action) {
         isPlaying: next ? true : state.isPlaying,
       }
     }
+    case 'RESET_PLAYER':
+      return {
+        ...initialState,
+      }
     default:
       return state
   }
@@ -205,6 +209,30 @@ export function PlayerProvider({ children }) {
       // ignore
     }
   }, [state])
+
+  // Reset audio and state when user logs out
+  const prevUserRef = useRef(user)
+  useEffect(() => {
+    if (prevUserRef.current && !user) {
+      const audio = audioRef.current || getAudioElement()
+      if (audio) {
+        try {
+          audio.pause()
+          audio.removeAttribute('src')
+          audio.load()
+        } catch (e) {
+          // ignore
+        }
+      }
+      dispatch({ type: 'RESET_PLAYER' })
+      try {
+        localStorage.removeItem('slopify_player_state')
+      } catch (e) {
+        // ignore
+      }
+    }
+    prevUserRef.current = user
+  }, [user])
 
   // 1. Listen for cross-device playback session changes from Firestore
   useEffect(() => {
@@ -304,7 +332,20 @@ export function PlayerProvider({ children }) {
   // Single, consolidated effect to sync audio src and play/pause state
   useEffect(() => {
     const audio = audioRef.current || getAudioElement()
-    if (!audio || !state.currentSong) return
+    if (!audio) return
+
+    if (!state.currentSong) {
+      try {
+        if (!audio.paused) {
+          audio.pause()
+        }
+        audio.removeAttribute('src')
+        audio.load()
+      } catch (e) {
+        // ignore
+      }
+      return
+    }
 
     const url = state.currentSong.audioUrl || state.currentSong.downloadUrl || ''
     if (!url) return

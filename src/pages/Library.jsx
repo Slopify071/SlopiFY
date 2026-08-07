@@ -21,10 +21,10 @@ export default function Library() {
   useEffect(() => {
     let isMounted = true
 
-    // Maximum 400ms skeleton loading duration cap
+    // Maximum 2s skeleton loading duration cap (accounts for async Firebase init)
     const skeletonTimer = setTimeout(() => {
       if (isMounted) setLoading(false)
-    }, 400)
+    }, 2000)
 
     const unsubscribe = subscribeToLibrary(
       (liveSongs) => {
