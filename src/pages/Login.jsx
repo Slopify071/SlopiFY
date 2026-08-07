@@ -80,17 +80,7 @@ export default function Login() {
         {/* Header */}
         <div className="login-header">
           <div className="login-logo-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <defs>
-                <linearGradient id="loginLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#6366F1" />
-                  <stop offset="100%" stopColor="#8B5CF6" />
-                </linearGradient>
-              </defs>
-              <circle cx="12" cy="12" r="10" stroke="url(#loginLogoGrad)" strokeWidth="2" fill="none" />
-              <circle cx="12" cy="12" r="3" fill="url(#loginLogoGrad)" />
-              <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#loginLogoGrad)" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <img src="/logo.png" alt="SlopiFY" width="56" height="56" style={{ borderRadius: '12px' }} />
           </div>
           <h1 className="login-title">{isSignUp ? 'Create an Account' : 'Welcome Back!'}</h1>
           <p className="login-subtitle">
