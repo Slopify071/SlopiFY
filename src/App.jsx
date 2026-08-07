@@ -13,24 +13,14 @@ const Playlists = lazy(() => import('./pages/Playlists'))
 const PlaylistDetail = lazy(() => import('./pages/PlaylistDetail'))
 
 function PageFallback() {
-  return (
-    <div className="app-loading-screen">
-      <div className="spinner" />
-      <p>Loading...</p>
-    </div>
-  )
+  return null
 }
 
 function PublicOnlyRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="app-loading-screen">
-        <div className="spinner" />
-        <p>Loading SlopiFY...</p>
-      </div>
-    )
+    return null
   }
 
   if (isAuthenticated) {
@@ -44,12 +34,7 @@ function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="app-loading-screen">
-        <div className="spinner" />
-        <p>Loading SlopiFY...</p>
-      </div>
-    )
+    return null
   }
 
   if (!isAuthenticated) {
