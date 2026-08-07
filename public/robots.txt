@@ -3,4 +3,4 @@ Allow: /
 
 # Sitemaps
 Sitemap: https://slopify-nu.vercel.app/sitemap.xml
-Sitemap: https://slopify.homiez.workers.dev/llms.txt
+Sitemap: https://slopify-nu.vercel.app/llms.txt
