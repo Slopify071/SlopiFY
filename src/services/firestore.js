@@ -1,20 +1,19 @@
-import {
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-} from 'firebase/firestore'
+// NOTE: firebase/firestore is intentionally NOT statically imported here.
+// A static import would pull the entire Firestore SDK (~140 KiB) into the
+// initial JavaScript bundle and block first paint on every page — even the
+// login page — where none of it is needed yet.
+// Instead, every function below uses `await import('firebase/firestore')` which
+// Vite code-splits into a separate chunk loaded only when first used.
 import { db, auth, isFirebaseConfigured, initFirebase } from '../config/firebase'
 import { deleteAudioFile } from './storage'
+
+// Lazily resolved module reference — cached after first dynamic import so
+// subsequent calls are synchronous (the promise resolves from module cache).
+let _fsModule = null
+async function fs() {
+  if (!_fsModule) _fsModule = import('firebase/firestore')
+  return _fsModule
+}
 
 /**
  * Sync user info to Firestore collection `users/{uid}` on login
@@ -24,6 +23,7 @@ export async function syncUser(user) {
 
   try {
     const syncWork = async () => {
+      const { doc, getDoc, setDoc, serverTimestamp } = await fs()
       const userRef = doc(db, 'users', user.uid)
       const userDoc = await getDoc(userRef)
 
@@ -47,15 +47,12 @@ export async function syncUser(user) {
     const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2500))
     return await Promise.race([syncWork(), timeout])
   } catch (error) {
-    console.error('Error syncing user to Firestore:', error)
     return null
   }
 }
 
 /**
  * Subscribe to communal songs library in real-time directly from Firestore.
- * Awaits Firebase initialisation so the listener is never skipped due to a
- * race between lazy SDK init and component mount.
  */
 export function subscribeToLibrary(onNext, onError) {
   if (!isFirebaseConfigured) {
@@ -66,8 +63,9 @@ export function subscribeToLibrary(onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then((fb) => {
+  initFirebase().then(async (fb) => {
     if (cancelled) return
+    const { collection, onSnapshot } = await fs()
     const fireDb = fb?.db || db
     if (!fireDb) {
       onNext([])
@@ -100,21 +98,17 @@ export function subscribeToLibrary(onNext, onError) {
           onNext(sortedSongs)
         },
         (err) => {
-          console.error('Error listening to songs collection:', err)
           onNext([])
           if (onError) onError(err)
         }
       )
     } catch (err) {
-      console.error('Failed to attach library listener:', err)
       onNext([])
     }
-  }).catch((err) => {
-    console.error('Firebase init failed for library subscription:', err)
+  }).catch(() => {
     if (!cancelled) onNext([])
   })
 
-  // Return cleanup function
   return () => {
     cancelled = true
     if (unsubSnapshot) unsubSnapshot()
@@ -133,8 +127,9 @@ export function subscribeToStorageMeta(onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then((fb) => {
+  initFirebase().then(async (fb) => {
     if (cancelled) return
+    const { doc, onSnapshot } = await fs()
     const fireDb = fb?.db || db
     if (!fireDb) {
       onNext({ totalBytesUsed: 0, songCount: 0 })
@@ -154,16 +149,13 @@ export function subscribeToStorageMeta(onNext, onError) {
           }
         },
         (err) => {
-          console.error('Error listening to storage_meta:', err)
           if (onError) onError(err)
         }
       )
     } catch (err) {
-      console.error('Failed to attach storage meta listener:', err)
       onNext({ totalBytesUsed: 0, songCount: 0 })
     }
-  }).catch((err) => {
-    console.error('Firebase init failed for storage meta subscription:', err)
+  }).catch(() => {
     if (!cancelled) onNext({ totalBytesUsed: 0, songCount: 0 })
   })
 
@@ -197,7 +189,7 @@ export async function addSongToFirestore(songData) {
     throw new Error('Firebase is not configured')
   }
 
-  const { increment } = await import('firebase/firestore')
+  const { collection, addDoc, doc, setDoc, serverTimestamp, increment } = await fs()
   const songsRef = collection(db, 'songs')
 
   const docRef = await addDoc(songsRef, {
@@ -205,7 +197,6 @@ export async function addSongToFirestore(songData) {
     uploadedAt: serverTimestamp(),
   })
 
-  // Increment global storage tracking
   try {
     const metaRef = doc(db, 'storage_meta', 'global')
     await setDoc(
@@ -218,7 +209,7 @@ export async function addSongToFirestore(songData) {
       { merge: true }
     )
   } catch (metaErr) {
-    console.warn('Could not update storage_meta metrics:', metaErr)
+    // non-critical
   }
 
   return docRef.id
@@ -233,28 +224,22 @@ export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSiz
   }
 
   try {
-    const { increment } = await import('firebase/firestore')
-    
-    // 1. Delete audio file from Cloudinary via server-side Worker
+    const { doc, deleteDoc, setDoc, serverTimestamp, increment } = await fs()
+
     if (storagePathOrSong) {
-      // Get Firebase Auth token for Worker authentication
       let authToken = null
       try {
         const currentUser = auth?.currentUser
         if (currentUser) {
           authToken = await currentUser.getIdToken()
         }
-      } catch (tokenErr) {
-        console.warn('Could not get auth token for Cloudinary delete:', tokenErr)
-      }
+      } catch { /* ignore */ }
       await deleteAudioFile(storagePathOrSong, authToken)
     }
 
-    // 2. Delete Firestore song document
     const songRef = doc(db, 'songs', songId)
     await deleteDoc(songRef)
 
-    // 3. Decrement global storage metrics
     const effectiveFileSize = typeof storagePathOrSong === 'object' ? (storagePathOrSong.fileSize || fileSize) : fileSize
     try {
       const metaRef = doc(db, 'storage_meta', 'global')
@@ -267,13 +252,10 @@ export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSiz
         },
         { merge: true }
       )
-    } catch (metaErr) {
-      console.warn('Could not decrement storage_meta metrics:', metaErr)
-    }
+    } catch { /* non-critical */ }
 
     return { success: true }
   } catch (err) {
-    console.error('Error deleting song from Firestore:', err)
     throw err
   }
 }
@@ -283,36 +265,25 @@ export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSiz
  */
 export async function updateSongInFirestore(songId, updates) {
   if (!isFirebaseConfigured || !db || !songId) return
-
+  const { doc, updateDoc } = await fs()
   try {
     const songRef = doc(db, 'songs', songId)
     await updateDoc(songRef, updates)
   } catch (err) {
-    console.error('Error updating song in Firestore:', err)
     throw err
   }
 }
 
 /**
  * Save active user playback session for cross-device sync
- * Writes to `users/{uid}/session/current`
  */
 export async function saveUserSession(uid, sessionData) {
   if (!isFirebaseConfigured || !db || !uid) return
-
+  const { doc, setDoc, serverTimestamp } = await fs()
   try {
     const sessionRef = doc(db, 'users', uid, 'session', 'current')
-    await setDoc(
-      sessionRef,
-      {
-        ...sessionData,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    )
-  } catch (err) {
-    console.warn('Could not save user playback session:', err)
-  }
+    await setDoc(sessionRef, { ...sessionData, updatedAt: serverTimestamp() }, { merge: true })
+  } catch { /* non-critical */ }
 }
 
 /**
@@ -326,8 +297,9 @@ export function subscribeToUserSession(uid, onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then((fb) => {
+  initFirebase().then(async (fb) => {
     if (cancelled) return
+    const { doc, onSnapshot } = await fs()
     const fireDb = fb?.db || db
     if (!fireDb) return
 
@@ -342,16 +314,11 @@ export function subscribeToUserSession(uid, onNext, onError) {
           }
         },
         (err) => {
-          console.error('Error listening to user playback session:', err)
           if (onError) onError(err)
         }
       )
-    } catch (err) {
-      console.error('Failed to attach user playback session listener:', err)
-    }
-  }).catch((err) => {
-    console.error('Firebase init failed for session subscription:', err)
-  })
+    } catch { /* ignore */ }
+  }).catch(() => {})
 
   return () => {
     cancelled = true
@@ -383,8 +350,9 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then((fb) => {
+  initFirebase().then(async (fb) => {
     if (cancelled) return
+    const { collection, onSnapshot } = await fs()
     const fireDb = fb?.db || db
     if (!fireDb) {
       onNext([])
@@ -402,7 +370,6 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
             ...docSnap.data(),
           }))
 
-          // Filter playlists owned by user, anonymous/unowned, public or collaborative playlists
           const userPlaylists = playlists.filter(
             (p) =>
               !userUid ||
@@ -423,17 +390,14 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
           onNext(userPlaylists)
         },
         (err) => {
-          console.error('Error subscribing to playlists:', err)
           onNext([])
           if (onError) onError(err)
         }
       )
-    } catch (err) {
-      console.error('Failed to attach playlists listener:', err)
+    } catch {
       onNext([])
     }
-  }).catch((err) => {
-    console.error('Firebase init failed for playlists subscription:', err)
+  }).catch(() => {
     if (!cancelled) onNext([])
   })
 
@@ -455,8 +419,9 @@ export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then((fb) => {
+  initFirebase().then(async (fb) => {
     if (cancelled) return
+    const { doc, onSnapshot, collection, query, where, getDocs } = await fs()
     const fireDb = fb?.db || db
     if (!fireDb) {
       onNext(null)
@@ -473,7 +438,6 @@ export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
           if (docSnap.exists()) {
             onNext({ id: docSnap.id, ...docSnap.data() })
           } else {
-            // If not found by direct ID, search by shareCode
             try {
               const q = query(collection(fireDb, 'playlists'), where('shareCode', '==', idOrShareCode))
               const querySnap = await getDocs(q)
@@ -483,23 +447,19 @@ export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
               } else {
                 onNext(null)
               }
-            } catch (e) {
-              console.error('Error querying playlist by shareCode:', e)
+            } catch {
               onNext(null)
             }
           }
         },
         (err) => {
-          console.error('Error subscribing to playlist detail:', err)
           if (onError) onError(err)
         }
       )
-    } catch (err) {
-      console.error('Failed to attach playlist detail listener:', err)
+    } catch {
       onNext(null)
     }
-  }).catch((err) => {
-    console.error('Firebase init failed for playlist detail subscription:', err)
+  }).catch(() => {
     if (!cancelled) onNext(null)
   })
 
@@ -517,6 +477,7 @@ export async function createPlaylist({ name, description = '', coverUrl = '', ow
     throw new Error('Firebase is not configured')
   }
 
+  const { collection, addDoc, serverTimestamp } = await fs()
   const shareCode = generateShareCode()
   const payload = {
     name: name.trim() || 'Untitled Playlist',
@@ -540,12 +501,10 @@ export async function createPlaylist({ name, description = '', coverUrl = '', ow
  */
 export async function deletePlaylist(playlistId) {
   if (!isFirebaseConfigured || !db || !playlistId) return
-
+  const { doc, deleteDoc } = await fs()
   try {
-    const docRef = doc(db, 'playlists', playlistId)
-    await deleteDoc(docRef)
+    await deleteDoc(doc(db, 'playlists', playlistId))
   } catch (err) {
-    console.error('Error deleting playlist:', err)
     throw err
   }
 }
@@ -555,15 +514,13 @@ export async function deletePlaylist(playlistId) {
  */
 export async function updatePlaylistCover(playlistId, coverUrl) {
   if (!isFirebaseConfigured || !db || !playlistId) return
-
+  const { doc, updateDoc, serverTimestamp } = await fs()
   try {
-    const playlistRef = doc(db, 'playlists', playlistId)
-    await updateDoc(playlistRef, {
+    await updateDoc(doc(db, 'playlists', playlistId), {
       coverUrl: coverUrl || '',
       updatedAt: serverTimestamp(),
     })
   } catch (err) {
-    console.error('Error updating playlist cover:', err)
     throw err
   }
 }
@@ -573,7 +530,7 @@ export async function updatePlaylistCover(playlistId, coverUrl) {
  */
 export async function addSongToPlaylist(playlistId, song) {
   if (!isFirebaseConfigured || !db || !playlistId || !song) return
-
+  const { doc, getDoc, updateDoc, serverTimestamp } = await fs()
   try {
     const playlistRef = doc(db, 'playlists', playlistId)
     const snap = await getDoc(playlistRef)
@@ -581,11 +538,7 @@ export async function addSongToPlaylist(playlistId, song) {
 
     const data = snap.data()
     const songs = data.songs || []
-    
-    // Avoid duplicate song addition
-    if (songs.some((s) => s.id === song.id)) {
-      return
-    }
+    if (songs.some((s) => s.id === song.id)) return
 
     const cleanSong = {
       id: song.id,
@@ -603,7 +556,6 @@ export async function addSongToPlaylist(playlistId, song) {
       updatedAt: serverTimestamp(),
     })
   } catch (err) {
-    console.error('Error adding song to playlist:', err)
     throw err
   }
 }
@@ -613,22 +565,18 @@ export async function addSongToPlaylist(playlistId, song) {
  */
 export async function removeSongFromPlaylist(playlistId, songId) {
   if (!isFirebaseConfigured || !db || !playlistId || !songId) return
-
+  const { doc, getDoc, updateDoc, serverTimestamp } = await fs()
   try {
     const playlistRef = doc(db, 'playlists', playlistId)
     const snap = await getDoc(playlistRef)
     if (!snap.exists()) return
 
     const data = snap.data()
-    const songs = data.songs || []
-    const updatedSongs = songs.filter((s) => s.id !== songId)
-
     await updateDoc(playlistRef, {
-      songs: updatedSongs,
+      songs: (data.songs || []).filter((s) => s.id !== songId),
       updatedAt: serverTimestamp(),
     })
   } catch (err) {
-    console.error('Error removing song from playlist:', err)
     throw err
   }
 }
@@ -638,15 +586,13 @@ export async function removeSongFromPlaylist(playlistId, songId) {
  */
 export async function reorderPlaylistSongs(playlistId, reorderedSongs) {
   if (!isFirebaseConfigured || !db || !playlistId) return
-
+  const { doc, updateDoc, serverTimestamp } = await fs()
   try {
-    const playlistRef = doc(db, 'playlists', playlistId)
-    await updateDoc(playlistRef, {
+    await updateDoc(doc(db, 'playlists', playlistId), {
       songs: reorderedSongs,
       updatedAt: serverTimestamp(),
     })
   } catch (err) {
-    console.error('Error reordering playlist songs:', err)
     throw err
   }
 }
@@ -656,15 +602,13 @@ export async function reorderPlaylistSongs(playlistId, reorderedSongs) {
  */
 export async function togglePlaylistCollaboration(playlistId, isCollaborative) {
   if (!isFirebaseConfigured || !db || !playlistId) return
-
+  const { doc, updateDoc, serverTimestamp } = await fs()
   try {
-    const playlistRef = doc(db, 'playlists', playlistId)
-    await updateDoc(playlistRef, {
+    await updateDoc(doc(db, 'playlists', playlistId), {
       isCollaborative: Boolean(isCollaborative),
       updatedAt: serverTimestamp(),
     })
   } catch (err) {
-    console.error('Error toggling playlist collaboration:', err)
     throw err
   }
 }
