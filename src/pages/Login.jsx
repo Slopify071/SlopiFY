@@ -80,11 +80,7 @@ export default function Login() {
         {/* Header */}
         <div className="login-header">
           <div className="login-logo-icon">
-            <svg width="56" height="56" viewBox="0 0 512 512" fill="none">
-              <rect width="512" height="512" rx="120" fill="#000000" />
-              <path d="M 224 128 L 320 128 A 64 64 0 0 1 384 192 L 384 288 L 288 288 L 288 224 L 224 224 Z" fill="#FFFFFF" />
-              <path d="M 128 224 L 224 224 L 224 288 L 288 288 L 288 384 L 192 384 A 64 64 0 0 1 128 320 Z" fill="#FFFFFF" />
-            </svg>
+            <img src="/logo.png" alt="SlopiFY" width="56" height="56" style={{ borderRadius: '12px' }} />
           </div>
           <h1 className="login-title">{isSignUp ? 'Create an Account' : 'Welcome Back!'}</h1>
           <p className="login-subtitle">

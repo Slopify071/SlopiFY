@@ -29,7 +29,7 @@ export default defineConfig(({ command }) => ({
       devOptions: {
         enabled: true
       },
-      includeAssets: ['favicon.svg', 'favicon-32x32.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon-32x32.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'logo.png'],
       manifest: {
         name: 'SlopiFY',
         short_name: 'SlopiFY',
