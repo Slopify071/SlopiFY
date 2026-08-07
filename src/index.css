@@ -133,6 +133,9 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 html {
@@ -205,6 +208,8 @@ input, textarea, select {
   font-size: inherit;
   color: inherit;
   outline: none;
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 img, video {

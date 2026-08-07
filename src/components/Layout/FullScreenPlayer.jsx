@@ -190,21 +190,53 @@ export default function FullScreenPlayer() {
     let isMounted = true
     const fetchLrc = async () => {
       try {
-        const title = encodeURIComponent(currentSong.title.replace(/\([^)]*\)/g, '').trim())
-        const artist = encodeURIComponent((currentSong.artist || '').replace(/\([^)]*\)/g, '').trim())
-        const url = `https://lrclib.net/api/get?track_name=${title}${artist ? `&artist_name=${artist}` : ''}`
-        const res = await fetch(url)
+        let titleRaw = currentSong.title.replace(/\([^)]*\)/g, '').trim()
+        let artistRaw = (currentSong.artist || '').replace(/\([^)]*\)/g, '').trim()
+        
+        if (titleRaw.toLowerCase() === 'untitled') titleRaw = ''
+        if (artistRaw.toLowerCase() === 'unknown artist') artistRaw = ''
+        
+        if (!titleRaw && !artistRaw) {
+          if (isMounted) setFetchedLyrics(null)
+          return
+        }
+
+        const title = encodeURIComponent(titleRaw)
+        const artist = encodeURIComponent(artistRaw)
+        
+        let url = `https://lrclib.net/api/get?track_name=${title}${artist ? `&artist_name=${artist}` : ''}`
+        let res = await fetch(url)
+        let data = null
+        
         if (res.ok) {
-          const data = await res.json()
-          if (isMounted) {
-            if (data.syncedLyrics) {
-              setFetchedLyrics(parseLrc(data.syncedLyrics))
-            } else if (data.plainLyrics) {
-              const lines = data.plainLyrics.split('\n').filter((l) => l.trim())
-              const dur = effectiveDuration || 180
-              const step = dur / Math.max(1, lines.length)
-              setFetchedLyrics(lines.map((t, idx) => ({ time: Math.round(idx * step * 10) / 10, text: t })))
+          data = await res.json()
+        }
+        
+        if (!data || (!data.syncedLyrics && !data.plainLyrics)) {
+          // Fallback to search API
+          const searchQuery = encodeURIComponent(`${titleRaw} ${artistRaw}`.trim())
+          if (searchQuery) {
+            const searchUrl = `https://lrclib.net/api/search?q=${searchQuery}`
+            const searchRes = await fetch(searchUrl)
+            if (searchRes.ok) {
+              const searchData = await searchRes.json()
+              if (searchData && searchData.length > 0) {
+                data = searchData.find(item => item.syncedLyrics) || searchData[0]
+              }
             }
+          }
+        }
+
+        if (data && isMounted) {
+          if (data.syncedLyrics) {
+            setFetchedLyrics(parseLrc(data.syncedLyrics))
+          } else if (data.plainLyrics) {
+            const lines = data.plainLyrics.split('\n').filter((l) => l.trim())
+            const dur = effectiveDuration || 180
+            const step = dur / Math.max(1, lines.length)
+            setFetchedLyrics(lines.map((t, idx) => ({ time: Math.round(idx * step * 10) / 10, text: t })))
+          } else {
+            setFetchedLyrics(null)
           }
         }
       } catch (e) {

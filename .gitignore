@@ -8,6 +8,7 @@ coverage/
 
 # Production build
 dist/
+dev-dist/
 build/
 
 # Environment files
