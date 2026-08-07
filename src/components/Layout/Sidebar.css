@@ -5,9 +5,7 @@
 .sidebar {
   grid-column: 1;
   grid-row: 1;
-  background: rgba(10, 8, 20, 0.82);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  /* background + backdrop handled by LazyGlass / Glass component */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   height: calc(100vh - 32px);
