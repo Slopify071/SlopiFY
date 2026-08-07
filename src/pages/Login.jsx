@@ -97,7 +97,7 @@ export default function Login() {
               <path d="M12 2C6.48 2 2 6.48 2 12" stroke="url(#loginLogoGrad)" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <h1 className="login-title">{isSignUp ? 'Create an Account' : 'Welcome Back!'}</h1>
+          <h1 className="login-title">{isSignUp ? 'Create an Account' : 'Sign In'}</h1>
           <p className="login-subtitle">
             {isSignUp ? 'Join SlopiFY for private music streaming' : 'Sign in to continue your journey'}
           </p>
