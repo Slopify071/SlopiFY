@@ -59,8 +59,8 @@ export default function Sidebar({ onLogoutRequest }) {
           <div className="sidebar-logo-icon">
             <svg width="34" height="34" viewBox="0 0 512 512" fill="none">
               <rect width="512" height="512" rx="120" fill="#000000" />
-              <path d="M 210 120 L 340 120 A 50 50 0 0 1 390 170 L 390 300 L 300 300 L 300 210 L 210 210 Z" fill="#FFFFFF" />
-              <path d="M 120 210 L 210 210 L 210 300 L 300 300 L 300 390 L 170 390 A 50 50 0 0 1 120 340 Z" fill="#FFFFFF" />
+              <path d="M 224 128 L 320 128 A 64 64 0 0 1 384 192 L 384 288 L 288 288 L 288 224 L 224 224 Z" fill="#FFFFFF" />
+              <path d="M 128 224 L 224 224 L 224 288 L 288 288 L 288 384 L 192 384 A 64 64 0 0 1 128 320 Z" fill="#FFFFFF" />
             </svg>
           </div>
           <span className="sidebar-logo-text">SlopiFY</span>
