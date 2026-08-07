@@ -29,23 +29,25 @@ export default defineConfig(({ command }) => ({
       devOptions: {
         enabled: true
       },
-      includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['favicon.svg', 'favicon-32x32.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'SlopiFY',
         short_name: 'SlopiFY',
         description: 'Private music streaming for friends',
         theme_color: '#0c0a16',
-        background_color: '#0c0a16',
+        background_color: '#000000',
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }
