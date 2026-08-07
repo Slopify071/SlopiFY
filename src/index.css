@@ -152,6 +152,9 @@ body {
   font-weight: var(--weight-regular);
   color: var(--color-text-primary);
   background-color: #0c0a16;
+  background-image: url('/login-bg.png');
+  background-size: cover;
+  background-position: center;
   line-height: 1.6;
   width: 100%;
   max-width: 100vw;
