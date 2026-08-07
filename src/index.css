@@ -155,7 +155,6 @@ body {
   background-image: url('/login-bg.png');
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
   line-height: 1.6;
   width: 100%;
   max-width: 100vw;
