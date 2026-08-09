@@ -189,6 +189,58 @@ export async function deleteAudioFile(target, authToken) {
 }
 
 /**
+ * Delete a cover image from Cloudinary by its URL.
+ * Extracts the public_id from the Cloudinary URL and deletes it.
+ * @param {string} coverUrl - Full Cloudinary cover image URL
+ */
+export async function deleteCoverImage(coverUrl) {
+  if (!coverUrl || !CLOUD_NAME || !API_KEY || !API_SECRET) return { success: true }
+
+  // Extract public_id from URL like:
+  // https://res.cloudinary.com/o4qz7txk/image/upload/v123456/slopify_covers/filename
+  try {
+    const url = new URL(coverUrl)
+    const parts = url.pathname.split('/upload/')
+    if (parts.length < 2) return { success: true }
+
+    // After /upload/ there may be a version segment (v123456/) then the public_id
+    let afterUpload = parts[1]
+    // Strip version prefix if present (e.g. "v1234567890/")
+    afterUpload = afterUpload.replace(/^v\d+\//, '')
+    // Strip file extension
+    const publicId = afterUpload.replace(/\.[^/.]+$/, '')
+
+    if (!publicId) return { success: true }
+
+    const timestamp = Math.floor(Date.now() / 1000)
+    const toSign = `public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`
+    const signature = await sha1Hex(toSign)
+
+    const formData = new URLSearchParams()
+    formData.append('public_id', publicId)
+    formData.append('api_key', API_KEY)
+    formData.append('timestamp', timestamp.toString())
+    formData.append('signature', signature)
+
+    const destroyUrl = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`
+    const res = await fetch(destroyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString(),
+    })
+    const data = await res.json()
+    if (data.result === 'ok') {
+      console.log(`Cloudinary cover image "${publicId}" deleted successfully`)
+      return { success: true }
+    }
+  } catch (err) {
+    console.warn('deleteCoverImage failed:', err)
+  }
+
+  return { success: true }
+}
+
+/**
  * Get audio stream URL from song object or string
  * @param {Object|string} song
  */

@@ -30,7 +30,7 @@ export default defineConfig(({ command }) => ({
       // This removes ~510ms of blocking time from FCP/LCP critical path
       injectRegister: 'script-defer',
       devOptions: {
-        enabled: true
+        enabled: false
       },
       includeAssets: ['favicon-32x32.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'logo.png'],
       manifest: {
