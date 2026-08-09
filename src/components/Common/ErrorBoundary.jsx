@@ -14,8 +14,12 @@ export default class ErrorBoundary extends Component {
     console.error('SlopiFY App Error:', error, errorInfo)
     const msg = error?.message || ''
     if (msg.includes('preload') || msg.includes('CSS') || msg.includes('dynamically imported')) {
-      // Automatic recovery for stale chunk preload errors
-      this.handleReset()
+      // Auto-recover ONLY ONCE per session to prevent infinite reload loops
+      const hasAutoReloaded = sessionStorage.getItem('slopify_preload_auto_reloaded')
+      if (!hasAutoReloaded) {
+        sessionStorage.setItem('slopify_preload_auto_reloaded', 'true')
+        this.handleReset()
+      }
     }
   }
 
