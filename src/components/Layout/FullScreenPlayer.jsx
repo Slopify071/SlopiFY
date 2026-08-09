@@ -176,14 +176,14 @@ export default function FullScreenPlayer() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
+  // Clear lyrics when song changes
+  useEffect(() => {
+    setFetchedLyrics(null)
+  }, [currentSong?.id])
+
   // Fetch real synced lyrics from LRCLIB API if track has no custom lyrics
   useEffect(() => {
-    if (!currentSong?.title) {
-      setFetchedLyrics(null)
-      return
-    }
-    if (currentSong?.lyrics) {
-      setFetchedLyrics(null)
+    if (!currentSong?.title || currentSong?.lyrics) {
       return
     }
 
@@ -227,10 +227,10 @@ export default function FullScreenPlayer() {
           }
         }
 
-        if (data && isMounted) {
-          if (data.syncedLyrics) {
+        if (isMounted) {
+          if (data?.syncedLyrics) {
             setFetchedLyrics(parseLrc(data.syncedLyrics))
-          } else if (data.plainLyrics) {
+          } else if (data?.plainLyrics) {
             const lines = data.plainLyrics.split('\n').filter((l) => l.trim())
             const dur = effectiveDuration || 180
             const step = dur / Math.max(1, lines.length)
@@ -241,6 +241,7 @@ export default function FullScreenPlayer() {
         }
       } catch (e) {
         console.warn('LRCLIB lyrics fetch warning:', e)
+        if (isMounted) setFetchedLyrics(null)
       }
     }
     fetchLrc()
