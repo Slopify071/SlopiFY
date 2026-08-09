@@ -10,8 +10,10 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
   const [userPlaylists, setUserPlaylists] = useState([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [openAbove, setOpenAbove] = useState(false)
   const { showToast } = usePlayer()
   const menuRef = useRef(null)
+  const menuBtnRef = useRef(null)
 
   const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00'
@@ -33,6 +35,8 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
     }
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMenu])
+
+
 
   // Fetch playlists when playlist submenu opens
   useEffect(() => {
@@ -119,9 +123,16 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
 
       <div className={`song-card-menu-container ${showMenu ? 'is-active' : ''}`} ref={menuRef} onClick={(e) => e.stopPropagation()}>
         <button
+          ref={menuBtnRef}
           className="btn-icon library-song-more"
           aria-label="More options"
           onClick={() => {
+            if (!showMenu && menuBtnRef.current) {
+              const btnRect = menuBtnRef.current.getBoundingClientRect()
+              const spaceBelow = window.innerHeight - btnRect.bottom
+              // Estimated menu height (~220px) + bottom player (~90px)
+              setOpenAbove(spaceBelow < 310)
+            }
             setShowMenu(!showMenu)
             setShowPlaylistMenu(false)
           }}
@@ -134,7 +145,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
         </button>
 
         {showMenu && (
-          <div className="song-card-menu animate-fade-in-scale">
+          <div className={`song-card-menu animate-fade-in-scale ${openAbove ? 'song-card-menu--above' : ''}`}>
             <button className="song-menu-item" onClick={() => { onPlay && onPlay(song); setShowMenu(false); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="5 3 19 12 5 21 5 3" />
