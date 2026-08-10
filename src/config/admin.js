@@ -8,7 +8,7 @@
 
 // Fallback admin emails when VITE_ADMIN_EMAILS is not set.
 // Add your admin email(s) here for local development.
-const FALLBACK_ADMIN_EMAILS = []
+const FALLBACK_ADMIN_EMAILS = ['ishaanthakur49@gmail.com']
 
 /**
  * Returns the set of admin emails from env or fallback config.
