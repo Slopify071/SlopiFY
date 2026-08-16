@@ -156,71 +156,54 @@
       "status": "configured"
     },
     "object_storage": {
-      "provider": "Cloudflare R2",
-      "tier": "Free (10GB / $0 egress)",
-      "bucket_name": "slopify-audio",
-      "allowed_formats": [
-        ".mp3",
-        ".m4a",
-        ".wav",
-        ".ogg",
-        ".flac"
+      "primary": {
+        "provider": "MinIO S3 (Self-Hosted)",
+        "tier": "Self-Hosted (1TB HDD Laptop)",
+        "bucket_name": "slopify-audio",
+        "tunnel": "Cloudflare Quick Tunnel (cloudflared)",
+        "allowed_formats": [
+          ".mp3",
+          ".m4a",
+          ".wav",
+          ".ogg",
+          ".flac"
+        ],
+        "status": "configured"
+      },
+      "fallback": {
+        "provider": "Cloudinary",
+        "tier": "Free",
+        "status": "available"
+      }
+    },
+    "storage_tunnel_daemon": {
+      "provider": "Cloudflare Tunnel + Python Firestore Sync Daemon",
+      "entry_point": "laptop-daemon/slopify-tunnel-daemon.py",
+      "service_installer": "laptop-daemon/install-daemon.sh",
+      "features": [
+        "Automated Quick Tunnel creation over HTTP localhost:9000",
+        "Regex URL discovery (https://*.trycloudflare.com)",
+        "Authenticated REST sync to Firestore storage_meta/global",
+        "Heartbeat health monitoring and auto-restart on network disconnect"
       ],
       "status": "configured"
     },
     "cover_art_hosting": {
-      "provider": "Cloudinary",
-      "tier": "Free (25 credits/month)",
-      "cloud_name": "o4qz7txk",
-      "upload_preset": "slopify_preset",
-      "folder": "slopify_songs",
+      "provider": "MinIO S3 / Cloudinary",
+      "tier": "Free",
+      "folder": "slopify_covers",
       "features": [
-        "Unsigned browser upload for cover art",
-        "Server-side signed deletion via Worker API"
+        "Direct HTTP PUT to MinIO covers bucket path",
+        "Cloudinary unsigned upload fallback"
       ],
       "status": "configured"
     },
     "api_worker": {
-      "provider": "Cloudflare Workers",
+      "provider": "Cloudflare Workers (Legacy / Alternative)",
       "tier": "Free (100K requests/day)",
       "config_file": "worker/wrangler.toml",
       "entry_point": "worker/src/index.js",
       "r2_binding": "SLOPIFY_AUDIO_BUCKET",
-      "endpoints": [
-        {
-          "method": "OPTIONS",
-          "path": "*",
-          "description": "CORS preflight handler"
-        },
-        {
-          "method": "GET",
-          "path": "/api/storage-info",
-          "description": "Global R2 storage usage lookup (totalBytes, totalFiles)"
-        },
-        {
-          "method": "POST",
-          "path": "/api/upload",
-          "auth": true,
-          "description": "Authenticated audio file upload to R2 (multipart or binary)"
-        },
-        {
-          "method": "GET",
-          "path": "/api/audio/:r2Key",
-          "description": "Audio streaming with HTTP Range headers (206 Partial Content)"
-        },
-        {
-          "method": "DELETE",
-          "path": "/api/audio/:r2Key",
-          "auth": true,
-          "description": "Delete audio file from R2"
-        },
-        {
-          "method": "POST",
-          "path": "/api/cloudinary-delete",
-          "auth": true,
-          "description": "Server-side signed Cloudinary asset deletion"
-        }
-      ],
       "status": "configured"
     },
     "ci_cd": {
@@ -244,18 +227,19 @@
       "VITE_FIREBASE_MESSAGING_SENDER_ID",
       "VITE_FIREBASE_APP_ID",
       "VITE_FIREBASE_MEASUREMENT_ID",
+      "VITE_STORAGE_ENDPOINT",
       "VITE_CLOUDINARY_CLOUD_NAME",
       "VITE_CLOUDINARY_UPLOAD_PRESET",
       "VITE_CLOUDINARY_API_KEY",
       "VITE_CLOUDINARY_API_SECRET",
       "VITE_CLOUDFLARE_WORKER_URL"
     ],
-    "worker": [
-      "SLOPIFY_AUDIO_BUCKET (R2 binding)",
-      "CORS_ORIGIN",
-      "CLOUDINARY_CLOUD_NAME",
-      "CLOUDINARY_API_KEY",
-      "CLOUDINARY_API_SECRET"
+    "laptop_daemon": [
+      "FIREBASE_API_KEY",
+      "FIREBASE_PROJECT_ID",
+      "DAEMON_EMAIL",
+      "DAEMON_PASSWORD",
+      "LOCAL_MINIO_URL"
     ]
   },
   "file_map": {
@@ -325,6 +309,10 @@
       "src/pages/PlaylistDetail.css",
       "src/pages/Login.jsx",
       "src/pages/Login.css"
+    ],
+    "laptop_daemon": [
+      "laptop-daemon/slopify-tunnel-daemon.py",
+      "laptop-daemon/install-daemon.sh"
     ],
     "worker": [
       "worker/src/index.js",
