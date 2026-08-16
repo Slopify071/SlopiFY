@@ -91,7 +91,7 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
       <div className="library-song-index">{index + 1}</div>
       <div className="library-song-cover">
         {song.coverUrl ? (
-          <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" loading="lazy" decoding="async" />
+          <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" loading="lazy" decoding="async" width="44" height="44" />
         ) : (
           <div className="library-song-cover-placeholder">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

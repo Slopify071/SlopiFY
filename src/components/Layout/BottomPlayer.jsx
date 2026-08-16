@@ -218,6 +218,8 @@ export default function BottomPlayer() {
               alt="Cover"
               loading="eager"
               decoding="async"
+              width="52"
+              height="52"
               onError={() => setCoverError(true)}
             />
           ) : (

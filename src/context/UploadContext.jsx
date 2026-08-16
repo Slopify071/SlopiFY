@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { useAuth } from './AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
 import { addSongToFirestore, subscribeToStorageMeta, checkSongExists } from '../services/firestore'
+import { compressCoverImage } from '../utils/imageOptimizer'
 
 const UploadContext = createContext(null)
 
@@ -100,40 +101,64 @@ export function UploadProvider({ children }) {
 
     setFileList((prev) => [...prev, ...newItems])
 
-    // Parse ID3 metadata for each selected file in parallel
-    newItems.forEach(async (item) => {
-      let title = item.title
-      let artist = ''
-      let album = ''
-      let duration = 0
-      let coverUrl = ''
-      let pictureBlob = null
-
+    // Parse ID3 metadata using a controlled 3-worker concurrency pool to prevent high CPU / thermal spikes
+    const runWorkerPool = async () => {
+      let musicMetadata = null
       try {
-        const musicMetadata = await import('music-metadata')
-        const parsed = await musicMetadata.parseBlob(item.file)
-        if (parsed.common.title) title = parsed.common.title
-        if (parsed.common.artist) artist = parsed.common.artist
-        if (parsed.common.album) album = parsed.common.album
-        if (parsed.format.duration) duration = Math.round(parsed.format.duration)
-
-        if (parsed.common.picture && parsed.common.picture.length > 0) {
-          const pic = parsed.common.picture[0]
-          pictureBlob = new Blob([pic.data], { type: pic.format })
-          coverUrl = URL.createObjectURL(pictureBlob)
-        }
+        musicMetadata = await import('music-metadata')
       } catch (err) {
-        console.warn('ID3 parsing warning for ' + item.file.name, err)
-      } finally {
-        setFileList((prev) =>
-          prev.map((it) =>
-            it.id === item.id
-              ? { ...it, title, artist, album, duration, coverUrl, pictureBlob, parsing: false }
-              : it
-          )
-        )
+        console.warn('Failed to load music-metadata library:', err)
       }
-    })
+
+      let currentIndex = 0
+
+      const worker = async () => {
+        while (currentIndex < newItems.length) {
+          const item = newItems[currentIndex++]
+          if (!item) break
+
+          let title = item.title
+          let artist = ''
+          let album = ''
+          let duration = 0
+          let coverUrl = ''
+          let pictureBlob = null
+
+          if (musicMetadata) {
+            try {
+              const parsed = await musicMetadata.parseBlob(item.file)
+              if (parsed.common.title) title = parsed.common.title
+              if (parsed.common.artist) artist = parsed.common.artist
+              if (parsed.common.album) album = parsed.common.album
+              if (parsed.format.duration) duration = Math.round(parsed.format.duration)
+
+              if (parsed.common.picture && parsed.common.picture.length > 0) {
+                const pic = parsed.common.picture[0]
+                const rawBlob = new Blob([pic.data], { type: pic.format })
+                pictureBlob = await compressCoverImage(rawBlob, 500, 0.82)
+                coverUrl = URL.createObjectURL(pictureBlob)
+              }
+            } catch (err) {
+              console.warn('ID3 parsing warning for ' + item.file.name, err)
+            }
+          }
+
+          setFileList((prev) =>
+            prev.map((it) =>
+              it.id === item.id
+                ? { ...it, title, artist, album, duration, coverUrl, pictureBlob, parsing: false }
+                : it
+            )
+          )
+        }
+      }
+
+      const concurrency = Math.min(3, newItems.length)
+      const workers = Array.from({ length: concurrency }, () => worker())
+      await Promise.all(workers)
+    }
+
+    runWorkerPool()
   }, [])
 
   const handleMetadataChange = useCallback((id, field, value) => {

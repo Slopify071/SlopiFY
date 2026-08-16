@@ -55,6 +55,9 @@ export default function Library() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
+  const [visibleCount, setVisibleCount] = useState(35)
+  const loadMoreRef = useRef(null)
+
   // Filter songs based on search
   const filteredSongs = useMemo(() => {
     if (!searchQuery.trim()) return songs
@@ -66,6 +69,34 @@ export default function Library() {
         s.album?.toLowerCase().includes(q)
     )
   }, [songs, searchQuery])
+
+  // Reset pagination on search query change
+  useEffect(() => {
+    setVisibleCount(35)
+  }, [searchQuery])
+
+  // Progressive infinite scroll observer (loads 35 songs per batch)
+  useEffect(() => {
+    const sentinel = loadMoreRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => {
+            if (prev < filteredSongs.length) {
+              return Math.min(prev + 35, filteredSongs.length)
+            }
+            return prev
+          })
+        }
+      },
+      { rootMargin: '400px' }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [filteredSongs.length, visibleCount])
 
   // Search results for dropdown (max 5)
   const searchResults = useMemo(() => {
@@ -322,20 +353,42 @@ export default function Library() {
             Upload First Song
           </a>
         </div>
-      ) : (
-        <div className="library-song-list">
-          {songs.map((song, index) => (
-            <SongCard
-              key={song.id}
-              song={song}
-              index={index}
-              currentUserId={user?.uid}
-              onPlay={handlePlaySong}
-              onDelete={handleDeleteSong}
-              onEnqueue={enqueue}
-            />
-          ))}
+      ) : filteredSongs.length === 0 ? (
+        <div className="search-no-results animate-fade-in-up" style={{ padding: '60px 20px', textAlign: 'center' }}>
+          <p style={{ fontSize: '1.1rem', marginBottom: '12px' }}>No songs found matching "<strong>{searchQuery}</strong>"</p>
+          <button className="btn btn-secondary btn-sm" onClick={clearSearch}>Clear Search</button>
         </div>
+      ) : (
+        <>
+          <div className="library-song-list">
+            {filteredSongs.slice(0, visibleCount).map((song, index) => (
+              <SongCard
+                key={song.id}
+                song={song}
+                index={index}
+                currentUserId={user?.uid}
+                onPlay={handlePlaySong}
+                onDelete={handleDeleteSong}
+                onEnqueue={enqueue}
+              />
+            ))}
+          </div>
+
+          {/* Infinite Scroll Sentinel (loads next 35 tracks) */}
+          {visibleCount < filteredSongs.length && (
+            <div ref={loadMoreRef} className="library-load-more-sentinel" style={{ padding: '24px', textAlign: 'center', opacity: 0.7 }}>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                Loading more tracks ({Math.min(visibleCount, filteredSongs.length)} of {filteredSongs.length})...
+              </span>
+            </div>
+          )}
+
+          {filteredSongs.length > 35 && visibleCount >= filteredSongs.length && (
+            <div style={{ padding: '24px', textAlign: 'center', opacity: 0.5, fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+              All {filteredSongs.length} tracks loaded
+            </div>
+          )}
+        </>
       )}
     </div>
   )

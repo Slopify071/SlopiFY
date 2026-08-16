@@ -9,7 +9,7 @@ let globalAudio = null
 function getAudioElement() {
   if (!globalAudio && typeof window !== 'undefined') {
     globalAudio = new Audio()
-    globalAudio.preload = 'metadata'
+    globalAudio.preload = 'auto'
   }
   return globalAudio
 }
@@ -273,6 +273,7 @@ export function PlayerProvider({ children }) {
   const playPromiseRef = useRef(null)
   const isChangingSrcRef = useRef(false)
   const isSeekingAudioRef = useRef(false)
+  const pendingSeekRef = useRef(0)
   // Synchronous buffering flag — set directly in audio event handlers so
   // onTimeUpdate can gate on it with ZERO latency (no React render cycle).
   // The React state `isBuffering` is still dispatched for UI (spinner etc).
@@ -412,6 +413,23 @@ export function PlayerProvider({ children }) {
     return () => clearInterval(interval)
   }, [user?.uid, state.isPlaying])
 
+  // 3b. Buffering Watchdog — alerts user if audio stream stays stalled/buffering for > 8s
+  useEffect(() => {
+    if (!state.isPlaying || !state.isBuffering || !state.currentSong) return
+
+    const watchdogTimer = setTimeout(() => {
+      if (stateRef.current.isPlaying && isBufferingRef.current) {
+        console.warn('[Player] Audio stream buffering > 8s. Checking tunnel/storage connection...')
+        dispatch({
+          type: 'SHOW_TOAST',
+          payload: 'Audio is buffering slowly. Checking storage connection...',
+        })
+      }
+    }, 8000)
+
+    return () => clearTimeout(watchdogTimer)
+  }, [state.isPlaying, state.isBuffering, state.currentSong?.id])
+
   // 4. Real-time library subscription to sync deleted songs across player state
   const libraryLoadedOnceRef = useRef(false)
   useEffect(() => {
@@ -502,12 +520,17 @@ export function PlayerProvider({ children }) {
       isChangingSrcRef.current = true
       isBufferingRef.current = true
       audioDurationResolvedRef.current = false
+      if (typeof state.currentTime === 'number' && state.currentTime > 0) {
+        pendingSeekRef.current = state.currentTime
+      } else {
+        pendingSeekRef.current = 0
+      }
       try {
         audio.pause()
       } catch (e) {
         // ignore pause errors
       }
-      audio.currentTime = state.currentTime || 0
+      audio.preload = 'auto'
       audio.src = url
       audio.load()
     }
@@ -623,10 +646,28 @@ export function PlayerProvider({ children }) {
 
       updateDuration()
     }
-    const onLoadedMetadata = () => updateDuration()
-    const onDurationChange = () => updateDuration()
+    const applyPendingSeek = () => {
+      if (pendingSeekRef.current > 0 && audio.duration && isFinite(audio.duration)) {
+        try {
+          audio.currentTime = Math.max(0, Math.min(pendingSeekRef.current, audio.duration - 0.5))
+        } catch (e) {
+          // ignore
+        }
+        pendingSeekRef.current = 0
+      }
+    }
+
+    const onLoadedMetadata = () => {
+      updateDuration()
+      applyPendingSeek()
+    }
+    const onDurationChange = () => {
+      updateDuration()
+      applyPendingSeek()
+    }
     const onCanPlay = () => {
       updateDuration()
+      applyPendingSeek()
       isChangingSrcRef.current = false
       if (!stateRef.current.isPlaying) {
         isBufferingRef.current = false

@@ -1,12 +1,13 @@
 // Storage Service for SlopiFY
 // Supports Self-Hosted MinIO S3 Storage (1TB Laptop Backend) with Cloudflare Tunnel,
 // with Cloudinary and ObjectURL fallback modes.
+import { compressCoverImage } from '../utils/imageOptimizer'
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || ''
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || ''
 const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || ''
 const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET || ''
-const DEFAULT_ENDPOINT = import.meta.env.VITE_STORAGE_ENDPOINT || 'http://192.168.1.10:9000'
+const DEFAULT_ENDPOINT = import.meta.env.VITE_STORAGE_ENDPOINT || ''
 
 async function sha1Hex(str) {
   const encoder = new TextEncoder()
@@ -16,8 +17,30 @@ async function sha1Hex(str) {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+function isPrivateIpUrl(url) {
+  if (!url || typeof url !== 'string') return false
+  return /^(http:\/\/)?(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.0\.0\.1|localhost)/i.test(url.replace(/^https?:\/\//, ''))
+}
+
+function sanitizeEndpoint(url) {
+  if (!url) return ''
+  const clean = url.trim().replace(/\/+$/, '')
+  // On HTTPS web apps (Vercel), reject private HTTP LAN IPs to avoid Mixed Content and PNA browser warnings
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && isPrivateIpUrl(clean)) {
+    return ''
+  }
+  return clean
+}
+
 // Active MinIO Storage Endpoint (updated dynamically from Firestore storage_meta)
-let activeStorageEndpoint = (typeof localStorage !== 'undefined' && localStorage.getItem('slopify_storage_endpoint')) || DEFAULT_ENDPOINT
+let activeStorageEndpoint = ''
+if (typeof localStorage !== 'undefined') {
+  const cached = localStorage.getItem('slopify_storage_endpoint')
+  activeStorageEndpoint = sanitizeEndpoint(cached) || sanitizeEndpoint(DEFAULT_ENDPOINT)
+  if (!activeStorageEndpoint && cached) {
+    localStorage.removeItem('slopify_storage_endpoint')
+  }
+}
 
 /**
  * Update the active storage endpoint URL dynamically (e.g. from Firestore tunnel sync)
@@ -25,7 +48,7 @@ let activeStorageEndpoint = (typeof localStorage !== 'undefined' && localStorage
  */
 export function setStorageEndpoint(endpointUrl) {
   if (!endpointUrl) return
-  const cleanUrl = endpointUrl.trim().replace(/\/+$/, '')
+  const cleanUrl = sanitizeEndpoint(endpointUrl)
   if (cleanUrl && cleanUrl !== activeStorageEndpoint) {
     console.log('[Storage] Active storage endpoint updated:', cleanUrl)
     activeStorageEndpoint = cleanUrl
@@ -44,7 +67,7 @@ export function setStorageEndpoint(endpointUrl) {
  * @returns {string}
  */
 export function getStorageEndpoint() {
-  return activeStorageEndpoint || DEFAULT_ENDPOINT
+  return activeStorageEndpoint || sanitizeEndpoint(DEFAULT_ENDPOINT)
 }
 
 function sanitizeFilename(filename) {
@@ -179,6 +202,9 @@ async function uploadToCloudinaryOrLocal(file, defaultPath, onProgress) {
 export async function uploadCoverImage(imageBlob, user) {
   if (!imageBlob) return ''
 
+  // Compress and resize image before upload (converts multi-MB raw images to ~40-70KB)
+  const compressedBlob = await compressCoverImage(imageBlob)
+
   const endpoint = getStorageEndpoint()
   if (endpoint) {
     const timestamp = Date.now()
@@ -188,8 +214,8 @@ export async function uploadCoverImage(imageBlob, user) {
     try {
       const res = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': imageBlob.type || 'image/jpeg' },
-        body: imageBlob,
+        headers: { 'Content-Type': compressedBlob.type || 'image/jpeg' },
+        body: compressedBlob,
       })
       if (res.ok) {
         return uploadUrl
@@ -203,7 +229,7 @@ export async function uploadCoverImage(imageBlob, user) {
     try {
       const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
       const formData = new FormData()
-      formData.append('file', imageBlob)
+      formData.append('file', compressedBlob)
       formData.append('upload_preset', UPLOAD_PRESET)
       formData.append('folder', 'slopify_covers')
 

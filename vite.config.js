@@ -36,6 +36,49 @@ export default defineConfig(({ command }) => ({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        runtimeCaching: [
+          {
+            // Cache cover art from MinIO tunnel, Cloudinary, and image assets
+            urlPattern: ({ url }) =>
+              url.pathname.includes('/slopify-audio/covers/') ||
+              url.hostname.includes('cloudinary.com') ||
+              (url.pathname.match(/\.(?:png|jpg|jpeg|svg|webp)$/i) && !url.pathname.startsWith('/@')),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slopify-cover-art-cache',
+              expiration: {
+                maxEntries: 250,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            // Google Fonts stylesheets
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'google-fonts-stylesheets',
+            },
+          },
+          {
+            // Google Fonts webfont files
+            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 365 * 24 * 60 * 60, // 1 Year
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
       includeAssets: ['favicon-32x32.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'logo.png'],
       manifest: {

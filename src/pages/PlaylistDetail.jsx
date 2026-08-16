@@ -27,6 +27,8 @@ export default function PlaylistDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [copied, setCopied] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(35)
+  const loadMoreRef = useRef(null)
   const coverInputRef = useRef(null)
 
   useEffect(() => {
@@ -63,6 +65,30 @@ export default function PlaylistDetail() {
       unsubscribe()
     }
   }, [id])
+
+  // Progressive infinite scroll for large playlists
+  const songs = playlist?.songs || []
+  useEffect(() => {
+    const sentinel = loadMoreRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => {
+            if (prev < songs.length) {
+              return Math.min(prev + 35, songs.length)
+            }
+            return prev
+          })
+        }
+      },
+      { rootMargin: '400px' }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [songs.length, visibleCount])
 
   const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00'
@@ -237,8 +263,6 @@ export default function PlaylistDetail() {
     )
   }
 
-  const songs = playlist.songs || []
-
   return (
     <div className="page-content">
       {/* Hidden cover image input */}
@@ -258,7 +282,7 @@ export default function PlaylistDetail() {
           title={canEdit ? 'Click to change playlist cover photo' : playlist.name}
         >
           {playlist.coverUrl ? (
-            <img src={playlist.coverUrl} alt={playlist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+            <img src={playlist.coverUrl} alt={playlist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
           ) : (
             <div className="playlist-detail-cover-placeholder">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -406,78 +430,95 @@ export default function PlaylistDetail() {
           )}
         </div>
       ) : (
-        <div className="playlist-detail-songs">
-          {songs.map((song, index) => (
-            <div
-              key={song.id || index}
-              className="playlist-detail-song-row animate-fade-in-up"
-              style={{ animationDelay: `${(index + 2) * 40}ms` }}
-              onClick={() => playSong(song)}
-            >
-              <div className="playlist-detail-song-index">{index + 1}</div>
+        <>
+          <div className="playlist-detail-songs">
+            {songs.slice(0, visibleCount).map((song, index) => (
+              <div
+                key={song.id || index}
+                className="playlist-detail-song-row animate-fade-in-up"
+                style={{ animationDelay: `${(index + 2) * 40}ms` }}
+                onClick={() => playSong(song)}
+              >
+                <div className="playlist-detail-song-index">{index + 1}</div>
 
-              <div className="playlist-detail-song-cover">
-                {song.coverUrl ? (
-                  <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" loading="lazy" />
-                ) : (
-                  <div className="library-song-cover-placeholder">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 18V5l12-2v13" />
-                      <circle cx="6" cy="18" r="3" />
-                      <circle cx="18" cy="16" r="3" />
-                    </svg>
+                <div className="playlist-detail-song-cover">
+                  {song.coverUrl ? (
+                    <img src={song.coverUrl} alt={song.title} className="library-song-cover-img" loading="lazy" decoding="async" width="44" height="44" />
+                  ) : (
+                    <div className="library-song-cover-placeholder">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 18V5l12-2v13" />
+                        <circle cx="6" cy="18" r="3" />
+                        <circle cx="18" cy="16" r="3" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                <div className="playlist-detail-song-info">
+                  <span className="playlist-detail-song-title truncate">{song.title}</span>
+                  <span className="playlist-detail-song-artist truncate">{song.artist || 'Unknown Artist'}</span>
+                </div>
+
+                <span className="playlist-detail-song-duration">{formatDuration(song.duration)}</span>
+
+                {canEdit && (
+                  <div className="playlist-detail-reorder-btns" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="playlist-detail-reorder-btn"
+                      disabled={index === 0}
+                      onClick={(e) => handleMoveSong(e, index, -1)}
+                      aria-label="Move Up"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="18 15 12 9 6 15" />
+                      </svg>
+                    </button>
+                    <button
+                      className="playlist-detail-reorder-btn"
+                      disabled={index === songs.length - 1}
+                      onClick={(e) => handleMoveSong(e, index, 1)}
+                      aria-label="Move Down"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
                   </div>
                 )}
-              </div>
 
-              <div className="playlist-detail-song-info">
-                <span className="playlist-detail-song-title truncate">{song.title}</span>
-                <span className="playlist-detail-song-artist truncate">{song.artist || 'Unknown Artist'}</span>
-              </div>
-
-              <span className="playlist-detail-song-duration">{formatDuration(song.duration)}</span>
-
-              {canEdit && (
-                <div className="playlist-detail-reorder-btns" onClick={(e) => e.stopPropagation()}>
+                {canEdit && (
                   <button
-                    className="playlist-detail-reorder-btn"
-                    disabled={index === 0}
-                    onClick={(e) => handleMoveSong(e, index, -1)}
-                    aria-label="Move Up"
+                    className="btn-icon"
+                    style={{ color: 'var(--text-muted)', padding: 4 }}
+                    onClick={(e) => handleRemoveSong(e, song.id)}
+                    title="Remove from playlist"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="18 15 12 9 6 15" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                   </button>
-                  <button
-                    className="playlist-detail-reorder-btn"
-                    disabled={index === songs.length - 1}
-                    onClick={(e) => handleMoveSong(e, index, 1)}
-                    aria-label="Move Down"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
+            ))}
+          </div>
 
-              {canEdit && (
-                <button
-                  className="btn-icon"
-                  style={{ color: 'var(--text-muted)', padding: 4 }}
-                  onClick={(e) => handleRemoveSong(e, song.id)}
-                  title="Remove from playlist"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              )}
+          {/* Infinite Scroll Sentinel for large playlists */}
+          {visibleCount < songs.length && (
+            <div ref={loadMoreRef} className="playlist-load-more-sentinel" style={{ padding: '24px', textAlign: 'center', opacity: 0.7 }}>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                Loading more tracks ({Math.min(visibleCount, songs.length)} of {songs.length})...
+              </span>
             </div>
-          ))}
-        </div>
+          )}
+
+          {songs.length > 35 && visibleCount >= songs.length && (
+            <div style={{ padding: '24px', textAlign: 'center', opacity: 0.5, fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+              All {songs.length} tracks loaded
+            </div>
+          )}
+        </>
       )}
 
       <ConfirmModal
