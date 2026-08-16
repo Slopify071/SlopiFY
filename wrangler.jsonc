@@ -23,6 +23,7 @@
     "VITE_FIREBASE_MEASUREMENT_ID": "G-BCE6S5W6QX",
     "VITE_CLOUDINARY_CLOUD_NAME": "o4qz7txk",
     "VITE_CLOUDINARY_UPLOAD_PRESET": "slopify_preset",
-    "VITE_CLOUDFLARE_WORKER_URL": "http://127.0.0.1:8787"
+    "VITE_CLOUDFLARE_WORKER_URL": "http://127.0.0.1:8787",
+    "VITE_ADMIN_EMAILS": "ishaanthakur49@gmail.com"
   }
 }

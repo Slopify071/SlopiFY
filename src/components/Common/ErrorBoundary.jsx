@@ -12,15 +12,45 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('SlopiFY App Error:', error, errorInfo)
+    const msg = error?.message || ''
+    if (msg.includes('preload') || msg.includes('CSS') || msg.includes('dynamically imported')) {
+      // Auto-recover ONLY ONCE per session to prevent infinite reload loops
+      const hasAutoReloaded = sessionStorage.getItem('slopify_preload_auto_reloaded')
+      if (!hasAutoReloaded) {
+        sessionStorage.setItem('slopify_preload_auto_reloaded', 'true')
+        this.handleReset()
+      }
+    }
   }
 
-  handleReset = () => {
+  handleReset = async () => {
+    // Purge Service Worker registrations
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const reg of registrations) {
+          await reg.unregister()
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Purge CacheStorage caches
+    if ('caches' in window) {
+      try {
+        const keys = await caches.keys()
+        for (const key of keys) {
+          await caches.delete(key)
+        }
+      } catch { /* ignore */ }
+    }
+
     try {
       sessionStorage.clear()
       localStorage.removeItem('slopify_cached_user')
       localStorage.removeItem('slopify_demo_user')
     } catch { /* ignore */ }
-    window.location.href = '/login'
+
+    window.location.href = '/'
   }
 
   render() {

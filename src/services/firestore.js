@@ -762,3 +762,100 @@ export async function togglePlaylistCollaboration(playlistId, isCollaborative) {
     throw err
   }
 }
+
+/**
+ * Nuke the entire song library — delete every song's Cloudinary asset
+ * and Firestore document, then reset storage_meta/global to zero.
+ *
+ * Playlists are intentionally left intact (they will simply appear empty).
+ *
+ * @param {function} [onProgress] - Optional callback invoked as
+ *   onProgress({ completed, total, currentTitle, phase })
+ * @returns {Promise<{ deletedCount: number, freedBytes: number }>}
+ */
+export async function nukeLibrary(onProgress) {
+  if (!isFirebaseConfigured || !db) {
+    return { deletedCount: 0, freedBytes: 0 }
+  }
+
+  const { collection, getDocs, doc, deleteDoc, setDoc, serverTimestamp } = await fs()
+
+  // --- Phase 1: Fetch all songs ---
+  if (onProgress) onProgress({ completed: 0, total: 0, currentTitle: '', phase: 'fetching' })
+
+  const songsRef = collection(db, 'songs')
+  const snapshot = await getDocs(songsRef)
+  const songs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+  const total = songs.length
+
+  if (total === 0) {
+    return { deletedCount: 0, freedBytes: 0 }
+  }
+
+  // Get auth token once for all Cloudinary deletions
+  let authToken = null
+  try {
+    const currentUser = auth?.currentUser
+    if (currentUser) {
+      authToken = await currentUser.getIdToken()
+    }
+  } catch { /* ignore */ }
+
+  // --- Phase 2: Delete songs one-by-one ---
+  let completed = 0
+  let freedBytes = 0
+
+  for (const song of songs) {
+    if (onProgress) {
+      onProgress({ completed, total, currentTitle: song.title || 'Untitled', phase: 'deleting' })
+    }
+
+    // Delete Cloudinary audio asset (best-effort — don't let one failure stop the nuke)
+    try {
+      await deleteAudioFile(song, authToken)
+    } catch (err) {
+      console.warn(`nukeLibrary: Failed to delete Cloudinary audio for "${song.title}":`, err)
+    }
+
+    // Delete Cloudinary cover image if present
+    if (song.coverUrl) {
+      try {
+        await deleteCoverImage(song.coverUrl)
+      } catch (err) {
+        console.warn(`nukeLibrary: Failed to delete cover image for "${song.title}":`, err)
+      }
+    }
+
+    // Delete Firestore document
+    try {
+      await deleteDoc(doc(db, 'songs', song.id))
+    } catch (err) {
+      console.warn(`nukeLibrary: Failed to delete Firestore doc "${song.id}":`, err)
+    }
+
+    freedBytes += song.fileSize || 0
+    completed++
+  }
+
+  // --- Phase 3: Reset storage metadata ---
+  if (onProgress) {
+    onProgress({ completed, total, currentTitle: '', phase: 'cleanup' })
+  }
+
+  try {
+    const metaRef = doc(db, 'storage_meta', 'global')
+    await setDoc(metaRef, {
+      totalBytesUsed: 0,
+      songCount: 0,
+      lastUpdated: serverTimestamp(),
+    })
+  } catch (err) {
+    console.warn('nukeLibrary: Failed to reset storage_meta:', err)
+  }
+
+  if (onProgress) {
+    onProgress({ completed, total, currentTitle: '', phase: 'done' })
+  }
+
+  return { deletedCount: completed, freedBytes }
+}

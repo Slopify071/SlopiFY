@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PlayerProvider } from './context/PlayerContext'
 import { UploadProvider } from './context/UploadContext'
+import { isAdmin } from './config/admin'
 import AppShell from './components/Layout/AppShell'
 import './App.css'
 
@@ -12,6 +13,7 @@ const Library = lazy(() => import('./pages/Library'))
 const Upload = lazy(() => import('./pages/Upload'))
 const Playlists = lazy(() => import('./pages/Playlists'))
 const PlaylistDetail = lazy(() => import('./pages/PlaylistDetail'))
+const Admin = lazy(() => import('./pages/Admin'))
 
 function PageFallback() {
   return null
@@ -45,6 +47,24 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function AdminRoute({ children }) {
+  const { user, isAuthenticated, loading } = useAuth()
+
+  if (loading) {
+    return null
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (!isAdmin(user)) {
+    return <Navigate to="/library" replace />
+  }
+
+  return children
+}
+
 function AppRoutes() {
   const { isAuthenticated } = useAuth()
 
@@ -72,6 +92,14 @@ function AppRoutes() {
           <Route path="upload" element={<Upload />} />
           <Route path="playlists" element={<Playlists />} />
           <Route path="playlist/:id" element={<PlaylistDetail />} />
+          <Route
+            path="admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/library" replace />} />
         </Route>
       </Routes>

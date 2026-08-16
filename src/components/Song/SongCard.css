@@ -36,6 +36,13 @@
   gap: 2px;
 }
 
+.song-card-menu--above {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
 .song-menu-item {
   display: flex;
   align-items: center;
