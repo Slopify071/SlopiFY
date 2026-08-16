@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from './AuthContext'
-import { saveUserSession, subscribeToUserSession } from '../services/firestore'
+import { saveUserSession, subscribeToUserSession, subscribeToLibrary } from '../services/firestore'
 import { getAudioStreamUrl } from '../services/storage'
 
 const PlayerContext = createContext(null)
@@ -165,6 +165,96 @@ function playerReducer(state, action) {
         isPlaying: next ? true : state.isPlaying,
       }
     }
+    case 'PURGE_DELETED_SONG': {
+      const deletedSongId = action.payload
+      if (!deletedSongId) return state
+
+      const isCurrentDeleted = state.currentSong?.id === deletedSongId
+      const newQueue = state.queue.filter((s) => s.id !== deletedSongId)
+      const newHistory = state.history.filter((s) => s.id !== deletedSongId)
+
+      if (!isCurrentDeleted) {
+        if (newQueue.length === state.queue.length && newHistory.length === state.history.length) {
+          return state
+        }
+        return {
+          ...state,
+          queue: newQueue,
+          history: newHistory,
+        }
+      }
+
+      // Current song was deleted: Advance to next song in queue if available
+      if (newQueue.length > 0) {
+        const [nextSong, ...remainingQueue] = newQueue
+        return {
+          ...state,
+          currentSong: nextSong,
+          queue: remainingQueue,
+          history: newHistory,
+          currentTime: 0,
+          duration: nextSong?.duration || 0,
+          isPlaying: state.isPlaying,
+          isBuffering: false,
+        }
+      }
+
+      // No songs left in queue: close player
+      return {
+        ...state,
+        currentSong: null,
+        queue: [],
+        history: newHistory,
+        isPlaying: false,
+        isBuffering: false,
+        currentTime: 0,
+        duration: 0,
+      }
+    }
+    case 'PURGE_MISSING_SONGS': {
+      const validIds = action.payload
+      if (!validIds || typeof validIds.has !== 'function') return state
+
+      const isCurrentValid = !state.currentSong || validIds.has(state.currentSong.id)
+      const newQueue = state.queue.filter((s) => validIds.has(s.id))
+      const newHistory = state.history.filter((s) => validIds.has(s.id))
+
+      if (isCurrentValid) {
+        if (newQueue.length === state.queue.length && newHistory.length === state.history.length) {
+          return state
+        }
+        return {
+          ...state,
+          queue: newQueue,
+          history: newHistory,
+        }
+      }
+
+      if (newQueue.length > 0) {
+        const [nextSong, ...remainingQueue] = newQueue
+        return {
+          ...state,
+          currentSong: nextSong,
+          queue: remainingQueue,
+          history: newHistory,
+          currentTime: 0,
+          duration: nextSong?.duration || 0,
+          isPlaying: state.isPlaying,
+          isBuffering: false,
+        }
+      }
+
+      return {
+        ...state,
+        currentSong: null,
+        queue: [],
+        history: newHistory,
+        isPlaying: false,
+        isBuffering: false,
+        currentTime: 0,
+        duration: 0,
+      }
+    }
     case 'RESET_PLAYER':
       return {
         ...initialState,
@@ -321,6 +411,46 @@ export function PlayerProvider({ children }) {
 
     return () => clearInterval(interval)
   }, [user?.uid, state.isPlaying])
+
+  // 4. Real-time library subscription to sync deleted songs across player state
+  const libraryLoadedOnceRef = useRef(false)
+  useEffect(() => {
+    const unsubscribe = subscribeToLibrary((songs) => {
+      if (!Array.isArray(songs)) return
+      allSongsRef.current = songs
+
+      // Ignore before initial library load if library snapshot is empty
+      if (!libraryLoadedOnceRef.current) {
+        libraryLoadedOnceRef.current = true
+        if (songs.length === 0) return
+      }
+
+      const validIds = new Set(songs.map((s) => s.id))
+      const current = stateRef.current.currentSong
+      const isCurrentMissing = Boolean(current?.id && !validIds.has(current.id))
+      const hasMissingInQueue = stateRef.current.queue.some((s) => s?.id && !validIds.has(s.id))
+      const hasMissingInHistory = stateRef.current.history.some((s) => s?.id && !validIds.has(s.id))
+
+      if (isCurrentMissing) {
+        const audio = audioRef.current || getAudioElement()
+        if (audio) {
+          try {
+            audio.pause()
+            audio.removeAttribute('src')
+            audio.load()
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+
+      if (isCurrentMissing || hasMissingInQueue || hasMissingInHistory) {
+        dispatch({ type: 'PURGE_MISSING_SONGS', payload: validIds })
+      }
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   // Ensure singleton audio instance is configured
   useEffect(() => {
@@ -833,6 +963,23 @@ export function PlayerProvider({ children }) {
     dispatch({ type: 'UPDATE_CURRENT_SONG', payload: updates })
   }, [])
 
+  const purgeDeletedSong = useCallback((deletedSongId) => {
+    if (!deletedSongId) return
+    if (stateRef.current.currentSong?.id === deletedSongId) {
+      const audio = audioRef.current || getAudioElement()
+      if (audio) {
+        try {
+          audio.pause()
+          audio.removeAttribute('src')
+          audio.load()
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    dispatch({ type: 'PURGE_DELETED_SONG', payload: deletedSongId })
+  }, [])
+
   const value = {
     ...state,
     playSong,
@@ -856,6 +1003,7 @@ export function PlayerProvider({ children }) {
     showToast,
     hideToast,
     updateCurrentSong,
+    purgeDeletedSong,
   }
 
   return (
@@ -905,6 +1053,7 @@ export function usePlayer() {
       showToast: () => {},
       hideToast: () => {},
       updateCurrentSong: () => {},
+      purgeDeletedSong: () => {},
     }
   }
   return context

@@ -7,7 +7,7 @@ import './Library.css'
 
 export default function Library() {
   const { user } = useAuth()
-  const { playSong, playAll, enqueue, showToast } = usePlayer()
+  const { playSong, playAll, enqueue, showToast, purgeDeletedSong } = usePlayer()
   const [songs, setSongs] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -55,27 +55,23 @@ export default function Library() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  // Real-time filtered results — updates on every keystroke across title, artist, album, uploader
+  // Filter songs based on search
+  const filteredSongs = useMemo(() => {
+    if (!searchQuery.trim()) return songs
+    const q = searchQuery.toLowerCase().trim()
+    return songs.filter(
+      (s) =>
+        s.title?.toLowerCase().includes(q) ||
+        s.artist?.toLowerCase().includes(q) ||
+        s.album?.toLowerCase().includes(q)
+    )
+  }, [songs, searchQuery])
+
+  // Search results for dropdown (max 5)
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []
-    const query = searchQuery.toLowerCase()
-    return songs
-      .filter(
-        (song) =>
-          (song.title && song.title.toLowerCase().includes(query)) ||
-          (song.artist && song.artist.toLowerCase().includes(query)) ||
-          (song.album && song.album.toLowerCase().includes(query)) ||
-          (song.uploaderName && song.uploaderName.toLowerCase().includes(query))
-      )
-      .sort((a, b) => {
-        const aTitle = a.title?.toLowerCase().startsWith(query) ? 0 : 1
-        const bTitle = b.title?.toLowerCase().startsWith(query) ? 0 : 1
-        if (aTitle !== bTitle) return aTitle - bTitle
-        const aArtist = a.artist?.toLowerCase().startsWith(query) ? 0 : 1
-        const bArtist = b.artist?.toLowerCase().startsWith(query) ? 0 : 1
-        return aArtist - bArtist
-      })
-  }, [searchQuery, songs])
+    return filteredSongs.slice(0, 5)
+  }, [filteredSongs, searchQuery])
 
   // Show dropdown when we have a query AND input is focused
   const showDropdown = isSearchFocused && searchQuery.trim().length > 0
@@ -85,10 +81,15 @@ export default function Library() {
     setHighlightedIndex(-1)
   }, [searchResults])
 
-  // Close dropdown on click outside
+  // Close search dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(e.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
         setIsSearchFocused(false)
       }
     }
@@ -96,9 +97,9 @@ export default function Library() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Keyboard navigation inside the dropdown
+  // Keyboard navigation for search results
   const handleKeyDown = (e) => {
-    if (!showDropdown) return
+    if (!isSearchFocused || searchResults.length === 0) return
 
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -110,8 +111,17 @@ export default function Library() {
       setHighlightedIndex((prev) =>
         prev > 0 ? prev - 1 : searchResults.length - 1
       )
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (highlightedIndex >= 0 && highlightedIndex < searchResults.length) {
+        handlePlaySong(searchResults[highlightedIndex])
+        setIsSearchFocused(false)
+      } else if (searchResults.length > 0) {
+        handlePlaySong(searchResults[0])
+        setIsSearchFocused(false)
+      }
     } else if (e.key === 'Escape') {
-      clearSearch()
+      setIsSearchFocused(false)
     }
   }
 
@@ -143,6 +153,9 @@ export default function Library() {
 
   const handleDeleteSong = async (song) => {
     try {
+      if (song?.id) {
+        purgeDeletedSong(song.id)
+      }
       await deleteSongFromFirestore(song.id, song, song.fileSize)
       showToast(`Deleted "${song.title}"`)
     } catch (err) {

@@ -211,26 +211,78 @@ export async function uploadCoverImage(imageBlob, user) {
 }
 
 /**
- * Delete audio file asset
- * @param {string|Object} target - Storage path string OR song object with storagePath
+ * Delete a cover image asset from MinIO
+ * @param {string} coverUrlOrPath - Full cover URL or relative path
+ */
+export async function deleteCoverImage(coverUrlOrPath) {
+  if (!coverUrlOrPath || typeof coverUrlOrPath !== 'string') return { success: true }
+  if (coverUrlOrPath.startsWith('blob:') || coverUrlOrPath.startsWith('data:')) {
+    return { success: true }
+  }
+
+  const endpoint = getStorageEndpoint()
+  let coverPath = coverUrlOrPath
+
+  // If it's a full URL containing /slopify-audio/
+  if (coverPath.includes('/slopify-audio/')) {
+    const parts = coverPath.split('/slopify-audio/')
+    coverPath = parts[1] || ''
+  }
+
+  // Remove leading slashes and query params
+  coverPath = coverPath.replace(/^\/+/, '').split('?')[0]
+
+  if (endpoint && coverPath.startsWith('covers/')) {
+    try {
+      await fetch(`${endpoint}/slopify-audio/${coverPath}`, {
+        method: 'DELETE',
+      })
+      console.log(`[Storage] Deleted cover art: ${coverPath}`)
+      return { success: true }
+    } catch (e) {
+      console.warn('MinIO cover delete failed:', e)
+    }
+  }
+
+  return { success: true }
+}
+
+/**
+ * Delete audio file asset (and associated cover art if song object is provided)
+ * @param {string|Object} target - Storage path string OR song object with storagePath and optional coverUrl
  * @param {string} [authToken] - Optional Firebase Auth ID token
  */
 export async function deleteAudioFile(target, authToken) {
   if (!target) return { success: true }
 
   const storagePath = typeof target === 'string' ? target : (target.storagePath || target.r2Key || '')
-  if (!storagePath) return { success: true }
+  const coverUrl = typeof target === 'object' ? (target.coverUrl || target.coverPath || '') : ''
 
+  // 1. Delete audio file from MinIO
   const endpoint = getStorageEndpoint()
-  if (endpoint && storagePath.startsWith('songs/')) {
-    try {
-      await fetch(`${endpoint}/slopify-audio/${storagePath}`, {
-        method: 'DELETE',
-      })
-      return { success: true }
-    } catch (e) {
-      console.warn('MinIO delete failed:', e)
+  if (endpoint && storagePath) {
+    let cleanPath = storagePath
+    if (cleanPath.includes('/slopify-audio/')) {
+      const parts = cleanPath.split('/slopify-audio/')
+      cleanPath = parts[1] || ''
     }
+    cleanPath = cleanPath.replace(/^\/+/, '').split('?')[0]
+
+    if (cleanPath.startsWith('songs/')) {
+      try {
+        await fetch(`${endpoint}/slopify-audio/${cleanPath}`, {
+          method: 'DELETE',
+        })
+        console.log(`[Storage] Deleted audio track: ${cleanPath}`)
+      } catch (e) {
+        console.warn('MinIO audio delete failed:', e)
+      }
+    }
+  }
+
+  // 2. Delete cover art if associated with song
+  if (coverUrl) {
+    await deleteCoverImage(coverUrl)
   }
 
   return { success: true }

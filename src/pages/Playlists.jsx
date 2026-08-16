@@ -60,7 +60,7 @@ export default function Playlists() {
     const pl = playlistToDelete
     setPlaylistToDelete(null)
     try {
-      await deletePlaylist(pl.id)
+      await deletePlaylist(pl.id, pl)
       showToast(`Playlist "${pl.name}" deleted`)
     } catch (err) {
       console.error('Error deleting playlist:', err)

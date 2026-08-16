@@ -143,7 +143,7 @@ export default function PlaylistDetail() {
     setShowDeleteConfirm(false)
     if (!isOwner || !playlist) return
     try {
-      await deletePlaylist(playlist.id)
+      await deletePlaylist(playlist.id, playlist)
       showToast('Playlist deleted')
       navigate('/playlists')
     } catch (err) {

@@ -5,7 +5,7 @@
 // Instead, every function below uses `await import('firebase/firestore')` which
 // Vite code-splits into a separate chunk loaded only when first used.
 import { db, auth, isFirebaseConfigured, initFirebase } from '../config/firebase'
-import { deleteAudioFile, setStorageEndpoint } from './storage'
+import { deleteAudioFile, deleteCoverImage, setStorageEndpoint } from './storage'
 
 // Lazily resolved module reference — cached after first dynamic import so
 // subsequent calls are synchronous (the promise resolves from module cache).
@@ -276,7 +276,7 @@ export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSiz
   }
 
   try {
-    const { doc, deleteDoc, setDoc, serverTimestamp, increment } = await fs()
+    const { doc, deleteDoc, setDoc, serverTimestamp, increment, collection, getDocs, updateDoc } = await fs()
 
     if (storagePathOrSong) {
       let authToken = null
@@ -291,6 +291,23 @@ export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSiz
 
     const songRef = doc(db, 'songs', songId)
     await deleteDoc(songRef)
+
+    // Remove deleted song from all playlists in Firestore
+    try {
+      const playlistsSnap = await getDocs(collection(db, 'playlists'))
+      for (const pDoc of playlistsSnap.docs) {
+        const pData = pDoc.data()
+        if (Array.isArray(pData.songs) && pData.songs.some((s) => s.id === songId)) {
+          const cleaned = pData.songs.filter((s) => s.id !== songId)
+          await updateDoc(pDoc.ref, {
+            songs: cleaned,
+            updatedAt: serverTimestamp(),
+          })
+        }
+      }
+    } catch (e) {
+      console.warn('Playlist song cleanup warning:', e)
+    }
 
     const effectiveFileSize = typeof storagePathOrSong === 'object' ? (storagePathOrSong.fileSize || fileSize) : fileSize
     try {
@@ -391,6 +408,31 @@ function generateShareCode() {
 }
 
 /**
+ * Search songs by title or artist in Firestore
+ */
+export async function searchSongs(searchTerm) {
+  if (!isFirebaseConfigured || !db || !searchTerm) return []
+  const { collection, getDocs } = await fs()
+
+  const term = searchTerm.toLowerCase().trim()
+  const snapshot = await getDocs(collection(db, 'songs'))
+  const result = []
+
+  snapshot.forEach((doc) => {
+    const data = doc.data()
+    const titleMatch = data.title && data.title.toLowerCase().includes(term)
+    const artistMatch = data.artist && data.artist.toLowerCase().includes(term)
+    const albumMatch = data.album && data.album.toLowerCase().includes(term)
+
+    if (titleMatch || artistMatch || albumMatch) {
+      result.push({ id: doc.id, ...data })
+    }
+  })
+
+  return result
+}
+
+/**
  * Subscribe to playlists for current user directly from Firestore
  */
 export function subscribeToUserPlaylists(userUid, onNext, onError) {
@@ -404,7 +446,7 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
 
   initFirebase().then(async (fb) => {
     if (cancelled) return
-    const { collection, onSnapshot } = await fs()
+    const { collection, onSnapshot, getDocs, doc, updateDoc, serverTimestamp } = await fs()
     const fireDb = fb?.db || db
     if (!fireDb) {
       onNext([])
@@ -415,12 +457,40 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
       const playlistsRef = collection(fireDb, 'playlists')
       unsubSnapshot = onSnapshot(
         playlistsRef,
-        (snapshot) => {
+        async (snapshot) => {
           if (cancelled) return
-          const playlists = snapshot.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data(),
-          }))
+
+          // Fetch active song IDs to filter & auto-heal ghost songs in playlists
+          let validSongIds = null
+          try {
+            const songsSnap = await getDocs(collection(fireDb, 'songs'))
+            validSongIds = new Set(songsSnap.docs.map((d) => d.id))
+          } catch (e) {
+            // ignore
+          }
+
+          const playlists = snapshot.docs.map((docSnap) => {
+            const data = docSnap.data()
+            let songsList = Array.isArray(data.songs) ? data.songs : []
+
+            // Auto-heal if ghost songs are found in the playlist
+            if (validSongIds && songsList.length > 0) {
+              const cleaned = songsList.filter((s) => validSongIds.has(s.id))
+              if (cleaned.length !== songsList.length) {
+                songsList = cleaned
+                updateDoc(doc(fireDb, 'playlists', docSnap.id), {
+                  songs: cleaned,
+                  updatedAt: serverTimestamp(),
+                }).catch(() => {})
+              }
+            }
+
+            return {
+              id: docSnap.id,
+              ...data,
+              songs: songsList,
+            }
+          })
 
           const userPlaylists = playlists.filter(
             (p) =>
@@ -473,7 +543,7 @@ export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
 
   initFirebase().then(async (fb) => {
     if (cancelled) return
-    const { doc, onSnapshot, collection, query, where, getDocs } = await fs()
+    const { doc, onSnapshot, collection, query, where, getDocs, updateDoc, serverTimestamp } = await fs()
     const fireDb = fb?.db || db
     if (!fireDb) {
       onNext(null)
@@ -483,19 +553,43 @@ export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
     try {
       const docRefLocal = doc(fireDb, 'playlists', idOrShareCode)
 
+      const sanitizePlaylistData = async (playlistId, rawData) => {
+        if (!rawData) return null
+        let songsList = Array.isArray(rawData.songs) ? rawData.songs : []
+        if (songsList.length > 0) {
+          try {
+            const songsSnap = await getDocs(collection(fireDb, 'songs'))
+            const validSongIds = new Set(songsSnap.docs.map((d) => d.id))
+            const cleaned = songsList.filter((s) => validSongIds.has(s.id))
+            if (cleaned.length !== songsList.length) {
+              songsList = cleaned
+              updateDoc(doc(fireDb, 'playlists', playlistId), {
+                songs: cleaned,
+                updatedAt: serverTimestamp(),
+              }).catch(() => {})
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+        return { id: playlistId, ...rawData, songs: songsList }
+      }
+
       unsubSnapshot = onSnapshot(
         docRefLocal,
         async (docSnap) => {
           if (cancelled) return
           if (docSnap.exists()) {
-            onNext({ id: docSnap.id, ...docSnap.data() })
+            const sanitized = await sanitizePlaylistData(docSnap.id, docSnap.data())
+            onNext(sanitized)
           } else {
             try {
               const q = query(collection(fireDb, 'playlists'), where('shareCode', '==', idOrShareCode))
               const querySnap = await getDocs(q)
               if (!querySnap.empty) {
                 const matchedDoc = querySnap.docs[0]
-                onNext({ id: matchedDoc.id, ...matchedDoc.data() })
+                const sanitized = await sanitizePlaylistData(matchedDoc.id, matchedDoc.data())
+                onNext(sanitized)
               } else {
                 onNext(null)
               }
@@ -549,12 +643,16 @@ export async function createPlaylist({ name, description = '', coverUrl = '', ow
 }
 
 /**
- * Delete a playlist from Firestore
+ * Delete a playlist from Firestore and clean up cover image if hosted on MinIO
  */
-export async function deletePlaylist(playlistId) {
+export async function deletePlaylist(playlistId, playlistOrCoverUrl) {
   if (!isFirebaseConfigured || !db || !playlistId) return
   const { doc, deleteDoc } = await fs()
   try {
+    const coverUrl = typeof playlistOrCoverUrl === 'object' ? playlistOrCoverUrl?.coverUrl : (playlistOrCoverUrl || '')
+    if (coverUrl) {
+      await deleteCoverImage(coverUrl)
+    }
     await deleteDoc(doc(db, 'playlists', playlistId))
   } catch (err) {
     throw err
