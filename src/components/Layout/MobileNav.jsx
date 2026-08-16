@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useUpload } from '../../context/UploadContext'
 import './MobileNav.css'
 
 const MOBILE_NAV_ITEMS = [
@@ -43,6 +44,7 @@ const MOBILE_NAV_ITEMS = [
 
 export default function MobileNav({ onLogoutRequest }) {
   const { logout } = useAuth()
+  const { uploading } = useUpload()
   const handleLogout = onLogoutRequest || logout
 
   return (
@@ -55,7 +57,12 @@ export default function MobileNav({ onLogoutRequest }) {
             `mobile-nav-item ${isActive ? 'active' : ''}`
           }
         >
-          <span className="mobile-nav-icon">{item.icon}</span>
+          <span className="mobile-nav-icon">
+            {item.icon}
+            {item.path === '/upload' && uploading && (
+              <span className="mobile-upload-pulse-dot" />
+            )}
+          </span>
           <span className="mobile-nav-label">{item.label}</span>
         </NavLink>
       ))}

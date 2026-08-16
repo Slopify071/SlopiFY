@@ -61,6 +61,19 @@
     align-items: center;
     justify-content: center;
     transition: all var(--duration-fast) var(--ease-out);
+    position: relative;
+  }
+
+  .mobile-upload-pulse-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+    animation: upload-pulse 1.8s ease-in-out infinite;
   }
 
   .mobile-nav-icon svg {

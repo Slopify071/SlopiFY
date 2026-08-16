@@ -69,7 +69,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* Progress Bar */
+/* Storage Progress Bar */
 .progress-bar {
   height: 8px;
   width: 100%;
@@ -87,13 +87,259 @@
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
+/* ============================================================
+   Active Upload View (Focused, Uncluttered, High-Polish)
+   ============================================================ */
+.upload-active-card {
+  display: block;
+  width: 100%;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.upload-active-card-inner {
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.upload-active-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.upload-active-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #86efac;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.upload-active-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: upload-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes upload-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+    box-shadow: 0 0 12px #22c55e;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.upload-active-safe-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.upload-active-safe-hint svg {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.upload-active-batch-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.upload-active-title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.upload-active-percent-text {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overall Progress Bar */
+.upload-active-overall-bar {
+  height: 12px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-active-overall-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.85) 100%);
+  border-radius: 9999px;
+  transition: width 0.35s ease;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+}
+
+/* Current Track Box */
+.upload-active-track-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-active-track-media {
+  flex-shrink: 0;
+}
+
+.upload-active-track-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.upload-active-track-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.upload-active-track-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-active-track-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upload-active-track-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.upload-active-track-artist {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.upload-active-sub-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upload-active-sub-bar {
+  height: 6px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.upload-active-sub-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 9999px;
+  transition: width 0.2s ease-out;
+}
+
+.upload-active-sub-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stats Footer */
+.upload-active-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.upload-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.upload-stat-label {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.upload-stat-value {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- Dropzone --- */
 .upload-dropzone-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  margin-top: 56px;
+  margin-top: 24px;
   margin-bottom: var(--space-8);
 }
 
@@ -107,7 +353,7 @@
   background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: all 0.25s ease-out;
-  min-height: 320px;
+  min-height: 300px;
 }
 
 .upload-dropzone-inner {
@@ -386,6 +632,7 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+/* Success Card */
 .upload-success-card {
   display: block;
   width: 100%;
@@ -410,9 +657,9 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
   margin-bottom: var(--space-2);
 }
 
@@ -425,35 +672,16 @@
 .upload-success-card p {
   font-size: var(--text-base);
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
-.upload-progress-container {
+.upload-success-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
   margin-top: var(--space-2);
-}
-
-.upload-progress-bar {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.upload-progress-fill {
-  height: 100%;
-  background: #ffffff;
-  border-radius: 9999px;
-  transition: width 0.2s ease-out;
-}
-
-.upload-progress-text {
-  font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.7);
-  text-align: right;
-  font-weight: 500;
 }
 
 /* --- Mobile --- */
@@ -461,10 +689,20 @@
   .upload-storage,
   .upload-dropzone,
   .upload-metadata,
+  .upload-active-card,
   .upload-success-card {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  .upload-active-card-inner {
+    padding: var(--space-5) var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .upload-active-track-box {
+    padding: var(--space-4);
   }
 
   .upload-dropzone {

@@ -1,244 +1,29 @@
-import { useState, useEffect } from 'react'
-// music-metadata is lazy-loaded via dynamic import() on first file parse
-// to keep it out of the main bundle (~1MB savings)
-import { useAuth } from '../context/AuthContext'
-import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
-import { addSongToFirestore, subscribeToStorageMeta, checkSongExists } from '../services/firestore'
+import { Link } from 'react-router-dom'
+import { useUpload } from '../context/UploadContext'
 import './Upload.css'
 
 export default function Upload() {
-  const { user } = useAuth()
-  const [isDragging, setIsDragging] = useState(false)
-  const [fileList, setFileList] = useState([])
-  const [activeTrackIndex, setActiveTrackIndex] = useState(0)
-  const [uploading, setUploading] = useState(false)
-  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, percent: 0, stageText: '' })
-  const [uploadSuccess, setUploadSuccess] = useState(false)
-  const [completedCount, setCompletedCount] = useState(0)
-  const [error, setError] = useState(null)
-  const [storageMeta, setStorageMeta] = useState({ totalBytesUsed: 0, songCount: 0 })
-
-
-
-  useEffect(() => {
-    const unsubscribe = subscribeToStorageMeta((meta) => {
-      if (meta) setStorageMeta(meta)
-    })
-    return () => unsubscribe()
-  }, [])
-
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = () => {
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e) => {
-    e.preventDefault()
-    setIsDragging(false)
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFilesSelect(e.dataTransfer.files)
-    }
-  }
-
-  const handleFilesSelect = async (files) => {
-    if (!files || files.length === 0) return
-    setError(null)
-    setUploadSuccess(false)
-
-    const validFiles = Array.from(files).filter((file) =>
-      /\.(mp3|m4a|wav|ogg|flac)$/i.test(file.name)
-    )
-
-    if (validFiles.length === 0) {
-      setError('Please select valid audio files (.mp3, .m4a, .wav, .ogg, .flac).')
-      return
-    }
-
-    const newItems = validFiles.map((file) => {
-      const cleanName = file.name.replace(/\.[^/.]+$/, '')
-      return {
-        id: Math.random().toString(36).substring(2, 9) + '_' + Date.now(),
-        file,
-        title: cleanName,
-        artist: '',
-        album: '',
-        lyrics: '',
-        duration: 0,
-        coverUrl: '',
-        pictureBlob: null,
-        parsing: true,
-        status: 'pending', // 'pending' | 'uploading' | 'saving' | 'completed' | 'error'
-        progress: 0,
-      }
-    })
-
-    setFileList((prev) => [...prev, ...newItems])
-
-    // Parse ID3 metadata for each selected file in parallel
-    newItems.forEach(async (item) => {
-      let title = item.title
-      let artist = ''
-      let album = ''
-      let duration = 0
-      let coverUrl = ''
-      let pictureBlob = null
-
-      try {
-        const musicMetadata = await import('music-metadata')
-        const parsed = await musicMetadata.parseBlob(item.file)
-        if (parsed.common.title) title = parsed.common.title
-        if (parsed.common.artist) artist = parsed.common.artist
-        if (parsed.common.album) album = parsed.common.album
-        if (parsed.format.duration) duration = Math.round(parsed.format.duration)
-
-        if (parsed.common.picture && parsed.common.picture.length > 0) {
-          const pic = parsed.common.picture[0]
-          pictureBlob = new Blob([pic.data], { type: pic.format })
-          coverUrl = URL.createObjectURL(pictureBlob)
-        }
-      } catch (err) {
-        console.warn('ID3 parsing warning for ' + item.file.name, err)
-      } finally {
-        setFileList((prev) =>
-          prev.map((it) =>
-            it.id === item.id
-              ? { ...it, title, artist, album, duration, coverUrl, pictureBlob, parsing: false }
-              : it
-          )
-        )
-      }
-    })
-  }
-
-  const handleMetadataChange = (id, field, value) => {
-    setFileList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    )
-  }
-
-  const removeTrack = (id) => {
-    setFileList((prev) => {
-      const updated = prev.filter((item) => item.id !== id)
-      if (activeTrackIndex >= updated.length) {
-        setActiveTrackIndex(Math.max(0, updated.length - 1))
-      }
-      return updated
-    })
-  }
-
-  const handleUpload = async () => {
-    if (fileList.length === 0) return
-    setUploading(true)
-    setError(null)
-
-    let successCount = 0
-    const totalFiles = fileList.length
-
-    for (let i = 0; i < totalFiles; i++) {
-      const item = fileList[i]
-      setActiveTrackIndex(i)
-
-      setBatchProgress({
-        current: i + 1,
-        total: totalFiles,
-        percent: 0,
-        stageText: `Uploading track ${i + 1} of ${totalFiles}: "${item.title}"...`,
-      })
-
-      setFileList((prev) =>
-        prev.map((it, idx) => (idx === i ? { ...it, status: 'uploading', progress: 0 } : it))
-      )
-
-      try {
-        // 0. Check if song already exists in Firestore to prevent duplicate uploads
-        const exists = await checkSongExists(item.title, item.artist)
-        if (exists) {
-          setFileList((prev) =>
-            prev.map((it, idx) => (idx === i ? { ...it, status: 'completed', progress: 100 } : it))
-          )
-          console.log(`Skipped duplicate track: "${item.title}" by "${item.artist}"`)
-          continue // Skip uploading this file completely
-        }
-
-        // 1. Upload audio file to Firebase Storage
-        const result = await uploadAudioFile(item.file, user, (percent) => {
-          setFileList((prev) =>
-            prev.map((it, idx) =>
-              idx === i
-                ? {
-                    ...it,
-                    progress: percent,
-                    status: percent === 100 ? 'saving' : 'uploading',
-                  }
-                : it
-            )
-          )
-          setBatchProgress((prev) => ({
-            ...prev,
-            percent,
-            stageText:
-              percent === 100
-                ? `Saving track details ${i + 1} of ${totalFiles}...`
-                : `Uploading track ${i + 1} of ${totalFiles}: "${item.title}" (${percent}%)...`,
-          }))
-        })
-
-        const audioUrl = getAudioStreamUrl(result)
-
-        // Upload cover art blob if available to get permanent HTTPS URL
-        let finalCoverUrl = item.coverUrl || ''
-        if (item.pictureBlob) {
-          const uploadedCoverUrl = await uploadCoverImage(item.pictureBlob, user)
-          if (uploadedCoverUrl) finalCoverUrl = uploadedCoverUrl
-        }
-
-        // 2. Save song record to Firestore
-        await addSongToFirestore({
-          title: item.title || 'Untitled',
-          artist: item.artist || 'Unknown Artist',
-          album: item.album || '',
-          lyrics: item.lyrics || '',
-          duration: item.duration || 0,
-          storagePath: result.storagePath,
-          audioUrl: audioUrl,
-          coverUrl: finalCoverUrl,
-          fileSize: result.fileSize || item.file.size,
-          uploaderUid: user?.uid || 'anonymous',
-          uploaderName: user?.displayName || user?.email?.split('@')[0] || 'Friend',
-        })
-
-        successCount++
-        setFileList((prev) =>
-          prev.map((it, idx) => (idx === i ? { ...it, status: 'completed', progress: 100 } : it))
-        )
-      } catch (err) {
-        console.error(`Upload error for track "${item.title}":`, err)
-        setFileList((prev) =>
-          prev.map((it, idx) => (idx === i ? { ...it, status: 'error' } : it))
-        )
-        setError(`Failed uploading "${item.title}". ${err.message || ''}`)
-      }
-    }
-
-    setUploading(false)
-    if (successCount > 0) {
-      setCompletedCount(successCount)
-      setUploadSuccess(true)
-    }
-  }
-
-  const resetForm = () => {
-    setFileList([])
-    setActiveTrackIndex(0)
-    setUploadSuccess(false)
-    setCompletedCount(0)
-    setError(null)
-    setUploading(false)
-  }
+  const {
+    isDragging,
+    fileList,
+    activeTrackIndex,
+    setActiveTrackIndex,
+    uploading,
+    batchProgress,
+    uploadSuccess,
+    completedCount,
+    skippedCount,
+    error,
+    storageMeta,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleFilesSelect,
+    handleMetadataChange,
+    removeTrack,
+    handleUpload,
+    resetForm,
+  } = useUpload()
 
   const acceptedFormats = '.mp3,.m4a,.wav,.ogg,.flac'
   const totalStorageUsedGB = (storageMeta.totalBytesUsed / (1024 * 1024 * 1024)).toFixed(2)
@@ -286,7 +71,102 @@ export default function Upload() {
         </div>
       )}
 
-      {uploadSuccess ? (
+      {/* VIEW 1: ACTIVE UPLOADING (Clean, uncluttered, focused progress bar) */}
+      {uploading ? (
+        <div className="upload-active-card animate-fade-in-up">
+          <div className="upload-active-card-inner">
+            {/* Header Badge */}
+            <div className="upload-active-header">
+              <div className="upload-active-pulse-badge">
+                <span className="upload-active-pulse-dot" />
+                <span>Uploading in Background</span>
+              </div>
+              <span className="upload-active-safe-hint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                Safe to browse tabs
+              </span>
+            </div>
+
+            {/* Main Batch Headline */}
+            <div className="upload-active-batch-header">
+              <h2 className="upload-active-title">
+                Uploading Track {batchProgress.current} of {batchProgress.total}
+              </h2>
+              <span className="upload-active-percent-text">{batchProgress.overallPercent}%</span>
+            </div>
+
+            {/* Overall Progress Bar */}
+            <div className="upload-active-overall-bar">
+              <div
+                className="upload-active-overall-fill"
+                style={{ width: `${Math.max(2, Math.min(100, batchProgress.overallPercent))}%` }}
+              />
+            </div>
+
+            {/* Current Active Track Preview Card */}
+            <div className="upload-active-track-box">
+              <div className="upload-active-track-media">
+                {batchProgress.currentCoverUrl ? (
+                  <img
+                    src={batchProgress.currentCoverUrl}
+                    alt="Cover"
+                    className="upload-active-track-cover"
+                  />
+                ) : (
+                  <div className="upload-active-track-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18V5l12-2v13" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="16" r="3" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              <div className="upload-active-track-info">
+                <div className="upload-active-track-titles">
+                  <span className="upload-active-track-name truncate">
+                    {batchProgress.currentTrackTitle || 'Current Track'}
+                  </span>
+                  <span className="upload-active-track-artist truncate">
+                    {batchProgress.currentTrackArtist || 'Unknown Artist'}
+                    {batchProgress.currentFileSize > 0 &&
+                      ` • ${(batchProgress.currentFileSize / (1024 * 1024)).toFixed(2)} MB`}
+                  </span>
+                </div>
+
+                {/* Track Specific Sub-Progress Bar */}
+                <div className="upload-active-sub-progress">
+                  <div className="upload-active-sub-bar">
+                    <div
+                      className="upload-active-sub-fill"
+                      style={{ width: `${Math.max(1, Math.min(100, batchProgress.percent))}%` }}
+                    />
+                  </div>
+                  <span className="upload-active-sub-text">{batchProgress.stageText}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Counters */}
+            <div className="upload-active-stats">
+              <div className="upload-stat-item">
+                <span className="upload-stat-label">Uploaded</span>
+                <span className="upload-stat-value">{completedCount} / {batchProgress.total}</span>
+              </div>
+              {skippedCount > 0 && (
+                <div className="upload-stat-item">
+                  <span className="upload-stat-label">Duplicates Skipped</span>
+                  <span className="upload-stat-value">{skippedCount}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : uploadSuccess ? (
+        /* VIEW 2: UPLOAD SUCCESS */
         <div className="upload-success-card animate-fade-in-up">
           <div className="upload-success-card-inner">
             <div className="upload-success-icon">
@@ -297,14 +177,21 @@ export default function Upload() {
             </div>
             <h2>Upload Complete!</h2>
             <p>
-              {completedCount} {completedCount === 1 ? 'track has' : 'tracks have'} been added to the communal library.
+              {completedCount} {completedCount === 1 ? 'track has' : 'tracks have'} been added to your communal library.
+              {skippedCount > 0 && ` (${skippedCount} duplicate ${skippedCount === 1 ? 'track was' : 'tracks were'} skipped)`}
             </p>
-            <button className="btn btn-primary btn-lg" onClick={resetForm}>
-              Upload More Songs
-            </button>
+            <div className="upload-success-actions">
+              <button className="btn btn-primary btn-lg" onClick={resetForm}>
+                Upload More Songs
+              </button>
+              <Link to="/library" className="btn btn-secondary btn-lg" onClick={resetForm}>
+                Go to Library
+              </Link>
+            </div>
           </div>
         </div>
       ) : (
+        /* VIEW 3: SELECTION & METADATA EDITING */
         <>
           {/* Drop Zone */}
           <div className="upload-dropzone-wrapper">
@@ -383,9 +270,8 @@ export default function Upload() {
                         </span>
                       </div>
                       {item.status === 'completed' && <span className="upload-queue-status">✓ Completed</span>}
-                      {item.status === 'uploading' && <span className="upload-queue-status">Uploading... {item.progress}%</span>}
-                      {item.status === 'saving' && <span className="upload-queue-status">Saving...</span>}
-                      {item.status === 'pending' && !uploading && (
+                      {item.status === 'skipped' && <span className="upload-queue-status">Duplicate Skipped</span>}
+                      {item.status === 'pending' && (
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={(e) => {
@@ -416,7 +302,6 @@ export default function Upload() {
                         placeholder="Song title"
                         value={activeTrack.title}
                         onChange={(e) => handleMetadataChange(activeTrack.id, 'title', e.target.value)}
-                        disabled={uploading}
                       />
                     </div>
 
@@ -429,7 +314,6 @@ export default function Upload() {
                         placeholder="Artist name"
                         value={activeTrack.artist}
                         onChange={(e) => handleMetadataChange(activeTrack.id, 'artist', e.target.value)}
-                        disabled={uploading}
                       />
                     </div>
 
@@ -442,7 +326,6 @@ export default function Upload() {
                         placeholder="Album name (optional)"
                         value={activeTrack.album}
                         onChange={(e) => handleMetadataChange(activeTrack.id, 'album', e.target.value)}
-                        disabled={uploading}
                       />
                     </div>
 
@@ -455,39 +338,20 @@ export default function Upload() {
                         placeholder="Optional LRC lyrics [00:12.30] or line-by-line lyrics..."
                         value={activeTrack.lyrics || ''}
                         onChange={(e) => handleMetadataChange(activeTrack.id, 'lyrics', e.target.value)}
-                        disabled={uploading}
                       />
                     </div>
-
-                    {uploading && (
-                      <div className="upload-progress-container">
-                        <div className="upload-progress-bar">
-                          <div
-                            className="upload-progress-fill"
-                            style={{ width: `${batchProgress.percent}%` }}
-                          ></div>
-                        </div>
-                        <span className="upload-progress-text">{batchProgress.stageText}</span>
-                      </div>
-                    )}
 
                     <button
                       className="btn btn-primary btn-lg upload-submit"
                       onClick={handleUpload}
-                      disabled={fileList.length === 0 || uploading || fileList.some((f) => f.parsing)}
+                      disabled={fileList.length === 0 || fileList.some((f) => f.parsing)}
                     >
-                      {uploading ? (
-                        `Uploading (${batchProgress.current}/${batchProgress.total})...`
-                      ) : (
-                        <>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="17,8 12,3 7,8" />
-                            <line x1="12" y1="3" x2="12" y2="15" />
-                          </svg>
-                          Upload {fileList.length} {fileList.length === 1 ? 'Track' : 'Tracks'} to Library
-                        </>
-                      )}
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17,8 12,3 7,8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      Upload {fileList.length} {fileList.length === 1 ? 'Track' : 'Tracks'} to Library
                     </button>
                   </div>
                 )}
@@ -496,9 +360,6 @@ export default function Upload() {
           )}
         </>
       )}
-
     </div>
   )
 }
-
-

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useUpload } from '../../context/UploadContext'
 import LazyGlass from '../Common/LazyGlass'
 import './Sidebar.css'
 
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ onLogoutRequest }) {
   const { user, logout } = useAuth()
+  const { uploading, batchProgress } = useUpload()
   const [imgError, setImgError] = useState(false)
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Friend'
@@ -75,6 +77,14 @@ export default function Sidebar({ onLogoutRequest }) {
           >
             <span className="sidebar-nav-icon">{item.icon}</span>
             <span className="sidebar-nav-label">{item.label}</span>
+            {item.path === '/upload' && uploading && (
+              <span className="sidebar-upload-badge" title="Uploading in background">
+                <span className="sidebar-upload-pulse-dot" />
+                <span className="sidebar-upload-badge-text">
+                  {batchProgress.current}/{batchProgress.total}
+                </span>
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

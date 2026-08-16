@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PlayerProvider } from './context/PlayerContext'
+import { UploadProvider } from './context/UploadContext'
 import AppShell from './components/Layout/AppShell'
 import './App.css'
 
@@ -82,9 +83,11 @@ function App() {
   return (
     <AuthProvider>
       <PlayerProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <UploadProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </UploadProvider>
       </PlayerProvider>
     </AuthProvider>
   )
