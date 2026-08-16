@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 // to keep it out of the main bundle (~1MB savings)
 import { useAuth } from '../context/AuthContext'
 import { uploadAudioFile, uploadCoverImage, getAudioStreamUrl } from '../services/storage'
-import { addSongToFirestore, subscribeToStorageMeta } from '../services/firestore'
+import { addSongToFirestore, subscribeToStorageMeta, checkSongExists } from '../services/firestore'
 import './Upload.css'
 
 export default function Upload() {
@@ -154,6 +154,16 @@ export default function Upload() {
       )
 
       try {
+        // 0. Check if song already exists in Firestore to prevent duplicate uploads
+        const exists = await checkSongExists(item.title, item.artist)
+        if (exists) {
+          setFileList((prev) =>
+            prev.map((it, idx) => (idx === i ? { ...it, status: 'completed', progress: 100 } : it))
+          )
+          console.log(`Skipped duplicate track: "${item.title}" by "${item.artist}"`)
+          continue // Skip uploading this file completely
+        }
+
         // 1. Upload audio file to Firebase Storage
         const result = await uploadAudioFile(item.file, user, (percent) => {
           setFileList((prev) =>
@@ -232,7 +242,8 @@ export default function Upload() {
 
   const acceptedFormats = '.mp3,.m4a,.wav,.ogg,.flac'
   const totalStorageUsedGB = (storageMeta.totalBytesUsed / (1024 * 1024 * 1024)).toFixed(2)
-  const maxStorageGB = 25
+  const maxStorageGB = 1000
+  const isServerOnline = storageMeta.online !== false && Boolean(storageMeta.endpointUrl)
 
   const activeTrack = fileList[activeTrackIndex] || fileList[0]
 
@@ -249,12 +260,15 @@ export default function Upload() {
           <div className="upload-storage-info">
             <span className="upload-storage-label">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                <line x1="6" y1="6" x2="6.01" y2="6" />
+                <line x1="6" y1="18" x2="6.01" y2="18" />
               </svg>
-              Storage Used
+              1TB Storage Server ({isServerOnline ? '🟢 Online' : '🟡 Connecting...'})
             </span>
             <span className="upload-storage-value">
-              {totalStorageUsedGB} GB / {maxStorageGB} GB
+              {totalStorageUsedGB} GB / {maxStorageGB} GB ({storageMeta.songCount || 0} songs)
             </span>
           </div>
           <div className="progress-bar">

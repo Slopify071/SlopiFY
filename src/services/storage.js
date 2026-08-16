@@ -1,33 +1,118 @@
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'o4qz7txk'
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'slopify_preset'
-const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '962243497828134'
-const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET || 'pRe6feqGtLidjfFy05GLjt5gQxo'
-const WORKER_URL = import.meta.env.VITE_CLOUDFLARE_WORKER_URL || ''
+// Storage Service for SlopiFY
+// Supports Self-Hosted MinIO S3 Storage (1TB Laptop Backend) with Cloudflare Tunnel,
+// with Cloudinary and ObjectURL fallback modes.
 
-async function sha1Hex(str) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(str)
-  const hashBuffer = await crypto.subtle.digest('SHA-1', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || ''
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || ''
+const DEFAULT_ENDPOINT = import.meta.env.VITE_STORAGE_ENDPOINT || 'http://192.168.1.10:9000'
+
+// Active MinIO Storage Endpoint (updated dynamically from Firestore storage_meta)
+let activeStorageEndpoint = (typeof localStorage !== 'undefined' && localStorage.getItem('slopify_storage_endpoint')) || DEFAULT_ENDPOINT
+
+/**
+ * Update the active storage endpoint URL dynamically (e.g. from Firestore tunnel sync)
+ * @param {string} endpointUrl 
+ */
+export function setStorageEndpoint(endpointUrl) {
+  if (!endpointUrl) return
+  const cleanUrl = endpointUrl.trim().replace(/\/+$/, '')
+  if (cleanUrl && cleanUrl !== activeStorageEndpoint) {
+    console.log('[Storage] Active storage endpoint updated:', cleanUrl)
+    activeStorageEndpoint = cleanUrl
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('slopify_storage_endpoint', cleanUrl)
+      }
+    } catch (e) {
+      // ignore storage quota / private mode
+    }
+  }
 }
 
 /**
- * Upload an audio file to Cloudinary via direct unsigned browser upload
+ * Get current active storage endpoint URL
+ * @returns {string}
+ */
+export function getStorageEndpoint() {
+  return activeStorageEndpoint || DEFAULT_ENDPOINT
+}
+
+function sanitizeFilename(filename) {
+  return (filename || 'audio.mp3')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '_')
+    .replace(/_+/g, '_')
+}
+
+/**
+ * Upload an audio file directly to MinIO (or Cloudinary / local fallback)
  * @param {File} file - Audio File object
  * @param {Object} [user] - Current Firebase Auth user object
- * @param {Function} [onProgress] - Optional progress callback percentage (0-100)
+ * @param {Function} [onProgress] - Progress callback percentage (0-100)
  * @returns {Promise<{ downloadUrl: string, storagePath: string, fileSize: number, contentType: string }>}
  */
 export async function uploadAudioFile(file, user, onProgress) {
+  const endpoint = getStorageEndpoint()
+  const timestamp = Date.now()
+  const safeName = sanitizeFilename(file.name)
+  const storagePath = `songs/${timestamp}_${safeName}`
+
+  // 1. Direct upload to MinIO S3 bucket (via active Cloudflare Tunnel or local IP)
+  if (endpoint) {
+    const uploadUrl = `${endpoint}/slopify-audio/${storagePath}`
+    const xhr = new XMLHttpRequest()
+
+    return new Promise((resolve, reject) => {
+      xhr.open('PUT', uploadUrl)
+      xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg')
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100)
+            onProgress(percent)
+          }
+        }
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          if (onProgress) onProgress(100)
+          resolve({
+            downloadUrl: uploadUrl,
+            storagePath: storagePath,
+            fileSize: file.size,
+            contentType: file.type || 'audio/mpeg',
+          })
+        } else {
+          console.warn(`MinIO upload returned status ${xhr.status}. Attempting Cloudinary/local fallback.`)
+          uploadToCloudinaryOrLocal(file, storagePath, onProgress).then(resolve).catch(reject)
+        }
+      }
+
+      xhr.onerror = () => {
+        console.warn('Network error uploading to MinIO. Attempting Cloudinary/local fallback.')
+        uploadToCloudinaryOrLocal(file, storagePath, onProgress).then(resolve).catch(reject)
+      }
+
+      xhr.send(file)
+    })
+  }
+
+  return uploadToCloudinaryOrLocal(file, storagePath, onProgress)
+}
+
+/**
+ * Fallback uploader for Cloudinary or browser ObjectURL
+ */
+async function uploadToCloudinaryOrLocal(file, defaultPath, onProgress) {
   if (!CLOUD_NAME || !UPLOAD_PRESET) {
-    console.warn('Cloudinary credentials missing. Falling back to local ObjectURL mode.')
+    console.warn('Falling back to local ObjectURL mode.')
     if (onProgress) onProgress(100)
-    const mockPath = `songs/local_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
     const objectUrl = URL.createObjectURL(file)
     return {
       downloadUrl: objectUrl,
-      storagePath: mockPath,
+      storagePath: defaultPath,
       fileSize: file.size,
       contentType: file.type || 'audio/mpeg',
       isLocalFallback: true,
@@ -44,12 +129,10 @@ export async function uploadAudioFile(file, user, onProgress) {
 
   return new Promise((resolve, reject) => {
     xhr.open('POST', url)
-
     if (xhr.upload && onProgress) {
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100)
-          onProgress(percent)
+          onProgress(Math.round((event.loaded / event.total) * 100))
         }
       }
     }
@@ -65,123 +148,88 @@ export async function uploadAudioFile(file, user, onProgress) {
             contentType: data.format ? `audio/${data.format}` : (file.type || 'audio/mpeg'),
           })
         } catch (err) {
-          reject(new Error('Invalid response from Cloudinary upload API'))
+          reject(new Error('Invalid response from Cloudinary'))
         }
       } else {
-        try {
-          const res = JSON.parse(xhr.responseText)
-          reject(new Error(res.error?.message || `Cloudinary upload failed with status ${xhr.status}`))
-        } catch (e) {
-          reject(new Error(`Cloudinary upload failed with status ${xhr.status}`))
-        }
+        reject(new Error(`Upload failed with status ${xhr.status}`))
       }
     }
 
-    xhr.onerror = () => reject(new Error('Network error during Cloudinary file upload'))
+    xhr.onerror = () => reject(new Error('Network error during file upload'))
     xhr.send(formData)
   })
 }
 
 /**
- * Upload cover image to Cloudinary
+ * Upload cover image to MinIO or Cloudinary
  * @param {Blob|File} imageBlob
  * @param {Object} [user]
  * @returns {Promise<string>} Download URL of the cover image
  */
 export async function uploadCoverImage(imageBlob, user) {
-  if (!CLOUD_NAME || !UPLOAD_PRESET || !imageBlob) return ''
+  if (!imageBlob) return ''
 
-  try {
-    const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
-    const formData = new FormData()
-    formData.append('file', imageBlob)
-    formData.append('upload_preset', UPLOAD_PRESET)
-    formData.append('folder', 'slopify_covers')
+  const endpoint = getStorageEndpoint()
+  if (endpoint) {
+    const timestamp = Date.now()
+    const coverPath = `covers/cover_${timestamp}.jpg`
+    const uploadUrl = `${endpoint}/slopify-audio/${coverPath}`
 
-    const response = await fetch(url, { method: 'POST', body: formData })
-    if (!response.ok) {
-      throw new Error(`Cover upload failed with status ${response.status}`)
+    try {
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': imageBlob.type || 'image/jpeg' },
+        body: imageBlob,
+      })
+      if (res.ok) {
+        return uploadUrl
+      }
+    } catch (e) {
+      console.warn('MinIO cover upload failed, trying Cloudinary:', e)
     }
-    const data = await response.json()
-    return data.secure_url || ''
-  } catch (err) {
-    console.warn('Failed to upload cover art image to Cloudinary:', err)
-    return ''
   }
+
+  if (CLOUD_NAME && UPLOAD_PRESET) {
+    try {
+      const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
+      const formData = new FormData()
+      formData.append('file', imageBlob)
+      formData.append('upload_preset', UPLOAD_PRESET)
+      formData.append('folder', 'slopify_covers')
+
+      const response = await fetch(url, { method: 'POST', body: formData })
+      if (response.ok) {
+        const data = await response.json()
+        return data.secure_url || ''
+      }
+    } catch (err) {
+      console.warn('Failed to upload cover art to Cloudinary:', err)
+    }
+  }
+
+  return ''
 }
 
 /**
- * Delete audio file asset from Cloudinary
- * Tries direct signed API first, and falls back to Cloudflare Worker proxy.
- * @param {string|Object} target - Storage path (public_id) string OR song object with storagePath
+ * Delete audio file asset
+ * @param {string|Object} target - Storage path string OR song object with storagePath
  * @param {string} [authToken] - Optional Firebase Auth ID token
  */
 export async function deleteAudioFile(target, authToken) {
   if (!target) return { success: true }
 
-  const publicId = typeof target === 'string' ? target : (target.storagePath || target.r2Key || '')
+  const storagePath = typeof target === 'string' ? target : (target.storagePath || target.r2Key || '')
+  if (!storagePath) return { success: true }
 
-  if (!publicId) {
-    console.warn('deleteAudioFile: No public_id to delete')
-    return { success: true }
-  }
-
-  // 1. Direct Cloudinary Destroy API (tries 'video', 'raw', 'image' resource types)
-  if (CLOUD_NAME && API_KEY && API_SECRET) {
-    const resourceTypes = ['video', 'raw', 'image']
-    for (const resourceType of resourceTypes) {
-      try {
-        const timestamp = Math.floor(Date.now() / 1000)
-        const toSign = `public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`
-        const signature = await sha1Hex(toSign)
-
-        const formData = new URLSearchParams()
-        formData.append('public_id', publicId)
-        formData.append('api_key', API_KEY)
-        formData.append('timestamp', timestamp.toString())
-        formData.append('signature', signature)
-
-        const destroyUrl = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/destroy`
-        const res = await fetch(destroyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formData.toString(),
-        })
-        const data = await res.json()
-        if (data.result === 'ok') {
-          console.log(`Cloudinary asset "${publicId}" deleted successfully (${resourceType})`)
-          return { success: true }
-        }
-      } catch (err) {
-        console.warn(`Direct Cloudinary destroy attempt (${resourceType}) failed:`, err)
-      }
-    }
-  }
-
-  // 2. Fallback to Cloudflare Worker Proxy Endpoint
-  if (WORKER_URL) {
+  const endpoint = getStorageEndpoint()
+  if (endpoint && storagePath.startsWith('songs/')) {
     try {
-      const headers = { 'Content-Type': 'application/json' }
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`
-      }
-
-      const res = await fetch(`${WORKER_URL}/api/cloudinary-delete`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          public_id: publicId,
-          resource_type: 'video',
-        }),
+      await fetch(`${endpoint}/slopify-audio/${storagePath}`, {
+        method: 'DELETE',
       })
-
-      const data = await res.json()
-      if (data.success) {
-        console.log(`Cloudinary asset ${publicId} deleted via Worker`)
-        return { success: true }
-      }
-    } catch (err) {
-      console.warn('deleteAudioFile Worker request failed:', err)
+      return { success: true }
+    } catch (e) {
+      console.warn('MinIO delete failed:', e)
     }
   }
 
@@ -189,12 +237,42 @@ export async function deleteAudioFile(target, authToken) {
 }
 
 /**
- * Get audio stream URL from song object or string
+ * Get dynamic audio stream URL from song object or string.
+ * Automatically resolves relative storage paths and legacy tunnel URLs against the active endpoint.
  * @param {Object|string} song
+ * @returns {string}
  */
 export function getAudioStreamUrl(song) {
   if (!song) return ''
-  if (typeof song === 'string') return song
-  return song.audioUrl || song.downloadUrl || ''
+  if (typeof song === 'string') {
+    if (song.startsWith('blob:') || song.startsWith('data:')) return song
+    const endpoint = getStorageEndpoint()
+    if (endpoint && song.includes('/slopify-audio/')) {
+      return song.replace(/^https?:\/\/[^/]+\/slopify-audio\//, `${endpoint}/slopify-audio/`)
+    }
+    return song
+  }
+
+  const endpoint = getStorageEndpoint()
+
+  // 1. If song has a relative storagePath (e.g. "songs/1234_abc.mp3")
+  if (song.storagePath) {
+    if (song.storagePath.startsWith('http://') || song.storagePath.startsWith('https://') || song.storagePath.startsWith('blob:')) {
+      return song.storagePath
+    }
+    const cleanPath = song.storagePath.replace(/^\/+/, '')
+    if (endpoint) {
+      return `${endpoint}/slopify-audio/${cleanPath}`
+    }
+  }
+
+  // 2. Dynamic rewrite for stored audioUrl if it points to a MinIO/tunnel bucket
+  const url = song.audioUrl || song.downloadUrl || ''
+  if (url && endpoint && url.includes('/slopify-audio/')) {
+    return url.replace(/^https?:\/\/[^/]+\/slopify-audio\//, `${endpoint}/slopify-audio/`)
+  }
+
+  return url
 }
+
 

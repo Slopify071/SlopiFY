@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from './AuthContext'
 import { saveUserSession, subscribeToUserSession } from '../services/firestore'
+import { getAudioStreamUrl } from '../services/storage'
 
 const PlayerContext = createContext(null)
 
@@ -347,7 +348,7 @@ export function PlayerProvider({ children }) {
       return
     }
 
-    const url = state.currentSong.audioUrl || state.currentSong.downloadUrl || ''
+    const url = getAudioStreamUrl(state.currentSong)
     if (!url) return
 
     // Cancellation flag — if this effect re-runs before the play promise

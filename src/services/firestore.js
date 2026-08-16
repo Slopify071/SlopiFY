@@ -5,7 +5,7 @@
 // Instead, every function below uses `await import('firebase/firestore')` which
 // Vite code-splits into a separate chunk loaded only when first used.
 import { db, auth, isFirebaseConfigured, initFirebase } from '../config/firebase'
-import { deleteAudioFile } from './storage'
+import { deleteAudioFile, setStorageEndpoint } from './storage'
 
 // Lazily resolved module reference — cached after first dynamic import so
 // subsequent calls are synchronous (the promise resolves from module cache).
@@ -143,7 +143,11 @@ export function subscribeToStorageMeta(onNext, onError) {
         (docSnap) => {
           if (cancelled) return
           if (docSnap.exists()) {
-            onNext(docSnap.data())
+            const data = docSnap.data()
+            if (data.endpointUrl) {
+              setStorageEndpoint(data.endpointUrl)
+            }
+            onNext(data)
           } else {
             onNext({ totalBytesUsed: 0, songCount: 0 })
           }
@@ -162,6 +166,33 @@ export function subscribeToStorageMeta(onNext, onError) {
   return () => {
     cancelled = true
     if (unsubSnapshot) unsubSnapshot()
+  }
+}
+
+/**
+ * Update the storage endpoint URL in Firestore
+ */
+export async function updateStorageEndpoint(endpointUrl, online = true) {
+  if (!isFirebaseConfigured || !db) return false
+  try {
+    const { doc, setDoc, serverTimestamp } = await fs()
+    const metaRef = doc(db, 'storage_meta', 'global')
+    await setDoc(
+      metaRef,
+      {
+        endpointUrl: (endpointUrl || '').trim().replace(/\/+$/, ''),
+        online: Boolean(online),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    )
+    if (endpointUrl) {
+      setStorageEndpoint(endpointUrl)
+    }
+    return true
+  } catch (err) {
+    console.error('Failed to update storage endpoint:', err)
+    return false
   }
 }
 
@@ -213,6 +244,27 @@ export async function addSongToFirestore(songData) {
   }
 
   return docRef.id
+}
+
+/**
+ * Check if a song already exists in Firestore by title and artist
+ */
+export async function checkSongExists(title, artist) {
+  if (!isFirebaseConfigured || !db) return false
+  
+  const { collection, query, where, getDocs } = await fs()
+  try {
+    const q = query(
+      collection(db, 'songs'), 
+      where('title', '==', title || 'Untitled'),
+      where('artist', '==', artist || 'Unknown Artist')
+    )
+    const querySnapshot = await getDocs(q)
+    return !querySnapshot.empty
+  } catch (err) {
+    console.warn('Error checking for duplicate song:', err)
+    return false
+  }
 }
 
 /**
