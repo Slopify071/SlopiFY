@@ -84,7 +84,12 @@ export default function BottomPlayer() {
   }
 
   const [seekTime, setSeekTime] = useState(null)
+  const [coverError, setCoverError] = useState(false)
   const isSeekingRef = useRef(false)
+
+  useEffect(() => {
+    setCoverError(false)
+  }, [currentSong?.id, currentSong?.coverUrl])
 
   const effectiveDuration = duration > 0 ? duration : (currentSong?.duration || 0)
   const activeTime = isSeekingRef.current && seekTime !== null ? seekTime : currentTime
@@ -200,19 +205,21 @@ export default function BottomPlayer() {
   const hasSong = !!currentSong
 
   return (
-    <LazyGlass
-      className={`bottom-player ${hasSong ? 'has-song' : ''}`}
-      radius={16}
-      optics={{ frost: 0.3, dispersion: 0.2, curvature: 0.1, bend: 0.1, depth: 0.2, glow: 0.1 }}
-    >
+    <div className={`bottom-player ${hasSong ? 'has-song' : ''}`}>
       <div className="bottom-player-inner">
       <div className="player-song-info">
         <div 
           className="player-cover-art"
           onClick={() => toggleFullscreen()}
         >
-          {currentSong?.coverUrl ? (
-            <img src={currentSong.coverUrl} alt="Cover" loading="eager" decoding="async" />
+          {currentSong?.coverUrl && !coverError ? (
+            <img
+              src={currentSong.coverUrl}
+              alt="Cover"
+              loading="eager"
+              decoding="async"
+              onError={() => setCoverError(true)}
+            />
           ) : (
             <div className="player-cover-placeholder">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -393,6 +400,6 @@ export default function BottomPlayer() {
       <div className="mobile-player-progress" onMouseDown={handleSeekStart} onTouchStart={handleSeekStart}>
         <div className="mobile-player-progress-fill" style={{ width: `${progress}%` }} />
       </div>
-    </LazyGlass>
+    </div>
   )
 }

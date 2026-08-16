@@ -9,9 +9,11 @@
   right: 16px;
   height: 84px;
   border-radius: 16px;
-  /* background + backdrop handled by LazyGlass / Glass component */
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.4), inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%), rgba(18, 21, 28, 0.45);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.25);
   z-index: var(--z-player);
   will-change: transform;
   transform: translateZ(0);
@@ -358,8 +360,10 @@
     border-radius: 20px;
     height: 68px;
     z-index: var(--z-player);
-    /* background + backdrop handled by LazyGlass / Glass component */
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.06) 100%), rgba(18, 21, 28, 0.55);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
   }
 
