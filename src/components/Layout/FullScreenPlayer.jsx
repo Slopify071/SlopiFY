@@ -76,6 +76,7 @@ export default function FullScreenPlayer() {
     isBuffering,
     currentTime,
     duration,
+    bufferedPercent,
     shuffle,
     repeat,
     isFullscreen,
@@ -442,6 +443,10 @@ export default function FullScreenPlayer() {
               onTouchStart={handleSeekStart}
             >
               <div className="fullscreen-seek-track">
+                <div
+                  className="fullscreen-seek-buffered"
+                  style={{ width: `${bufferedPercent || 0}%` }}
+                />
                 <div
                   className="fullscreen-seek-fill"
                   style={{ width: `${progress}%` }}

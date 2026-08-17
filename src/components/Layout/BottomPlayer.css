@@ -258,6 +258,17 @@
   height: 6px;
 }
 
+.player-seek-buffered {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+  transition: width 0.2s ease-out;
+}
+
 .player-seek-fill {
   position: absolute;
   left: 0;
@@ -265,6 +276,7 @@
   height: 100%;
   background: var(--color-primary);
   border-radius: var(--radius-full);
+  z-index: 1;
 }
 
 .player-seek-thumb {

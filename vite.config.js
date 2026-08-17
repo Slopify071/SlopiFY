@@ -41,13 +41,15 @@ export default defineConfig(({ command }) => ({
             // Cache cover art from MinIO tunnel, Cloudinary, and image assets
             urlPattern: ({ url }) =>
               url.pathname.includes('/slopify-audio/covers/') ||
+              url.pathname.includes('/covers/') ||
               url.hostname.includes('cloudinary.com') ||
+              url.hostname.includes('trycloudflare.com') ||
               (url.pathname.match(/\.(?:png|jpg|jpeg|svg|webp)$/i) && !url.pathname.startsWith('/@')),
             handler: 'CacheFirst',
             options: {
               cacheName: 'slopify-cover-art-cache',
               expiration: {
-                maxEntries: 250,
+                maxEntries: 1000,
                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
               },
               cacheableResponse: {

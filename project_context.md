@@ -28,11 +28,12 @@
 
 ### 2. Communal Music Library & 1TB Storage
 - **Shared 1TB Storage Pool**: Audio files uploaded by any friend are stored directly in the self-hosted 1TB MinIO backend.
-- **Dynamic Endpoint Resolution**: All clients subscribe in realtime to Firestore `storage_meta/global`. Whenever the tunnel URL changes upon reboot, all audio stream links resolve automatically to the new live tunnel URL without breaking past links.
+- **Dynamic Endpoint Resolution**: All clients subscribe in realtime to Firestore `storage_meta/global`. Whenever the tunnel URL changes upon reboot, all audio stream links (`getAudioStreamUrl`) and album covers (`getCoverArtUrl`) resolve automatically to the new live tunnel URL without breaking past links.
 - **Audio Formats**: MP3, M4A, WAV, OGG, FLAC.
-- **Auto ID3 Metadata Extraction**: Drag-and-drop or select an MP3 file -> client-side auto-parser extracts Title, Artist, Album, and embedded Cover Art.
+- **Auto ID3 Metadata Extraction & Web Compression**: Drag-and-drop or select an MP3 file -> client-side auto-parser extracts Title, Artist, Album, and embedded Cover Art (automatically compressed to 500x500px web JPEG ~40-60KB).
 - **Direct HTTP PUT Uploads**: High-speed binary upload with live progress reporting (0%–100%) via `XMLHttpRequest`.
 - **Live Storage Indicator**: A global **1TB Storage Progress Bar** with live status (`🟢 Online` / `🟡 Connecting...`) on the Upload page.
+- **Offline Cover Cache**: Service Worker `CacheFirst` runtime cache stores up to 1,000 album covers locally in `CacheStorage` for 30 days, enabling 0ms instant loads on repeat visits.
 
 ### 3. Playlists & Sharing System
 - **Private by Default**: Playlists are owned by the creator and hidden from other users by default.
@@ -45,6 +46,8 @@
 ### 4. Audio Player & FIFO Queue
 - **Full Player Controls**: Play, pause, skip forward/backward, seek bar with buffered ranges, volume control, shuffle, and repeat modes.
 - **HTTP Range Streaming**: MinIO native HTTP 206 Partial Content support enables instant scrubbing and seeking across tracks.
+- **Gapless Next-Track Preloader**: When the active track reaches 82% progress (or <= 18s remaining), the secondary audio preloader engine silently pre-buffers the first chunk of the next song (`queue[0]`), achieving 0ms instant track transitions.
+- **Buffered Range Visualizer**: Real-time visual overlay on player seekbars displaying exact audio data buffered ahead (`audio.buffered`).
 - **FIFO Queue**: Strict First-In, First-Out queue structure (`push` to enqueue next tracks, `shift`/`pop` as tracks complete into playback history).
 - **Cross-Device Session Sync**: Active playback state (current song, seek progress offset in seconds, queue list, volume) is synced in real-time to Firestore under `users/{userId}/session/current`.
 - **OS Media Session Integration**: Supports native Android/iOS media controls (lock screen play/pause/skip and album art notification).
@@ -114,6 +117,7 @@ collections/
 
 1. **MinIO Server**: Runs on Linux Mint laptop (`:9000` S3 API, `:9001` Web Console) storing data on local 1TB HDD (`/home/sev/slopify-storage`).
 2. **Cloudflare Quick Tunnel**: `cloudflared tunnel --url http://localhost:9000` provides free, zero-config global HTTPS routing.
-3. **Tunnel Sync Daemon**: `slopify-tunnel-daemon.py` captures the generated HTTPS URL and updates Firestore `storage_meta/global` with authenticated REST calls.
-4. **Client-Side Resolution**: SlopiFY dynamically prefixes `storagePath` with the live `endpointUrl`, ensuring zero broken links across reboots and network reconnects.
+3. **Tunnel Sync Daemon**: `slopify-tunnel-daemon.py` managed under systemd (`slopify-tunnel.service`) captures the generated HTTPS URL, continuously drains process stdout/stderr to prevent buffer deadlocks, performs active public health checks (`/minio/health/ready` probe every 30s), and updates Firestore `storage_meta/global` with authenticated REST calls.
+4. **Client-Side Resolution**: SlopiFY dynamically prefixes both `storagePath` and `coverUrl` with the live `endpointUrl`, ensuring zero broken links across reboots and network reconnects.
+
 

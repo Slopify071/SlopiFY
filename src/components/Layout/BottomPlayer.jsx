@@ -56,6 +56,7 @@ export default function BottomPlayer() {
     isBuffering,
     currentTime,
     duration,
+    bufferedPercent,
     volume,
     muted,
     shuffle,
@@ -349,6 +350,10 @@ export default function BottomPlayer() {
             onTouchStart={handleSeekStart}
           >
             <div className={`player-seek-track ${isBuffering ? 'is-buffering' : ''}`}>
+              <div
+                className="player-seek-buffered"
+                style={{ width: `${bufferedPercent || 0}%` }}
+              />
               <div
                 className="player-seek-fill"
                 style={{ width: `${progress}%` }}

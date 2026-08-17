@@ -14,6 +14,17 @@ function getAudioElement() {
   return globalAudio
 }
 
+let preloaderAudio = null
+function getPreloaderAudio() {
+  if (!preloaderAudio && typeof window !== 'undefined') {
+    preloaderAudio = new Audio()
+    preloaderAudio.preload = 'auto'
+    preloaderAudio.volume = 0
+    preloaderAudio.muted = true
+  }
+  return preloaderAudio
+}
+
 function getDeviceId() {
   try {
     let id = sessionStorage.getItem('slopify_device_id')
@@ -54,6 +65,7 @@ const initialState = {
   isBuffering: false,
   currentTime: 0,
   duration: 0,
+  bufferedPercent: 0,
   volume: 0.7,
   muted: false,
   shuffle: false,
@@ -103,6 +115,8 @@ function playerReducer(state, action) {
       return { ...state, currentTime: action.payload }
     case 'SET_DURATION':
       return { ...state, duration: action.payload }
+    case 'SET_BUFFERED_PERCENT':
+      return { ...state, bufferedPercent: action.payload }
     case 'SET_VOLUME':
       return { ...state, volume: action.payload, muted: action.payload === 0 }
     case 'TOGGLE_MUTE':
@@ -598,6 +612,33 @@ export function PlayerProvider({ children }) {
     audio.volume = state.muted ? 0 : state.volume
   }, [state.volume, state.muted])
 
+  // Smart Gapless Next-Track Preloader (Pre-buffers next track 15s before end of current song)
+  const preloadedTrackIdRef = useRef(null)
+  useEffect(() => {
+    if (!state.isPlaying || !state.currentSong || !state.duration) return
+    const remaining = state.duration - state.currentTime
+    const progressRatio = state.duration > 0 ? state.currentTime / state.duration : 0
+
+    if ((progressRatio >= 0.82 || remaining <= 18) && state.queue.length > 0) {
+      const nextTrack = state.queue[0]
+      if (nextTrack && nextTrack.id && nextTrack.id !== preloadedTrackIdRef.current) {
+        preloadedTrackIdRef.current = nextTrack.id
+        const nextUrl = getAudioStreamUrl(nextTrack)
+        if (nextUrl) {
+          try {
+            const preloader = getPreloaderAudio()
+            if (preloader) {
+              preloader.src = nextUrl
+              preloader.load()
+            }
+          } catch (e) {
+            // Ignore prefetch error
+          }
+        }
+      }
+    }
+  }, [state.currentTime, state.duration, state.isPlaying, state.queue, state.currentSong])
+
   // Audio event listeners attached once
   const lastTimeDispatchRef = useRef(0)
   // Tracks whether we have received the real audio.duration from the browser.
@@ -651,6 +692,24 @@ export function PlayerProvider({ children }) {
       }
 
       updateDuration()
+      updateBuffered()
+    }
+    const updateBuffered = () => {
+      if (audio.buffered && audio.buffered.length > 0 && audio.duration > 0) {
+        const cur = audio.currentTime
+        for (let i = 0; i < audio.buffered.length; i++) {
+          if (audio.buffered.start(i) <= cur && cur <= audio.buffered.end(i) + 0.5) {
+            const end = audio.buffered.end(i)
+            const pct = Math.min(100, Math.max(0, (end / audio.duration) * 100))
+            dispatch({ type: 'SET_BUFFERED_PERCENT', payload: pct })
+            return
+          }
+        }
+        // Fallback: take latest buffer range
+        const lastEnd = audio.buffered.end(audio.buffered.length - 1)
+        const pct = Math.min(100, Math.max(0, (lastEnd / audio.duration) * 100))
+        dispatch({ type: 'SET_BUFFERED_PERCENT', payload: pct })
+      }
     }
     const applyPendingSeek = () => {
       if (pendingSeekRef.current > 0 && audio.duration && isFinite(audio.duration)) {
@@ -801,6 +860,7 @@ export function PlayerProvider({ children }) {
     }
 
     audio.addEventListener('timeupdate', onTimeUpdate)
+    audio.addEventListener('progress', updateBuffered)
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
     audio.addEventListener('durationchange', onDurationChange)
     audio.addEventListener('canplay', onCanPlay)
@@ -817,6 +877,7 @@ export function PlayerProvider({ children }) {
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate)
+      audio.removeEventListener('progress', updateBuffered)
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
       audio.removeEventListener('durationchange', onDurationChange)
       audio.removeEventListener('canplay', onCanPlay)

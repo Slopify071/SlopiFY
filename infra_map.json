@@ -143,7 +143,7 @@
     },
     "database": {
       "provider": "Firebase Firestore",
-      "tier": "Spark (Free 1GB)",
+      "tier": "Spark (Free Forever)",
       "collections": [
         "users",
         "songs",
@@ -180,11 +180,14 @@
       "provider": "Cloudflare Tunnel + Python Firestore Sync Daemon",
       "entry_point": "laptop-daemon/slopify-tunnel-daemon.py",
       "service_installer": "laptop-daemon/install-daemon.sh",
+      "service_name": "slopify-tunnel.service (systemd)",
       "features": [
         "Automated Quick Tunnel creation over HTTP localhost:9000",
+        "Continuous async stdout/stderr pipe drain to prevent Linux buffer deadlocks",
+        "Active HTTP health checks (/minio/health/ready probe every 30s)",
+        "Automatic cloudflared process termination and restart on 3 consecutive health probe failures",
         "Regex URL discovery (https://*.trycloudflare.com)",
-        "Authenticated REST sync to Firestore storage_meta/global",
-        "Heartbeat health monitoring and auto-restart on network disconnect"
+        "Authenticated REST sync to Firestore storage_meta/global"
       ],
       "status": "configured"
     },
@@ -194,6 +197,8 @@
       "folder": "slopify_covers",
       "features": [
         "Direct HTTP PUT to MinIO covers bucket path",
+        "Client-side and server-side 500x500 web JPEG compression (~40-60KB)",
+        "Browser Service Worker CacheStorage caching (1,000 items, 30 days)",
         "Cloudinary unsigned upload fallback"
       ],
       "status": "configured"
