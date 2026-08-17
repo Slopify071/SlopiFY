@@ -1,0 +1,740 @@
+/* ============================================================
+   Full Screen Lyrics & Player Overlay
+   ============================================================ */
+
+.fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  color: #ffffff;
+  background: #09060c;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Dynamic Ambient Background --- */
+.fullscreen-bg {
+  position: absolute;
+  inset: -60px;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fullscreen-bg-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(100px) saturate(250%) brightness(0.6);
+  transform: scale(1.2);
+  transition: background-image 0.8s ease;
+}
+
+/* --- Top Right Close Button --- */
+.fullscreen-close-btn {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fullscreen-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* --- Main Grid Layout --- */
+.fullscreen-content-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 3.5rem;
+  width: 100%;
+  max-width: 1440px;
+  height: calc(100vh - 80px);
+  margin: 60px auto 20px auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  align-items: center;
+}
+
+/* --- Left Panel (Artwork, Meta, Controls) --- */
+.fullscreen-left-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.fullscreen-cover-art-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+
+.fullscreen-cover-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.fullscreen-cover-art-wrapper:hover .fullscreen-cover-art {
+  transform: scale(1.04);
+}
+
+.fullscreen-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.fullscreen-cover-art-wrapper:hover .fullscreen-cover-overlay {
+  opacity: 1;
+}
+
+.fullscreen-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.fullscreen-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.fullscreen-song-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.fullscreen-song-artist {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+/* --- Interactive Progress Seek Bar --- */
+.fullscreen-seek-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.fullscreen-seek-bar {
+  width: 100%;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.fullscreen-seek-track {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+  transition: height 0.15s ease;
+}
+
+.fullscreen-seek-bar:hover .fullscreen-seek-track {
+  height: 7px;
+}
+
+.fullscreen-seek-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 999px;
+}
+
+.fullscreen-seek-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Left Panel Controls --- */
+.fullscreen-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.fullscreen-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.fullscreen-ctrl-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.fullscreen-ctrl-btn.is-active {
+  color: var(--color-primary, #1db954);
+}
+
+.fullscreen-play-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.fullscreen-play-btn:hover {
+  transform: scale(1.06);
+  background: #f0f0f0;
+}
+
+/* --- Right Panel (Lyrics Scroll Area) --- */
+.fullscreen-right-panel {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  padding-right: 40px;
+  box-sizing: border-box;
+}
+
+.fullscreen-lyrics-scroll-area {
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  height: 100%;
+  max-height: 82vh;
+  overflow-y: auto;
+  overflow-x: visible;
+  scroll-behavior: smooth;
+  padding: 40vh 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+}
+
+.fullscreen-lyrics-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fullscreen-lyrics-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+.fullscreen-lyric-line {
+  font-size: 2.35rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  margin: 0;
+  line-height: 1.38;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: left center;
+  transform: scale(0.95);
+  filter: blur(0.5px);
+  letter-spacing: -0.018em;
+  user-select: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.fullscreen-lyric-line:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.fullscreen-lyric-line.is-active {
+  font-size: 2.65rem;
+  font-weight: 800;
+  transform: scale(1.02);
+  filter: none;
+  background: linear-gradient(
+    to right,
+    #ffffff 0%,
+    #ffffff var(--line-progress, 0%),
+    rgba(255, 255, 255, 0.4) calc(var(--line-progress, 0%) + 10%),
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Lead-In Dots (•••) Video Matching Layout --- */
+.fullscreen-lyric-dots-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.fullscreen-lyric-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 2.4rem;
+  padding: 4px 0;
+}
+
+.fullscreen-lyric-dots .dot {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.35);
+  opacity: 0.35;
+  transform: scale(0.85) translateY(0);
+  transition: all 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fullscreen-lyric-dots .dot.is-lit {
+  color: #ffffff;
+  opacity: 1;
+  transform: scale(1.35) translateY(-6px);
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes appleDotWave {
+  0% {
+    transform: scale(0.85) translateY(4px);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.5) translateY(-14px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.35) translateY(-10px);
+    opacity: 1;
+  }
+}
+
+.fullscreen-lyrics-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.2rem;
+}
+
+/* --- Marquee Animation --- */
+.marquee-container {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  mask-image: linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent);
+}
+
+.marquee-content {
+  display: inline-flex;
+  white-space: nowrap;
+  width: max-content;
+}
+
+.marquee-content.is-marquee {
+  animation: marquee-scroll 10s linear infinite;
+}
+
+.marquee-text {
+  padding-right: 48px; /* gap between loops */
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* --- Responsive Media Queries (Mobile Apple-like Layout) --- */
+@media (max-width: 960px) {
+  .fullscreen-content-grid {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-height: 100vh;
+    margin-top: 0;
+    padding: max(60px, env(safe-area-inset-top, 60px)) 24px max(20px, env(safe-area-inset-bottom, 20px)) 24px;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  .fullscreen-left-panel {
+    display: contents; /* Unwraps the left panel to allow reordering its children */
+  }
+
+  /* 1. Header (Cover + Meta) */
+  .fullscreen-top-section {
+    order: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 64px;
+    flex-shrink: 0;
+    margin-bottom: 24px;
+  }
+
+  .fullscreen-cover-art-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    margin: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    aspect-ratio: auto; /* reset aspect ratio for mobile header */
+  }
+
+  .fullscreen-meta {
+    flex: 1;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .fullscreen-song-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .fullscreen-song-artist {
+    font-size: 0.95rem;
+    font-weight: 400;
+  }
+
+  /* 2. Middle Content (Lyrics / Queue) */
+  .fullscreen-right-panel {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    padding-right: 0;
+    overflow: hidden; /* container itself is hidden, children scroll */
+    margin-bottom: 24px;
+  }
+
+  /* Allow lyrics and queue to fill the middle space perfectly */
+  .fullscreen-lyrics-scroll-area, 
+  .fullscreen-queue-area {
+    height: 100%;
+    max-height: 100%;
+    padding: 0;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+  }
+  
+  .fullscreen-queue-list {
+    padding-bottom: 24px; /* Ensure space at bottom of queue */
+  }
+
+  .fullscreen-lyric-line {
+    font-size: 1.6rem;
+  }
+
+  .fullscreen-lyric-line.is-active {
+    font-size: 1.8rem;
+  }
+
+  /* 3. Bottom Controls (Seek + Buttons) */
+  .fullscreen-bottom-section {
+    order: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: auto;
+    padding-bottom: 60px; /* space for view toggles */
+  }
+
+  .fullscreen-seek-container {
+    margin-top: 0;
+  }
+
+  .fullscreen-controls {
+    margin-top: 0;
+    justify-content: space-around;
+  }
+
+  /* Close Button & Toggles adjustments */
+  .fullscreen-close-btn {
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+  }
+
+  .fullscreen-view-toggles {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    right: 20px;
+    left: 20px; /* Center the toggles like a tab bar */
+    justify-content: center;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .fullscreen-view-toggle-btn {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+/* --- Queue / History View --- */
+.fullscreen-queue-area {
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  height: 100%;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  padding: 10vh 0;
+  box-sizing: border-box;
+}
+
+.fullscreen-queue-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.01em;
+  padding-left: 4px;
+}
+
+.fullscreen-queue-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 12px;
+}
+
+.fullscreen-queue-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fullscreen-queue-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+.fullscreen-queue-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.fullscreen-queue-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-queue-item:hover .fullscreen-queue-remove {
+  opacity: 1;
+}
+
+.fullscreen-queue-cover-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-queue-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fullscreen-queue-cover.fallback {
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.fullscreen-queue-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fullscreen-queue-track-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fullscreen-queue-track-artist {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fullscreen-queue-remove {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.fullscreen-queue-remove:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fullscreen-queue-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* --- Bottom Right View Toggles --- */
+.fullscreen-view-toggles {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.fullscreen-view-toggle-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.fullscreen-view-toggle-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-view-toggle-btn.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}

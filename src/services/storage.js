@@ -401,4 +401,34 @@ export function getAudioStreamUrl(song) {
   return url
 }
 
+/**
+ * Get dynamic cover art URL from cover string or song/playlist object.
+ * Automatically resolves relative storage paths and legacy tunnel URLs against the active endpoint.
+ * @param {string|Object} cover
+ * @returns {string}
+ */
+export function getCoverArtUrl(cover) {
+  if (!cover) return ''
+  const coverStr = typeof cover === 'object' ? (cover.coverUrl || cover.coverPath || '') : cover
+  if (!coverStr || typeof coverStr !== 'string') return ''
+  if (coverStr.startsWith('blob:') || coverStr.startsWith('data:')) return coverStr
+
+  const endpoint = getStorageEndpoint()
+
+  // 1. If relative covers path
+  if (coverStr.startsWith('covers/')) {
+    if (endpoint) {
+      return `${endpoint}/slopify-audio/${coverStr}`
+    }
+  }
+
+  // 2. Dynamic rewrite for stored coverUrl pointing to MinIO/tunnel bucket
+  if (endpoint && coverStr.includes('/slopify-audio/')) {
+    return coverStr.replace(/^https?:\/\/[^/]+\/slopify-audio\//, `${endpoint}/slopify-audio/`)
+  }
+
+  return coverStr
+}
+
+
 

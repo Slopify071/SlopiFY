@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
+import { getCoverArtUrl } from '../../services/storage'
 import LazyGlass from '../Common/LazyGlass'
 import './BottomPlayer.css'
 
@@ -214,7 +215,7 @@ export default function BottomPlayer() {
         >
           {currentSong?.coverUrl && !coverError ? (
             <img
-              src={currentSong.coverUrl}
+              src={getCoverArtUrl(currentSong.coverUrl)}
               alt="Cover"
               loading="eager"
               decoding="async"

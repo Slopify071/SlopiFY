@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import { subscribeToUserPlaylists, deletePlaylist } from '../services/firestore'
+import { getCoverArtUrl } from '../services/storage'
 import CreatePlaylistModal from '../components/Playlist/CreatePlaylistModal'
 import ConfirmModal from '../components/Common/ConfirmModal'
 import './Playlists.css'
@@ -112,7 +113,7 @@ export default function Playlists() {
               >
                 <div className="playlist-card-cover">
                   {playlist.coverUrl ? (
-                    <img src={playlist.coverUrl} alt={playlist.name} className="playlist-card-cover-img" loading="lazy" decoding="async" />
+                    <img src={getCoverArtUrl(playlist.coverUrl)} alt={playlist.name} className="playlist-card-cover-img" loading="lazy" decoding="async" />
                   ) : (
                     <div className="playlist-card-cover-placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

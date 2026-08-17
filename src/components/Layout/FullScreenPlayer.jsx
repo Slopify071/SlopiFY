@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { usePlayer } from '../../context/PlayerContext'
-import { uploadCoverImage } from '../../services/storage'
+import { uploadCoverImage, getCoverArtUrl } from '../../services/storage'
 import { updateSongInFirestore } from '../../services/firestore'
 import './FullScreenPlayer.css'
 
@@ -122,7 +122,7 @@ export default function FullScreenPlayer() {
     }
   }
 
-  const displayCoverUrl = localCoverUrl || currentSong?.coverUrl
+  const displayCoverUrl = getCoverArtUrl(localCoverUrl || currentSong?.coverUrl)
 
   const effectiveDuration = duration > 0 ? duration : (currentSong?.duration || 0)
 
@@ -619,7 +619,7 @@ export default function FullScreenPlayer() {
                       <div className="fullscreen-queue-cover-container">
                         {track.coverUrl ? (
                           <img 
-                            src={track.coverUrl} 
+                            src={getCoverArtUrl(track.coverUrl)} 
                             alt={track.title} 
                             className="fullscreen-queue-cover"
                             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}

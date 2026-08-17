@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import SongCard from '../components/Song/SongCard'
 import { subscribeToLibrary, deleteSongFromFirestore } from '../services/firestore'
+import { getCoverArtUrl } from '../services/storage'
 import './Library.css'
 
 export default function Library() {
@@ -264,7 +265,7 @@ export default function Library() {
                       >
                         <div className="search-result-cover">
                           {song.coverUrl ? (
-                            <img src={song.coverUrl} alt={song.title} loading="lazy" decoding="async" />
+                            <img src={getCoverArtUrl(song.coverUrl)} alt={song.title} loading="lazy" decoding="async" />
                           ) : (
                             <div className="search-result-cover-placeholder">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

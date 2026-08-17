@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { subscribeToLibrary, addSongToPlaylist } from '../../services/firestore'
+import { getCoverArtUrl } from '../../services/storage'
 import { Search, X, Check, Plus, Music } from 'lucide-react'
 import './AddSongModal.css'
 
@@ -138,7 +139,7 @@ export default function AddSongModal({ isOpen, onClose, playlistId, existingSong
                 <div key={song.id} className={`add-song-row ${isAdded ? 'is-added' : ''}`}>
                   <div className="add-song-cover">
                     {song.coverUrl ? (
-                      <img src={song.coverUrl} alt={song.title} className="add-song-cover-img" loading="lazy" />
+                      <img src={getCoverArtUrl(song.coverUrl)} alt={song.title} className="add-song-cover-img" loading="lazy" />
                     ) : (
                       <div className="add-song-cover-placeholder">
                         <Music size={16} />

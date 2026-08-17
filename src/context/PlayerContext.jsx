@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from './AuthContext'
-import { saveUserSession, subscribeToUserSession, subscribeToLibrary } from '../services/firestore'
-import { getAudioStreamUrl } from '../services/storage'
+import { saveUserSession, subscribeToUserSession, subscribeToLibrary, subscribeToStorageMeta } from '../services/firestore'
+import { getAudioStreamUrl, getCoverArtUrl } from '../services/storage'
 
 const PlayerContext = createContext(null)
 
@@ -470,6 +470,12 @@ export function PlayerProvider({ children }) {
     return () => unsubscribe()
   }, [])
 
+  // 5. Global storage metadata listener for live dynamic endpoint resolution
+  useEffect(() => {
+    const unsubscribe = subscribeToStorageMeta(() => {})
+    return () => unsubscribe()
+  }, [])
+
   // Ensure singleton audio instance is configured
   useEffect(() => {
     const audio = audioRef.current || getAudioElement()
@@ -790,7 +796,7 @@ export function PlayerProvider({ children }) {
       dispatch({ type: 'SET_BUFFERING', payload: false })
       dispatch({ type: 'SET_PLAYING', payload: false })
       if (stateRef.current.currentSong?.title) {
-        dispatch({ type: 'SHOW_TOAST', payload: `Unable to play "${stateRef.current.currentSong.title}" (file deleted or missing)` })
+        dispatch({ type: 'SHOW_TOAST', payload: `Unable to stream "${stateRef.current.currentSong.title}" (storage server offline or reconnecting)` })
       }
     }
 
@@ -836,7 +842,7 @@ export function PlayerProvider({ children }) {
       artist: state.currentSong.artist || 'Unknown Artist',
       album: state.currentSong.album || 'SlopiFY',
       artwork: state.currentSong.coverUrl
-        ? [{ src: state.currentSong.coverUrl, sizes: '256x256', type: 'image/jpeg' }]
+        ? [{ src: getCoverArtUrl(state.currentSong.coverUrl), sizes: '256x256', type: 'image/jpeg' }]
         : [],
     })
 
