@@ -11,6 +11,7 @@ import {
   updatePlaylistCover,
 } from '../services/firestore'
 import { uploadCoverImage, getCoverArtUrl } from '../services/storage'
+import { preloadOnHover } from '../services/audioCache'
 import AddSongModal from '../components/Playlist/AddSongModal'
 import ConfirmModal from '../components/Common/ConfirmModal'
 import './PlaylistDetail.css'
@@ -438,6 +439,8 @@ export default function PlaylistDetail() {
                 className="playlist-detail-song-row animate-fade-in-up"
                 style={{ animationDelay: `${(index + 2) * 40}ms` }}
                 onClick={() => playSong(song)}
+                onMouseEnter={() => preloadOnHover(song)}
+                onTouchStart={() => preloadOnHover(song)}
               >
                 <div className="playlist-detail-song-index">{index + 1}</div>
 

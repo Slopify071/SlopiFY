@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { subscribeToUserPlaylists, addSongToPlaylist } from '../../services/firestore'
 import { getCoverArtUrl } from '../../services/storage'
+import { preloadOnHover } from '../../services/audioCache'
 import { usePlayer } from '../../context/PlayerContext'
 import ConfirmModal from '../Common/ConfirmModal'
 import './SongCard.css'
@@ -88,6 +89,8 @@ export default function SongCard({ song, index, currentUserId, onPlay, onDelete,
       data-song-id={song.id}
       className={`library-song-row animate-fade-in-up ${deleting ? 'deleting' : ''} ${showMenu ? 'menu-open' : ''}`}
       onClick={() => onPlay && onPlay(song)}
+      onMouseEnter={() => preloadOnHover(song)}
+      onTouchStart={() => preloadOnHover(song)}
     >
       <div className="library-song-index">{index + 1}</div>
       <div className="library-song-cover">

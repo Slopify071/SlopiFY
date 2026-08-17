@@ -32,6 +32,29 @@ function sanitizeEndpoint(url) {
   return clean
 }
 
+function warmTunnelOrigin(url) {
+  if (!url || typeof document === 'undefined') return
+  try {
+    const origin = new URL(url).origin
+    if (!origin.startsWith('http')) return
+    if (!document.querySelector(`link[data-tunnel-preconnect="${origin}"]`)) {
+      const preconnect = document.createElement('link')
+      preconnect.rel = 'preconnect'
+      preconnect.href = origin
+      preconnect.crossOrigin = 'anonymous'
+      preconnect.setAttribute('data-tunnel-preconnect', origin)
+      document.head.appendChild(preconnect)
+
+      const dnsPrefetch = document.createElement('link')
+      dnsPrefetch.rel = 'dns-prefetch'
+      dnsPrefetch.href = origin
+      document.head.appendChild(dnsPrefetch)
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
 // Active MinIO Storage Endpoint (updated dynamically from Firestore storage_meta)
 let activeStorageEndpoint = ''
 if (typeof localStorage !== 'undefined') {
@@ -39,6 +62,9 @@ if (typeof localStorage !== 'undefined') {
   activeStorageEndpoint = sanitizeEndpoint(cached) || sanitizeEndpoint(DEFAULT_ENDPOINT)
   if (!activeStorageEndpoint && cached) {
     localStorage.removeItem('slopify_storage_endpoint')
+  }
+  if (activeStorageEndpoint) {
+    warmTunnelOrigin(activeStorageEndpoint)
   }
 }
 
@@ -52,6 +78,7 @@ export function setStorageEndpoint(endpointUrl) {
   if (cleanUrl && cleanUrl !== activeStorageEndpoint) {
     console.log('[Storage] Active storage endpoint updated:', cleanUrl)
     activeStorageEndpoint = cleanUrl
+    warmTunnelOrigin(cleanUrl)
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('slopify_storage_endpoint', cleanUrl)
@@ -98,6 +125,8 @@ export async function uploadAudioFile(file, user, onProgress) {
     return new Promise((resolve, reject) => {
       xhr.open('PUT', uploadUrl)
       xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg')
+      xhr.setRequestHeader('Cache-Control', 'public, max-age=31536000, immutable')
+      xhr.setRequestHeader('x-amz-meta-cache-control', 'public, max-age=31536000, immutable')
 
       if (xhr.upload && onProgress) {
         xhr.upload.onprogress = (event) => {

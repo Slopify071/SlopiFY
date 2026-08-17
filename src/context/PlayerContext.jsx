@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useRef, useEffect, useCallback }
 import { useAuth } from './AuthContext'
 import { saveUserSession, subscribeToUserSession, subscribeToLibrary, subscribeToStorageMeta } from '../services/firestore'
 import { getAudioStreamUrl, getCoverArtUrl } from '../services/storage'
+import { preloadQueue, preloadSongAudio } from '../services/audioCache'
 
 const PlayerContext = createContext(null)
 
@@ -414,7 +415,7 @@ export function PlayerProvider({ children }) {
     if (!user?.uid || !state.isPlaying) return
 
     const interval = setInterval(() => {
-      if (isSyncingFromRemoteRef.current) return
+      if (isSyncingFromRemoteRef.current || isBufferingRef.current) return
       saveUserSession(user.uid, {
         deviceId: deviceIdRef.current,
         currentSong: stateRef.current.currentSong,
@@ -552,7 +553,6 @@ export function PlayerProvider({ children }) {
       }
       audio.preload = 'auto'
       audio.src = url
-      audio.load()
     }
 
     if (state.isPlaying) {
@@ -612,32 +612,31 @@ export function PlayerProvider({ children }) {
     audio.volume = state.muted ? 0 : state.volume
   }, [state.volume, state.muted])
 
-  // Smart Gapless Next-Track Preloader (Pre-buffers next track 15s before end of current song)
+  // Smart Gapless Next-Track Preloader & Background Queue Pre-caching
   const preloadedTrackIdRef = useRef(null)
   useEffect(() => {
-    if (!state.isPlaying || !state.currentSong || !state.duration) return
-    const remaining = state.duration - state.currentTime
-    const progressRatio = state.duration > 0 ? state.currentTime / state.duration : 0
+    if (!state.currentSong || !state.queue || state.queue.length === 0) return
 
-    if ((progressRatio >= 0.82 || remaining <= 18) && state.queue.length > 0) {
-      const nextTrack = state.queue[0]
-      if (nextTrack && nextTrack.id && nextTrack.id !== preloadedTrackIdRef.current) {
-        preloadedTrackIdRef.current = nextTrack.id
-        const nextUrl = getAudioStreamUrl(nextTrack)
-        if (nextUrl) {
-          try {
-            const preloader = getPreloaderAudio()
-            if (preloader) {
-              preloader.src = nextUrl
-              preloader.load()
-            }
-          } catch (e) {
-            // Ignore prefetch error
+    // Proactively pre-cache top 2 tracks from FIFO queue into CacheStorage
+    preloadQueue(state.queue, 2)
+
+    const nextTrack = state.queue[0]
+    if (nextTrack && nextTrack.id && nextTrack.id !== preloadedTrackIdRef.current) {
+      preloadedTrackIdRef.current = nextTrack.id
+      preloadSongAudio(nextTrack)
+      const nextUrl = getAudioStreamUrl(nextTrack)
+      if (nextUrl) {
+        try {
+          const preloader = getPreloaderAudio()
+          if (preloader) {
+            preloader.src = nextUrl
           }
+        } catch (e) {
+          // Ignore prefetch error
         }
       }
     }
-  }, [state.currentTime, state.duration, state.isPlaying, state.queue, state.currentSong])
+  }, [state.currentSong?.id, state.queue, state.isPlaying])
 
   // Audio event listeners attached once
   const lastTimeDispatchRef = useRef(0)

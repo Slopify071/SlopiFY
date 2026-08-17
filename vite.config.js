@@ -38,6 +38,27 @@ export default defineConfig(({ command }) => ({
         clientsClaim: true,
         runtimeCaching: [
           {
+            // High-speed audio streaming cache with HTTP 206 RangeRequests support
+            urlPattern: ({ url }) =>
+              url.pathname.includes('/slopify-audio/songs/') ||
+              url.pathname.includes('/songs/') ||
+              url.pathname.includes('/api/audio/') ||
+              url.pathname.match(/\.(?:mp3|m4a|wav|ogg|flac|aac|webm)$/i),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slopify-audio-cache',
+              rangeRequests: true,
+              expiration: {
+                maxEntries: 60, // Keep top 60 tracks locally (~450MB)
+                maxAgeSeconds: 14 * 24 * 60 * 60, // 14 Days
+                purgeOnQuotaError: true,
+              },
+              cacheableResponse: {
+                statuses: [0, 200, 206],
+              },
+            },
+          },
+          {
             // Cache cover art from MinIO tunnel, Cloudinary, and image assets
             urlPattern: ({ url }) =>
               url.pathname.includes('/slopify-audio/covers/') ||

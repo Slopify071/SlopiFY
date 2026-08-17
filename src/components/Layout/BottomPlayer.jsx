@@ -346,6 +346,22 @@ export default function BottomPlayer() {
           <span className="player-time">{formatTime(effectiveDuration > 0 ? Math.min(activeTime, effectiveDuration) : activeTime)}</span>
           <div
             className="player-seek-bar"
+            role="slider"
+            aria-label="Seek track"
+            aria-valuemin="0"
+            aria-valuemax={Math.round(effectiveDuration)}
+            aria-valuenow={Math.round(activeTime)}
+            aria-valuetext={`${formatTime(activeTime)} of ${formatTime(effectiveDuration)}`}
+            tabIndex="0"
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft') {
+                e.preventDefault()
+                seek(Math.max(0, activeTime - 5))
+              } else if (e.key === 'ArrowRight') {
+                e.preventDefault()
+                seek(Math.min(effectiveDuration, activeTime + 5))
+              }
+            }}
             onMouseDown={handleSeekStart}
             onTouchStart={handleSeekStart}
           >
