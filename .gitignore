@@ -36,7 +36,6 @@ mcp.json
 *.sln
 *.sw?
 
-
 # wrangler files
 .wrangler
 .dev.vars*

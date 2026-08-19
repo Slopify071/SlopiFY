@@ -155,12 +155,6 @@ export default defineConfig(({ command }) => ({
     'import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET': JSON.stringify(
       process.env.VITE_CLOUDINARY_UPLOAD_PRESET || wranglerVars.VITE_CLOUDINARY_UPLOAD_PRESET || 'slopify_preset'
     ),
-    'import.meta.env.VITE_CLOUDINARY_API_KEY': JSON.stringify(
-      process.env.VITE_CLOUDINARY_API_KEY || wranglerVars.CLOUDINARY_API_KEY || '962243497828134'
-    ),
-    'import.meta.env.VITE_CLOUDINARY_API_SECRET': JSON.stringify(
-      process.env.VITE_CLOUDINARY_API_SECRET || wranglerVars.CLOUDINARY_API_SECRET || 'pRe6feqGtLidjfFy05GLjt5gQxo'
-    ),
     'import.meta.env.VITE_CLOUDFLARE_WORKER_URL': JSON.stringify(
       process.env.VITE_CLOUDFLARE_WORKER_URL || wranglerVars.VITE_CLOUDFLARE_WORKER_URL || 'http://127.0.0.1:8787'
     ),

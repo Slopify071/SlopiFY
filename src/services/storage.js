@@ -5,17 +5,7 @@ import { compressCoverImage } from '../utils/imageOptimizer'
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || ''
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || ''
-const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || ''
-const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET || ''
 const DEFAULT_ENDPOINT = import.meta.env.VITE_STORAGE_ENDPOINT || ''
-
-async function sha1Hex(str) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(str)
-  const hashBuffer = await crypto.subtle.digest('SHA-1', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-}
 
 function isPrivateIpUrl(url) {
   if (!url || typeof url !== 'string') return false
@@ -308,44 +298,6 @@ export async function deleteCoverImage(coverUrlOrPath) {
     }
   }
 
-  // 2. Check if Cloudinary cover image
-  if (CLOUD_NAME && API_KEY && API_SECRET && coverUrlOrPath.includes('cloudinary.com')) {
-    try {
-      const url = new URL(coverUrlOrPath)
-      const parts = url.pathname.split('/upload/')
-      if (parts.length >= 2) {
-        let afterUpload = parts[1]
-        afterUpload = afterUpload.replace(/^v\d+\//, '')
-        const publicId = afterUpload.replace(/\.[^/.]+$/, '')
-
-        if (publicId) {
-          const timestamp = Math.floor(Date.now() / 1000)
-          const toSign = `public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`
-          const signature = await sha1Hex(toSign)
-
-          const formData = new URLSearchParams()
-          formData.append('public_id', publicId)
-          formData.append('api_key', API_KEY)
-          formData.append('timestamp', timestamp.toString())
-          formData.append('signature', signature)
-
-          const destroyUrl = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`
-          const res = await fetch(destroyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString(),
-          })
-          const data = await res.json()
-          if (data.result === 'ok') {
-            console.log(`Cloudinary cover image "${publicId}" deleted successfully`)
-            return { success: true }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Cloudinary deleteCoverImage failed:', err)
-    }
-  }
 
   return { success: true }
 }
@@ -358,7 +310,7 @@ export async function deleteCoverImage(coverUrlOrPath) {
 export async function deleteAudioFile(target, authToken) {
   if (!target) return { success: true }
 
-  const storagePath = typeof target === 'string' ? target : (target.storagePath || target.r2Key || '')
+  const storagePath = typeof target === 'string' ? target : (target.storagePath || '')
   const coverUrl = typeof target === 'object' ? (target.coverUrl || target.coverPath || '') : ''
 
   // 1. Delete audio file from MinIO
@@ -458,6 +410,3 @@ export function getCoverArtUrl(cover) {
 
   return coverStr
 }
-
-
-
