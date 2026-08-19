@@ -23,14 +23,35 @@
     <meta property="og:description" content="Private music streaming web app for friends. Upload, share, and listen together in real-time." />
     <meta property="og:image" content="https://slopify-nu.vercel.app/login-bg.png" />
 
-    <!-- Google Site Name Structured Data (JSON-LD) -->
+    <!-- Structured Data (JSON-LD) for Search Crawlers & AI Summarizers -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "SlopiFY",
-        "alternateName": ["Slopify"],
-        "url": "https://slopify-nu.vercel.app/"
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://slopify-nu.vercel.app/#website",
+            "name": "SlopiFY",
+            "alternateName": ["Slopify", "SlopiFY Music"],
+            "url": "https://slopify-nu.vercel.app/",
+            "description": "Private communal music streaming web app for friends. Upload, stream, and share high-quality audio in real-time."
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://slopify-nu.vercel.app/#webapp",
+            "name": "SlopiFY",
+            "url": "https://slopify-nu.vercel.app/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "All",
+            "browserRequirements": "Requires JavaScript and HTML5 Audio support",
+            "description": "Lightweight, communal music streaming platform featuring multi-format audio playback, ID3 metadata parsing, and shared playlists.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }
+        ]
       }
     </script>
 
@@ -73,9 +94,29 @@
     <!--
       Pre-rendered loading shell — visible on frame 0 before React boots.
       React replaces this once it hydrates, so there is no flash.
-      The .app-title text is the LCP text fallback if the image is slow.
     -->
     <div id="root"></div>
+
+    <!--
+      Semantic crawler fallback in <noscript>.
+      Browsers with JavaScript ignore this entirely (0 layout shift, 0 paint impact).
+      Crawlers without JS execution read this to index page topics, headings, and keywords.
+    -->
+    <noscript>
+      <div style="padding: 2rem; max-width: 800px; margin: 0 auto; font-family: sans-serif; color: #fff;">
+        <h1>SlopiFY — Music for the Homies</h1>
+        <p>SlopiFY is a private communal music streaming web application designed for friends. Upload, share, and listen together in real-time with zero subscription fees.</p>
+        <h2>Key Features</h2>
+        <ul>
+          <li><strong>Communal Music Library:</strong> Stream audio tracks with zero delay and instant scrubbing.</li>
+          <li><strong>Multi-Format Audio Support:</strong> High-fidelity playback for MP3, FLAC, WAV, M4A, and OGG formats.</li>
+          <li><strong>Collaborative Playlists:</strong> Create, share, and reorder custom music playlists.</li>
+          <li><strong>Client-Side Tag Parsing:</strong> Automatic ID3 and album artwork extraction on upload.</li>
+        </ul>
+        <p><a href="/login" style="color: #60a5fa;">Click here to log in to SlopiFY</a></p>
+      </div>
+    </noscript>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -3,10 +3,10 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
-  <!-- Homepage / Authentication Page -->
+  <!-- Root Canonical Homepage -->
   <url>
-    <loc>https://slopify-nu.vercel.app/login</loc>
-    <lastmod>2026-08-04</lastmod>
+    <loc>https://slopify-nu.vercel.app/</loc>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -15,10 +15,18 @@
     </image:image>
   </url>
 
+  <!-- Authentication / Login Page -->
+  <url>
+    <loc>https://slopify-nu.vercel.app/login</loc>
+    <lastmod>2026-08-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
   <!-- Music Library -->
   <url>
     <loc>https://slopify-nu.vercel.app/library</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -26,7 +34,7 @@
   <!-- Playlists Portal -->
   <url>
     <loc>https://slopify-nu.vercel.app/playlists</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
@@ -34,7 +42,7 @@
   <!-- Upload Song Page -->
   <url>
     <loc>https://slopify-nu.vercel.app/upload</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
