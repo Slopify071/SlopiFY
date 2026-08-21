@@ -1,10 +1,17 @@
 // NOTE: firebase/firestore is intentionally NOT statically imported here.
-// A static import would pull the entire Firestore SDK (~140 KiB) into the
+// A static import would pull the entire Firestore SDK (~145 KiB gzip) into the
 // initial JavaScript bundle and block first paint on every page — even the
 // login page — where none of it is needed yet.
-// Instead, every function below uses `await import('firebase/firestore')` which
-// Vite code-splits into a separate chunk loaded only when first used.
-import { db, auth, isFirebaseConfigured, initFirebase } from '../config/firebase'
+// Instead, every function below resolves the Firestore instance through
+// `await getDb()` (which dynamically imports the SDK on first use) and pulls
+// individual SDK functions through the `fs()` helper below. Both hit the same
+// resolved module cache, so there is only ever one network fetch.
+//
+// `db` is deliberately NOT imported from ../config/firebase — each function
+// declares its own `const db = await getDb()`. A function that forgot to would
+// then fail loudly with a ReferenceError in testing, rather than silently
+// no-op'ing forever against a null module binding.
+import { auth, isFirebaseConfigured, getDb } from '../config/firebase'
 import { deleteAudioFile, deleteCoverImage, setStorageEndpoint } from './storage'
 
 // Lazily resolved module reference — cached after first dynamic import so
@@ -19,7 +26,9 @@ async function fs() {
  * Sync user info to Firestore collection `users/{uid}` on login
  */
 export async function syncUser(user) {
-  if (!isFirebaseConfigured || !db || !user?.uid) return null
+  if (!isFirebaseConfigured || !user?.uid) return null
+  const db = await getDb()
+  if (!db) return null
 
   try {
     const syncWork = async () => {
@@ -63,10 +72,9 @@ export function subscribeToLibrary(onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then(async (fb) => {
+  getDb().then(async (fireDb) => {
     if (cancelled) return
     const { collection, onSnapshot } = await fs()
-    const fireDb = fb?.db || db
     if (!fireDb) {
       onNext([])
       return
@@ -127,10 +135,9 @@ export function subscribeToStorageMeta(onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then(async (fb) => {
+  getDb().then(async (fireDb) => {
     if (cancelled) return
     const { doc, onSnapshot } = await fs()
-    const fireDb = fb?.db || db
     if (!fireDb) {
       onNext({ totalBytesUsed: 0, songCount: 0 })
       return
@@ -173,7 +180,9 @@ export function subscribeToStorageMeta(onNext, onError) {
  * Update the storage endpoint URL in Firestore
  */
 export async function updateStorageEndpoint(endpointUrl, online = true) {
-  if (!isFirebaseConfigured || !db) return false
+  if (!isFirebaseConfigured) return false
+  const db = await getDb()
+  if (!db) return false
   try {
     const { doc, setDoc, serverTimestamp } = await fs()
     const metaRef = doc(db, 'storage_meta', 'global')
@@ -215,7 +224,12 @@ export async function addSongToFirestore(songData) {
     uploaderName: songData.uploaderName || 'Friend',
   }
 
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase is not configured')
+  }
+
+  const db = await getDb()
+  if (!db) {
     throw new Error('Firebase is not configured')
   }
 
@@ -249,8 +263,10 @@ export async function addSongToFirestore(songData) {
  * Check if a song already exists in Firestore by title and artist
  */
 export async function checkSongExists(title, artist) {
-  if (!isFirebaseConfigured || !db) return false
-  
+  if (!isFirebaseConfigured) return false
+  const db = await getDb()
+  if (!db) return false
+
   const { collection, query, where, getDocs } = await fs()
   try {
     const q = query(
@@ -270,7 +286,12 @@ export async function checkSongExists(title, artist) {
  * Delete song document from Firestore and corresponding file from Cloudinary/Storage
  */
 export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSize = 0) {
-  if (!isFirebaseConfigured || !db || !songId) {
+  if (!isFirebaseConfigured || !songId) {
+    return { success: true }
+  }
+
+  const db = await getDb()
+  if (!db) {
     return { success: true }
   }
 
@@ -332,7 +353,9 @@ export async function deleteSongFromFirestore(songId, storagePathOrSong, fileSiz
  * Update an existing song in Firestore
  */
 export async function updateSongInFirestore(songId, updates) {
-  if (!isFirebaseConfigured || !db || !songId) return
+  if (!isFirebaseConfigured || !songId) return
+  const db = await getDb()
+  if (!db) return
   const { doc, updateDoc } = await fs()
   try {
     const songRef = doc(db, 'songs', songId)
@@ -346,7 +369,9 @@ export async function updateSongInFirestore(songId, updates) {
  * Save active user playback session for cross-device sync
  */
 export async function saveUserSession(uid, sessionData) {
-  if (!isFirebaseConfigured || !db || !uid) return
+  if (!isFirebaseConfigured || !uid) return
+  const db = await getDb()
+  if (!db) return
   const { doc, setDoc, serverTimestamp } = await fs()
   try {
     const sessionRef = doc(db, 'users', uid, 'session', 'current')
@@ -365,10 +390,9 @@ export function subscribeToUserSession(uid, onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then(async (fb) => {
+  getDb().then(async (fireDb) => {
     if (cancelled) return
     const { doc, onSnapshot } = await fs()
-    const fireDb = fb?.db || db
     if (!fireDb) return
 
     try {
@@ -410,7 +434,9 @@ function generateShareCode() {
  * Search songs by title or artist in Firestore
  */
 export async function searchSongs(searchTerm) {
-  if (!isFirebaseConfigured || !db || !searchTerm) return []
+  if (!isFirebaseConfigured || !searchTerm) return []
+  const db = await getDb()
+  if (!db) return []
   const { collection, getDocs } = await fs()
 
   const term = searchTerm.toLowerCase().trim()
@@ -443,10 +469,9 @@ export function subscribeToUserPlaylists(userUid, onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then(async (fb) => {
+  getDb().then(async (fireDb) => {
     if (cancelled) return
     const { collection, onSnapshot, getDocs, doc, updateDoc, serverTimestamp } = await fs()
-    const fireDb = fb?.db || db
     if (!fireDb) {
       onNext([])
       return
@@ -540,10 +565,9 @@ export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
   let cancelled = false
   let unsubSnapshot = null
 
-  initFirebase().then(async (fb) => {
+  getDb().then(async (fireDb) => {
     if (cancelled) return
     const { doc, onSnapshot, collection, query, where, getDocs, updateDoc, serverTimestamp } = await fs()
-    const fireDb = fb?.db || db
     if (!fireDb) {
       onNext(null)
       return
@@ -618,7 +642,12 @@ export function subscribeToPlaylistDetail(idOrShareCode, onNext, onError) {
  * Create a new playlist directly in Firestore
  */
 export async function createPlaylist({ name, description = '', coverUrl = '', ownerUid, ownerName, isCollaborative = false }) {
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase is not configured')
+  }
+
+  const db = await getDb()
+  if (!db) {
     throw new Error('Firebase is not configured')
   }
 
@@ -645,7 +674,9 @@ export async function createPlaylist({ name, description = '', coverUrl = '', ow
  * Delete a playlist from Firestore and clean up cover image if hosted on MinIO
  */
 export async function deletePlaylist(playlistId, playlistOrCoverUrl) {
-  if (!isFirebaseConfigured || !db || !playlistId) return
+  if (!isFirebaseConfigured || !playlistId) return
+  const db = await getDb()
+  if (!db) return
   const { doc, deleteDoc } = await fs()
   try {
     const coverUrl = typeof playlistOrCoverUrl === 'object' ? playlistOrCoverUrl?.coverUrl : (playlistOrCoverUrl || '')
@@ -662,7 +693,9 @@ export async function deletePlaylist(playlistId, playlistOrCoverUrl) {
  * Update playlist cover image URL in Firestore
  */
 export async function updatePlaylistCover(playlistId, coverUrl) {
-  if (!isFirebaseConfigured || !db || !playlistId) return
+  if (!isFirebaseConfigured || !playlistId) return
+  const db = await getDb()
+  if (!db) return
   const { doc, updateDoc, serverTimestamp } = await fs()
   try {
     await updateDoc(doc(db, 'playlists', playlistId), {
@@ -678,7 +711,9 @@ export async function updatePlaylistCover(playlistId, coverUrl) {
  * Add a song to playlist in Firestore
  */
 export async function addSongToPlaylist(playlistId, song) {
-  if (!isFirebaseConfigured || !db || !playlistId || !song) return
+  if (!isFirebaseConfigured || !playlistId || !song) return
+  const db = await getDb()
+  if (!db) return
   const { doc, getDoc, updateDoc, serverTimestamp } = await fs()
   try {
     const playlistRef = doc(db, 'playlists', playlistId)
@@ -713,7 +748,9 @@ export async function addSongToPlaylist(playlistId, song) {
  * Remove a song from playlist in Firestore
  */
 export async function removeSongFromPlaylist(playlistId, songId) {
-  if (!isFirebaseConfigured || !db || !playlistId || !songId) return
+  if (!isFirebaseConfigured || !playlistId || !songId) return
+  const db = await getDb()
+  if (!db) return
   const { doc, getDoc, updateDoc, serverTimestamp } = await fs()
   try {
     const playlistRef = doc(db, 'playlists', playlistId)
@@ -734,7 +771,9 @@ export async function removeSongFromPlaylist(playlistId, songId) {
  * Reorder playlist songs in Firestore
  */
 export async function reorderPlaylistSongs(playlistId, reorderedSongs) {
-  if (!isFirebaseConfigured || !db || !playlistId) return
+  if (!isFirebaseConfigured || !playlistId) return
+  const db = await getDb()
+  if (!db) return
   const { doc, updateDoc, serverTimestamp } = await fs()
   try {
     await updateDoc(doc(db, 'playlists', playlistId), {
@@ -750,7 +789,9 @@ export async function reorderPlaylistSongs(playlistId, reorderedSongs) {
  * Toggle playlist collaborative mode in Firestore
  */
 export async function togglePlaylistCollaboration(playlistId, isCollaborative) {
-  if (!isFirebaseConfigured || !db || !playlistId) return
+  if (!isFirebaseConfigured || !playlistId) return
+  const db = await getDb()
+  if (!db) return
   const { doc, updateDoc, serverTimestamp } = await fs()
   try {
     await updateDoc(doc(db, 'playlists', playlistId), {
@@ -773,7 +814,12 @@ export async function togglePlaylistCollaboration(playlistId, isCollaborative) {
  * @returns {Promise<{ deletedCount: number, freedBytes: number }>}
  */
 export async function nukeLibrary(onProgress) {
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured) {
+    return { deletedCount: 0, freedBytes: 0 }
+  }
+
+  const db = await getDb()
+  if (!db) {
     return { deletedCount: 0, freedBytes: 0 }
   }
 

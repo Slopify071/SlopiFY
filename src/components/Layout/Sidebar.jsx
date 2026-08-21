@@ -61,7 +61,7 @@ export default function Sidebar({ onLogoutRequest }) {
       <div className="sidebar-logo">
         <Link to="/library" className="sidebar-logo-link" title="SlopiFY Home">
           <div className="sidebar-logo-icon">
-            <img src="/logo.png" alt="SlopiFY" width="34" height="34" style={{ borderRadius: '8px' }} />
+            <img src="/logo.webp" alt="SlopiFY" width="34" height="34" style={{ borderRadius: '8px' }} />
           </div>
           <span className="sidebar-logo-text">SlopiFY</span>
         </Link>

@@ -80,7 +80,7 @@ export default function Login() {
         {/* Header */}
         <div className="login-header">
           <div className="login-logo-icon">
-            <img src="/logo.png" alt="SlopiFY" width="56" height="56" style={{ borderRadius: '12px' }} />
+            <img src="/logo.webp" alt="SlopiFY" width="56" height="56" style={{ borderRadius: '12px' }} />
           </div>
           <h1 className="login-title">{isSignUp ? 'Create an Account' : 'Welcome Back!'}</h1>
           <p className="login-subtitle">

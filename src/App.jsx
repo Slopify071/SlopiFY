@@ -1,13 +1,18 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PlayerProvider } from './context/PlayerContext'
 import { UploadProvider } from './context/UploadContext'
 import { isAdmin } from './config/admin'
-import AppShell from './components/Layout/AppShell'
 import './App.css'
 
 import Login from './pages/Login'
+
+// AppShell is lazy purely so its stylesheet graph (AppShell + Sidebar + BottomPlayer
+// + FullScreenPlayer + MobileNav + QueueSidebar + Toast + ConfirmModal, ~28 KiB raw)
+// splits out of index-*.css instead of render-blocking the login page. Vite emits the
+// chunk's <link> before resolving its JS, so there is no flash of unstyled shell.
+const AppShell = lazy(() => import('./components/Layout/AppShell'))
 
 const Library = lazy(() => import('./pages/Library'))
 const Upload = lazy(() => import('./pages/Upload'))
@@ -67,6 +72,18 @@ function AdminRoute({ children }) {
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth()
+
+  // Warm the shell and the landing page together as soon as we know the user is
+  // signed in. Same module specifiers as the lazy() calls above, so React reuses
+  // these in-flight promises and both chunks download in parallel instead of
+  // serially (AppShell → Outlet → Library). Returning users hit this on frame 1
+  // because AuthProvider seeds `user` from sessionStorage.
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const swallow = () => {} // failures resurface through Suspense on render
+    import('./components/Layout/AppShell').catch(swallow)
+    import('./pages/Library').catch(swallow)
+  }, [isAuthenticated])
 
   return (
     <Suspense fallback={<PageFallback />}>

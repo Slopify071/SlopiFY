@@ -42,13 +42,16 @@ export function UploadProvider({ children }) {
   const [error, setError] = useState(null)
   const [storageMeta, setStorageMeta] = useState({ totalBytesUsed: 0, songCount: 0 })
 
-  // Subscribe to storage meta
+  // Subscribe to storage meta — gated on sign-in so the login page (which mounts
+  // this provider above the router) does not pull the Firestore SDK.
   useEffect(() => {
+    if (!user?.uid) return
+
     const unsubscribe = subscribeToStorageMeta((meta) => {
       if (meta) setStorageMeta(meta)
     })
     return () => unsubscribe()
-  }, [])
+  }, [user?.uid])
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault()

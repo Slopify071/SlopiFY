@@ -25,7 +25,7 @@
   position: absolute;
   inset: 0;
   background-color: #484F56;
-  background-image: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.05), transparent 70%), url('/login-bg.png');
+  background-image: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.05), transparent 70%), url('/login-bg.webp');
   background-size: cover;
   background-position: center;
   pointer-events: none;

@@ -86,11 +86,16 @@ export function AuthProvider({ children }) {
         return
       }
 
-      const { onAuthStateChanged, getRedirectResult } = await import('firebase/auth')
+      const { onAuthStateChanged, getRedirectResult, browserPopupRedirectResolver } =
+        await import('firebase/auth')
 
-      // Only run getRedirectResult if returning from Google Auth redirect
+      // Only run getRedirectResult if returning from Google Auth redirect.
+      // The resolver is passed explicitly because initFirebase() no longer installs
+      // it as auth's default — that default is what fetched the 93 KiB
+      // firebaseapp.com auth iframe on every cold load. Naming the binding costs
+      // nothing; the iframe is only fetched when the resolver is actually used.
       if (window.location.search.includes('apiKey') || window.location.hash.includes('access_token')) {
-        getRedirectResult(fb.auth)
+        getRedirectResult(fb.auth, browserPopupRedirectResolver)
           .then(async (result) => {
             if (result?.user) {
               setUser(result.user)
@@ -149,16 +154,20 @@ export function AuthProvider({ children }) {
       const fb = await initFirebase()
       if (!fb) throw new Error('Firebase failed to initialise')
 
-      const { signInWithPopup, signInWithRedirect } = await import('firebase/auth')
+      // browserPopupRedirectResolver is passed explicitly (rather than being auth's
+      // default) so the 93 KiB firebaseapp.com iframe is fetched on this click
+      // instead of on every cold page load.
+      const { signInWithPopup, signInWithRedirect, browserPopupRedirectResolver } =
+        await import('firebase/auth')
 
       try {
-        const result = await signInWithPopup(fb.auth, fb.googleProvider)
+        const result = await signInWithPopup(fb.auth, fb.googleProvider, browserPopupRedirectResolver)
         await syncUser(result.user)
         return result.user
       } catch (err) {
         if (err.code === 'auth/popup-blocked') {
           try {
-            await signInWithRedirect(fb.auth, fb.googleProvider)
+            await signInWithRedirect(fb.auth, fb.googleProvider, browserPopupRedirectResolver)
             return
           } catch (redirectErr) {
             console.error('Google Sign-In redirect failed:', redirectErr)

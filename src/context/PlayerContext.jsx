@@ -448,6 +448,11 @@ export function PlayerProvider({ children }) {
   // 4. Real-time library subscription to sync deleted songs across player state
   const libraryLoadedOnceRef = useRef(false)
   useEffect(() => {
+    // Gated on sign-in: PlayerProvider mounts above the router, so without this
+    // the login page would pull the Firestore SDK and open a Listen channel to
+    // purge songs from a queue that cannot exist yet.
+    if (!user?.uid) return
+
     const unsubscribe = subscribeToLibrary((songs) => {
       if (!Array.isArray(songs)) return
       allSongsRef.current = songs
@@ -483,13 +488,16 @@ export function PlayerProvider({ children }) {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [user?.uid])
 
   // 5. Global storage metadata listener for live dynamic endpoint resolution
   useEffect(() => {
+    // Gated on sign-in — the endpoint is only needed once playback is possible.
+    if (!user?.uid) return
+
     const unsubscribe = subscribeToStorageMeta(() => {})
     return () => unsubscribe()
-  }, [])
+  }, [user?.uid])
 
   // Ensure singleton audio instance is configured
   useEffect(() => {

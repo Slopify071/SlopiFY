@@ -103,7 +103,7 @@ export default defineConfig(({ command }) => ({
           },
         ],
       },
-      includeAssets: ['favicon-32x32.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'logo.png'],
+      includeAssets: ['favicon-32x32.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'logo.webp'],
       manifest: {
         name: 'SlopiFY',
         short_name: 'SlopiFY',
@@ -217,6 +217,14 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Vite's __vitePreload helper is a virtual module (`\0vite/preload-helper.js`).
+          // Left unassigned, Rollup folds it into whichever vendor chunk it likes — it
+          // landed in vendor-music-metadata, which made the entry chunk *statically*
+          // import 218 KiB of audio tag parsers just to reach a ~40-line helper.
+          // Pinning it to its own ~1 KB chunk keeps the entry's static graph minimal.
+          if (id.includes('vite/preload-helper')) {
+            return 'vite-preload'
+          }
           // Firestore — loaded lazily via dynamic imports in firestore.js
           if (id.includes('node_modules/@firebase/firestore') || id.includes('node_modules/firebase/firestore')) {
             return 'vendor-firebase-firestore'
